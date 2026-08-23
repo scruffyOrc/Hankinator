@@ -86,6 +86,7 @@ constexpr uint8_t WeightProbeMinimumSamples=16;
 constexpr float WeightProbeMaxRangeGrams=15.0f;
 constexpr uint8_t WeightProbeMaxConsecutiveRetries=3;
 constexpr uint8_t WeightEstimateCalibrationTurns=8;
+constexpr float WeightEstimateCalibrationMotorRps=0.5f;
 constexpr float WeightEstimateBulkFraction=0.80f;
 constexpr uint8_t WeightEstimateFinalReserveTurns=4;
 constexpr uint8_t WeightEstimateMaxApproachTurns=4,WeightEstimateMaxApproachBatches=12;
@@ -97,6 +98,7 @@ constexpr float FuhCruiseMotorRps=3.0f;
 constexpr uint8_t WeightFinalSettleSamples=8;
 constexpr float WeightFinalSettleMaxRangeGrams=2.0f;
 constexpr uint32_t WeightFinalSettleTimeoutMs=15000;
+constexpr uint32_t WeightStoppedMechanicalSettleMs=1500;
 // Development instrumentation only. Disable for production builds while
 // retaining Bluetooth access to persisted LOG commands.
 constexpr bool EnableBluetoothLiveTelemetry=true;

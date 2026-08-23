@@ -151,6 +151,7 @@ void handleStoppedWeight(float grams)
 
 void updateStoppedMeasurement()
 {
+    if(millis()-settleStartedMs<Config::WeightStoppedMechanicalSettleMs)return;
     const LoadCellSnapshot loadCells=LoadCells::snapshot();
     if(loadCells.sequence==lastWeightSequence)return;
     lastWeightSequence=loadCells.sequence;
@@ -217,6 +218,7 @@ float RunSupervisor::limitMotorRps(float requestedRps)
 {
     if(state.settlingFinalWeight||state.weightState==WeightApproachState::TargetReached)return 0.0f;
     if(!state.weightArmed)return requestedRps;
+    if(state.weightState==WeightApproachState::Calibration)return min(requestedRps,Config::WeightEstimateCalibrationMotorRps);
     if(state.weightState==WeightApproachState::Approach)return min(requestedRps,Config::WeightApproachMotorRps);
     const uint32_t step=safeCurrentStepCount();const float rampSteps=2.0f*Config::StepsPerHubRev;
     const float started=min(1.0f,(step-stageStartStep)/rampSteps);

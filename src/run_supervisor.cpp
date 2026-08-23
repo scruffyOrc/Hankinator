@@ -237,7 +237,13 @@ void RunSupervisor::disarmWeightTarget(){armed=false;configuredTarget=NAN;}
 bool RunSupervisor::weightTargetArmed(){return armed;}
 float RunSupervisor::weightTargetGrams(){return configuredTarget;}
 bool RunSupervisor::completionIsAbort(){return abortCompletion||(state.weightArmed&&state.weightState!=WeightApproachState::TargetReached);}
-bool RunSupervisor::completionPending(){return measurementPending;}
+bool RunSupervisor::completionPending()
+{
+    // The hardware alarm stops exactly at a batch boundary. The main loop can
+    // observe that stop before the 100 ms supervisor tick starts measurement;
+    // keep ownership here so the app cannot mistake it for end-of-run.
+    return measurementPending||(state.weightArmed&&!abortCompletion&&state.weightState!=WeightApproachState::TargetReached&&!motionActive);
+}
 bool RunSupervisor::requestFinalMeasurement()
 {
     if(measurementPending||state.finalWeightMeasured||!LoadCells::profileTareValid())return false;

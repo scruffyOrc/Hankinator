@@ -2,6 +2,11 @@
 
 #include "pico/stdlib.h"
 
+namespace {
+volatile bool stepWakeRequested=false,stepWakeAwaitingFirst=false,stepWakeFirstReady=false;
+volatile uint32_t stepWakeRequestedUs=0,stepWakeFirstDelayUs=0,stepWakeFirstStep=0;
+}
+
 uint32_t calculateTargetSteps()
 {
     return
@@ -96,6 +101,14 @@ int64_t stepAlarmCallback(
 
     currentStepCount++;
 
+    if(stepWakeAwaitingFirst)
+    {
+        stepWakeFirstDelayUs=time_us_32()-stepWakeRequestedUs;
+        stepWakeFirstStep=currentStepCount;
+        stepWakeAwaitingFirst=false;
+        stepWakeFirstReady=true;
+    }
+
     // ------------------------------------------------
     // Pause ramp reached its exact stop position
     // ------------------------------------------------
@@ -166,6 +179,31 @@ int64_t stepAlarmCallback(
         -(int64_t)intervalUs;
 }
 
+void requestStepGeneratorWake(){stepWakeRequested=true;}
+
+int serviceStepGeneratorWake()
+{
+    if(!stepWakeRequested||!motionActive||requestedStepRateHz<1)return 0;
+    stepWakeRequested=false;
+    const bool cancelled=cancel_alarm(stepAlarmId);
+    stepWakeRequestedUs=time_us_32();stepWakeAwaitingFirst=true;stepWakeFirstReady=false;
+    const alarm_id_t replacement=add_alarm_in_us(1,stepAlarmCallback,nullptr,true);
+    if(replacement<0)
+    {
+        stepWakeAwaitingFirst=false;
+        return -1;
+    }
+    stepAlarmId=replacement;
+    return cancelled?1:2;
+}
+
+bool consumeFirstStepAfterWake(uint32_t& delayUs,uint32_t& step)
+{
+    if(!stepWakeFirstReady)return false;
+    noInterrupts();delayUs=stepWakeFirstDelayUs;step=stepWakeFirstStep;stepWakeFirstReady=false;interrupts();
+    return true;
+}
+
 uint32_t safeCurrentStepCount()
 {
     return currentStepCount;
@@ -217,20 +255,31 @@ uint32_t activeWindingElapsedMs()
 
 float startupProfileMotorRPS()
 {
-    uint32_t elapsed =
-        activeWindingElapsedMs();
+    const float runStartRps=min(Config::START_MOTOR_RPS,selectedCruiseMotorRPS);
+    const uint32_t launchSteps=uint32_t(Config::LAUNCH_RAMP_TURNS*Config::STEPS_PER_HUB_REV);
+    const uint32_t completed=safeCurrentStepCount();
+    if(completed<launchSteps)
+    {
+        float progress=launchSteps?completed/float(launchSteps):1.0f;
+        progress=constrain(progress,0.0f,1.0f);
+        const float eased=progress*progress*(3.0f-2.0f*progress);
+        return min(selectedCruiseMotorRPS,Config::LAUNCH_MOTOR_RPS+(runStartRps-Config::LAUNCH_MOTOR_RPS)*eased);
+    }
+
+    const uint32_t elapsed=activeWindingElapsedMs();
+    if(launchCompleteElapsedMs==UINT32_MAX)launchCompleteElapsedMs=elapsed;
+    const uint32_t elapsedAfterLaunch=elapsed-launchCompleteElapsedMs;
 
     if (
-        elapsed <=
+        elapsedAfterLaunch <=
         Config::START_HOLD_MS
     )
     {
-        return
-            Config::START_MOTOR_RPS;
+        return runStartRps;
     }
 
     uint32_t rampElapsed =
-        elapsed -
+        elapsedAfterLaunch -
         Config::START_HOLD_MS;
 
     if (
@@ -244,16 +293,30 @@ float startupProfileMotorRPS()
             Config::ACCEL_RAMP_MS;
 
         return
-            Config::START_MOTOR_RPS +
+            runStartRps +
             (
-                Config::CRUISE_MOTOR_RPS -
-                Config::START_MOTOR_RPS
+                selectedCruiseMotorRPS -
+                runStartRps
             ) *
             progress;
     }
 
     return
-        Config::CRUISE_MOTOR_RPS;
+        selectedCruiseMotorRPS;
+}
+
+MotionPhase currentMotionPhase()
+{
+    if(pauseState==PauseState::RAMPING_DOWN)return MotionPhase::PAUSE_DOWN;
+    if(pauseState==PauseState::PAUSED)return MotionPhase::PAUSED;
+    if(pauseState==PauseState::RAMPING_UP)return MotionPhase::RESUME;
+    if(turnsCompleted()<Config::LAUNCH_RAMP_TURNS)return MotionPhase::LAUNCH;
+    if(turnsRemaining()<Config::DECEL_TURNS)return MotionPhase::DECEL;
+    const uint32_t elapsed=activeWindingElapsedMs();
+    const uint32_t afterLaunch=launchCompleteElapsedMs==UINT32_MAX?0:elapsed-launchCompleteElapsedMs;
+    if(afterLaunch<=Config::START_HOLD_MS)return MotionPhase::START_HOLD;
+    if(afterLaunch<Config::START_HOLD_MS+Config::ACCEL_RAMP_MS)return MotionPhase::ACCEL;
+    return MotionPhase::CRUISE;
 }
 
 float endingProfileMotorRPS()
@@ -267,7 +330,7 @@ float endingProfileMotorRPS()
     )
     {
         return
-            Config::CRUISE_MOTOR_RPS;
+            selectedCruiseMotorRPS;
     }
 
     float progress =
@@ -288,10 +351,10 @@ float endingProfileMotorRPS()
     }
 
     return
-        Config::CRUISE_MOTOR_RPS -
+        selectedCruiseMotorRPS -
         (
-            Config::CRUISE_MOTOR_RPS -
-            Config::END_MOTOR_RPS
+            selectedCruiseMotorRPS -
+            min(Config::END_MOTOR_RPS,selectedCruiseMotorRPS)
         ) *
         progress;
 }
@@ -604,6 +667,8 @@ void requestResume()
         stepsPerSecondForMotorRPS(
             currentMotorRPS
         );
+
+    requestStepGeneratorWake();
 
     beep(30);
 

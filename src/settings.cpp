@@ -1,5 +1,19 @@
 #include "app_api.h"
 
+namespace {
+struct LegacySettingsV1{uint32_t magic;uint16_t version;uint16_t turns[YARN_WEIGHT_COUNT][SKEIN_SIZE_COUNT];};
+struct LegacySettingsV2{uint32_t magic;uint16_t version;uint16_t turns[YARN_WEIGHT_COUNT][SKEIN_SIZE_COUNT];uint16_t runCurrentMa;uint16_t holdCurrentMa;uint8_t bluetoothEnabled;uint8_t reserved;};
+struct LegacySettingsV3{uint32_t magic;uint16_t version;uint16_t turns[YARN_WEIGHT_COUNT][SKEIN_SIZE_COUNT];uint16_t runCurrentMa;uint16_t holdCurrentMa;uint8_t bluetoothEnabled;uint8_t clockwise;};
+
+bool turnsAreValid(const uint16_t turns[YARN_WEIGHT_COUNT][SKEIN_SIZE_COUNT])
+{
+    for(int weight=0;weight<YARN_WEIGHT_COUNT;weight++)
+        for(int size=0;size<SKEIN_SIZE_COUNT;size++)
+            if(turns[weight][size]<Config::MIN_TURNS||turns[weight][size]>Config::MAX_TURNS)return false;
+    return true;
+}
+}
+
 void loadFactoryDefaults()
 {
     settings.magic =
@@ -7,6 +21,12 @@ void loadFactoryDefaults()
 
     settings.version =
         Config::SETTINGS_VERSION;
+
+    settings.runCurrentMa=Config::DefaultRunCurrentMa;
+    settings.holdCurrentMa=Config::DefaultHoldCurrentMa;
+    settings.bluetoothEnabled=1;
+    settings.clockwise=1;
+    memcpy(settings.weightTargetsCentiGrams,Config::DefaultWeightTargetsCentiGrams,sizeof(settings.weightTargetsCentiGrams));
 
     for (
         int weight = 0;
@@ -45,32 +65,11 @@ bool settingsAreValid()
         return false;
     }
 
-    for (
-        int weight = 0;
-        weight < YARN_WEIGHT_COUNT;
-        weight++
-    )
-    {
-        for (
-            int size = 0;
-            size < SKEIN_SIZE_COUNT;
-            size++
-        )
-        {
-            uint16_t turns =
-                settings.turns[weight][size];
-
-            if (
-                turns < Config::MIN_TURNS ||
-                turns > Config::MAX_TURNS
-            )
-            {
-                return false;
-            }
-        }
-    }
-
-    return true;
+    if(!turnsAreValid(settings.turns))return false;
+    if(settings.runCurrentMa<Config::MinRunCurrentMa||settings.runCurrentMa>Config::MaxRunCurrentMa)return false;
+    if(settings.holdCurrentMa<Config::MinHoldCurrentMa||settings.holdCurrentMa>Config::MaxHoldCurrentMa||settings.holdCurrentMa>settings.runCurrentMa)return false;
+    for(uint8_t i=0;i<3;i++)if(settings.weightTargetsCentiGrams[i]<Config::MinWeightTargetCentiGrams||settings.weightTargetsCentiGrams[i]>Config::MaxWeightTargetCentiGrams)return false;
+    return settings.bluetoothEnabled<=1&&settings.clockwise<=1;
 }
 
 void saveSettings()
@@ -83,7 +82,7 @@ void saveSettings()
     EEPROM.commit();
 
     Serial.println(
-        "Turn settings saved to flash"
+        "Settings saved to flash"
     );
 }
 
@@ -98,6 +97,46 @@ void loadSettings()
         settings
     );
 
+    if(settings.magic==Config::SETTINGS_MAGIC&&settings.version==1)
+    {
+        LegacySettingsV1 legacy{};
+        EEPROM.get(0,legacy);
+        if(turnsAreValid(legacy.turns))
+        {
+            loadFactoryDefaults();
+            memcpy(settings.turns,legacy.turns,sizeof(settings.turns));
+            saveSettings();
+            Serial.println("Settings v1 migrated; turn matrix preserved");
+            return;
+        }
+    }
+
+    if(settings.magic==Config::SETTINGS_MAGIC&&settings.version==2)
+    {
+        LegacySettingsV2 legacy{};
+        EEPROM.get(0,legacy);
+        if(turnsAreValid(legacy.turns)&&legacy.runCurrentMa>=Config::MinRunCurrentMa&&legacy.runCurrentMa<=Config::MaxRunCurrentMa&&legacy.holdCurrentMa>=Config::MinHoldCurrentMa&&legacy.holdCurrentMa<=Config::MaxHoldCurrentMa&&legacy.holdCurrentMa<=legacy.runCurrentMa&&legacy.bluetoothEnabled<=1)
+        {
+            loadFactoryDefaults();
+            memcpy(settings.turns,legacy.turns,sizeof(settings.turns));
+            settings.runCurrentMa=legacy.runCurrentMa;
+            settings.holdCurrentMa=legacy.holdCurrentMa;
+            settings.bluetoothEnabled=legacy.bluetoothEnabled;
+            saveSettings();
+            Serial.println("Settings v2 migrated; direction defaults to clockwise");
+            return;
+        }
+    }
+
+    if(settings.magic==Config::SETTINGS_MAGIC&&settings.version==3)
+    {
+        LegacySettingsV3 legacy{};EEPROM.get(0,legacy);
+        if(turnsAreValid(legacy.turns)&&legacy.runCurrentMa>=Config::MinRunCurrentMa&&legacy.runCurrentMa<=Config::MaxRunCurrentMa&&legacy.holdCurrentMa>=Config::MinHoldCurrentMa&&legacy.holdCurrentMa<=Config::MaxHoldCurrentMa&&legacy.holdCurrentMa<=legacy.runCurrentMa&&legacy.bluetoothEnabled<=1&&legacy.clockwise<=1)
+        {
+            loadFactoryDefaults();memcpy(settings.turns,legacy.turns,sizeof(settings.turns));settings.runCurrentMa=legacy.runCurrentMa;settings.holdCurrentMa=legacy.holdCurrentMa;settings.bluetoothEnabled=legacy.bluetoothEnabled;settings.clockwise=legacy.clockwise;saveSettings();Serial.println("Settings v3 migrated; weight targets set to product defaults");return;
+        }
+    }
+
     if (!settingsAreValid())
     {
         Serial.println(
@@ -110,7 +149,7 @@ void loadSettings()
     else
     {
         Serial.println(
-            "Turn settings loaded from flash"
+            "Settings loaded from flash"
         );
     }
 }

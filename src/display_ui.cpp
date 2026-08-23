@@ -1,4 +1,42 @@
 #include "app_api.h"
+#include "diagnostics_transport.h"
+#include "load_cells.h"
+#include "firmware_update.h"
+#include "run_supervisor.h"
+
+namespace {
+void formatOneDecimal(char* output,size_t size,float value)
+{
+    const long tenths=lroundf(value*10.0f);
+    const unsigned long magnitude=tenths<0?static_cast<unsigned long>(-tenths):static_cast<unsigned long>(tenths);
+    snprintf(output,size,"%s%lu.%lu",tenths<0?"-":"",magnitude/10,magnitude%10);
+}
+
+const char* fuhProgramName(FuhProgram program)
+{
+    static const char* names[]={"Mini  20g","Half  50g","Full  100g","Just Turn"};
+    return names[uint8_t(program)];
+}
+
+void formatFuhProgress(char* output,size_t size,int completedTurns,const RunSupervisorSnapshot& control)
+{
+    if(activeFuhProgram==FuhProgram::JustTurn){snprintf(output,size,"%d turns",completedTurns);return;}
+    if(isnan(control.filteredWeightGrams)){snprintf(output,size,"Measuring...");return;}
+    char measured[12]{};formatOneDecimal(measured,sizeof(measured),control.filteredWeightGrams);
+    static const char* nominal[]={"20g","50g","100g"};
+    snprintf(output,size,"%s / %s",measured,nominal[uint8_t(activeFuhProgram)]);
+}
+}
+
+void drawFuhProgramScreen()
+{
+    display.clearBuffer();display.setFont(u8g2_font_5x8_tf);
+    display.drawStr(7,9,"FUHGEDDABOUDITINATOR");display.drawHLine(0,12,128);
+    display.setFont(u8g2_font_6x12_tf);display.drawStr(25,29,"Select winding");
+    const char* label=fuhProgramName(selectedFuhProgram);
+    display.setFont(u8g2_font_ncenB14_tr);const int width=display.getStrWidth(label);display.drawStr((128-width)/2,53,label);
+    display.setFont(u8g2_font_5x8_tf);display.drawStr(24,63,"Turn / Click");display.sendBuffer();
+}
 
 void drawYarnWeightScreen()
 {
@@ -216,6 +254,22 @@ void drawTurnScreen()
     display.sendBuffer();
 }
 
+void drawSpeedScreen()
+{
+    display.clearBuffer();
+    display.setFont(u8g2_font_6x12_tf);
+    display.drawStr(19,11,"THE HANKINATOR");
+    display.drawHLine(0,15,128);
+    display.drawStr(29,32,"Motor Speed");
+    char speed[12]{},line[20]{};
+    formatOneDecimal(speed,sizeof(speed),selectedCruiseMotorRPS);
+    snprintf(line,sizeof(line),"%s RPS",speed);
+    display.setFont(u8g2_font_ncenB18_tr);
+    const int width=display.getStrWidth(line);
+    display.drawStr((128-width)/2,58,line);
+    display.sendBuffer();
+}
+
 void drawReadyScreen()
 {
     display.clearBuffer();
@@ -265,12 +319,8 @@ void drawReadyScreen()
         line
     );
 
-    snprintf(
-        line,
-        sizeof(line),
-        "Turns: %d",
-        selectedTurns
-    );
+    char speed[12]{};formatOneDecimal(speed,sizeof(speed),selectedCruiseMotorRPS);
+    snprintf(line,sizeof(line),"%d turns / %s r/s",selectedTurns,speed);
 
     display.setFont(
         u8g2_font_6x12_tf
@@ -336,6 +386,7 @@ void drawWindingScreen()
         );
 
     char buffer[32];
+    const RunSupervisorSnapshot control=RunSupervisor::snapshot();
 
     // ------------------------------------------------
     // PAUSING
@@ -368,13 +419,8 @@ void drawWindingScreen()
             u8g2_font_6x12_tf
         );
 
-        snprintf(
-            buffer,
-            sizeof(buffer),
-            "%d / %d turns",
-            completedTurns,
-            selectedTurns
-        );
+        if(weightCapabilityEnabled)formatFuhProgress(buffer,sizeof(buffer),completedTurns,control);
+        else snprintf(buffer,sizeof(buffer),"%d / %d turns",completedTurns,selectedTurns);
 
         width =
             display.getStrWidth(
@@ -432,13 +478,8 @@ void drawWindingScreen()
             u8g2_font_6x12_tf
         );
 
-        snprintf(
-            buffer,
-            sizeof(buffer),
-            "%d / %d turns",
-            completedTurns,
-            selectedTurns
-        );
+        if(weightCapabilityEnabled)formatFuhProgress(buffer,sizeof(buffer),completedTurns,control);
+        else snprintf(buffer,sizeof(buffer),"%d / %d turns",completedTurns,selectedTurns);
 
         width =
             display.getStrWidth(
@@ -496,13 +537,8 @@ void drawWindingScreen()
             u8g2_font_6x12_tf
         );
 
-        snprintf(
-            buffer,
-            sizeof(buffer),
-            "%d / %d turns",
-            completedTurns,
-            selectedTurns
-        );
+        if(weightCapabilityEnabled)formatFuhProgress(buffer,sizeof(buffer),completedTurns,control);
+        else snprintf(buffer,sizeof(buffer),"%d / %d turns",completedTurns,selectedTurns);
 
         width =
             display.getStrWidth(
@@ -537,11 +573,9 @@ void drawWindingScreen()
         u8g2_font_6x12_tf
     );
 
-    display.drawStr(
-        39,
-        11,
-        "WINDING"
-    );
+    const bool weightControl=control.weightArmed;
+    const char* windingTitle=control.settlingFinalWeight?"MEASURING":weightCapabilityEnabled&&activeFuhProgram==FuhProgram::JustTurn?"JUST TURN":control.weightState==WeightApproachState::Approach?"APPROACH":"WINDING";
+    display.drawStr((128-display.getStrWidth(windingTitle))/2,11,windingTitle);
 
     display.drawHLine(
         0,
@@ -549,13 +583,15 @@ void drawWindingScreen()
         128
     );
 
-    snprintf(
-        buffer,
-        sizeof(buffer),
-        "%d / %d",
-        completedTurns,
-        selectedTurns
-    );
+    if(weightCapabilityEnabled)formatFuhProgress(buffer,sizeof(buffer),completedTurns,control);
+    else if(weightControl&&!isnan(control.filteredWeightGrams))
+    {
+        char measured[12]{},target[12]{};
+        formatOneDecimal(measured,sizeof(measured),control.filteredWeightGrams);
+        formatOneDecimal(target,sizeof(target),control.targetWeightGrams);
+        snprintf(buffer,sizeof(buffer),"%s/%sg",measured,target);
+    }
+    else snprintf(buffer,sizeof(buffer),"%d / %d",completedTurns,selectedTurns);
 
     display.setFont(
         u8g2_font_ncenB14_tr
@@ -572,13 +608,10 @@ void drawWindingScreen()
         buffer
     );
 
-    snprintf(
-        buffer,
-        sizeof(buffer),
-        "%.1f r/s  %d%%",
-        currentMotorRPS,
-        speedTrimPercent
-    );
+    char rps[12]{};formatOneDecimal(rps,sizeof(rps),currentMotorRPS);
+    if(weightCapabilityEnabled)snprintf(buffer,sizeof(buffer),"%s r/s   Click: Pause",rps);
+    else if(weightControl)snprintf(buffer,sizeof(buffer),"%s r/s  %d/%d turns",rps,completedTurns,selectedTurns);
+    else snprintf(buffer,sizeof(buffer),"%s r/s  %d%%",rps,speedTrimPercent);
 
     display.setFont(
         u8g2_font_5x8_tf
@@ -634,11 +667,8 @@ void drawCompleteScreen()
         u8g2_font_6x12_tf
     );
 
-    display.drawStr(
-        36,
-        12,
-        "COMPLETE"
-    );
+    const char* title=finalRunAborted?"ABORTED":"COMPLETE";
+    display.drawStr((128-display.getStrWidth(title))/2,12,title);
 
     display.drawHLine(
         0,
@@ -646,17 +676,22 @@ void drawCompleteScreen()
         128
     );
 
-    display.drawStr(
-        31,
-        34,
-        "Remove yarn"
-    );
-
-    display.drawStr(
-        10,
-        56,
-        "Click once finished"
-    );
+    const uint32_t turns100=uint64_t(finalRunStepCount)*100ULL/Config::StepsPerHubRev;
+    char line[28]{};
+    snprintf(line,sizeof(line),"Turns: %lu.%02lu",(unsigned long)(turns100/100),(unsigned long)(turns100%100));
+    int width=display.getStrWidth(line);display.drawStr((128-width)/2,31,line);
+    if(finalRunWeightValid)
+    {
+        char weight[12]{};formatOneDecimal(weight,sizeof(weight),finalRunWeightGrams);
+        snprintf(line,sizeof(line),"Weight: %s g",weight);
+        width=display.getStrWidth(line);display.drawStr((128-width)/2,45,line);
+    }
+    else if(finalRunAborted)
+    {
+        display.drawStr(18,45,"Target not reached");
+    }
+    display.setFont(u8g2_font_5x8_tf);
+    display.drawStr(24,61,"Click to continue");
 
     display.sendBuffer();
 }
@@ -796,8 +831,25 @@ void drawCurrentScreen()
             drawTurnScreen();
             break;
 
+        case UiState::SPEED_SELECT:
+            drawSpeedScreen();
+            break;
+
+        case UiState::FUH_PROGRAM_SELECT:
+            drawFuhProgramScreen();
+            break;
+
         case UiState::READY:
             drawReadyScreen();
+            break;
+
+        case UiState::TARING:
+        case UiState::TARE_FAILED:
+            drawTareScreen();
+            break;
+
+        case UiState::LOAD_YARN:
+            drawLoadYarnScreen();
             break;
 
         case UiState::WINDING:
@@ -811,5 +863,212 @@ void drawCurrentScreen()
         case UiState::REPEAT_PROMPT:
             drawRepeatPromptScreen();
             break;
+
+        case UiState::CONFIG_MENU:
+        case UiState::CONFIG_MOTOR_MENU:
+        case UiState::CONFIG_RUN_CURRENT:
+        case UiState::CONFIG_HOLD_CURRENT:
+        case UiState::CONFIG_DIRECTION:
+        case UiState::CONFIG_WEIGHT_MENU:
+        case UiState::CONFIG_WEIGHT_VALUE:
+        case UiState::CONFIG_PAIRING:
+            drawConfigScreen();
+            break;
+
+        case UiState::CONFIG_LOAD_CELL_DIAGNOSTICS:
+            drawLoadCellDiagnosticsScreen();
+            break;
+
+        case UiState::CONFIG_FIRMWARE_UPDATE:
+            drawFirmwareUpdateScreen();
+            break;
+
+        case UiState::LOAD_CELL_FAULT:
+            drawLoadCellFaultScreen();
+            break;
     }
+}
+
+void drawTareScreen()
+{
+    display.clearBuffer();
+    display.setFont(u8g2_font_6x10_tf);
+    display.drawStr(31,11,"LOAD CELLS");
+    display.drawHLine(0,15,128);
+    if(uiState==UiState::TARE_FAILED||LoadCells::tareStatus()==LoadCellTareStatus::Failed)
+    {
+        display.setFont(u8g2_font_helvB10_tf);
+        display.drawStr(9,34,"TARE UNSTABLE");
+        display.setFont(u8g2_font_5x8_tf);
+        display.drawStr(12,49,"Click: Retry");
+        display.drawStr(12,60,"STOP: Cancel");
+    }
+    else
+    {
+        display.setFont(u8g2_font_helvB10_tf);
+        display.drawStr(36,34,"TARING");
+        display.setFont(u8g2_font_5x8_tf);
+        display.drawStr(19,49,"Do not touch");
+        display.drawStr(9,60,"Hub rotating slowly");
+    }
+    display.sendBuffer();
+}
+
+void drawLoadYarnScreen()
+{
+    display.clearBuffer();
+    display.setFont(u8g2_font_6x10_tf);
+    display.drawStr(31,11,"LOAD CELLS");
+    display.drawHLine(0,15,128);
+    display.setFont(u8g2_font_helvB10_tf);
+    display.drawStr(24,34,"LOAD YARN");
+    display.setFont(u8g2_font_5x8_tf);
+    display.drawStr(13,49,"Click when ready");
+    display.drawStr(22,60,"STOP: Cancel");
+    display.sendBuffer();
+}
+
+void drawLoadCellFaultScreen()
+{
+    display.clearBuffer();
+    display.setDrawColor(1);
+    display.setFont(u8g2_font_6x10_tf);
+    display.drawStr(17,12,"LOAD CELL ERROR");
+    display.drawHLine(0,16,128);
+    char line[24]{};
+    snprintf(line,sizeof(line),"Detected: %u of %u",detectedLoadCellCount,Config::RequiredLoadCells);
+    display.drawStr(14,35,line);
+    display.setFont(u8g2_font_5x8_tf);
+    display.drawStr(8,50,"Check wiring, then");
+    display.drawStr(28,60,"restart machine");
+    display.sendBuffer();
+}
+
+void drawLoadCellDiagnosticsScreen()
+{
+    static const char* positions[]={"FL","FR","RL","RR"};
+    const LoadCellSnapshot loadCells=LoadCells::snapshot();
+    display.clearBuffer();
+    display.setDrawColor(1);
+    display.setFont(u8g2_font_5x8_tf);
+    display.drawStr(11,8,"Load Cell Diagnostics");
+    display.drawHLine(0,11,128);
+    char line[27]{};
+    for(uint8_t channel=0;channel<Config::LoadCellChannelCount;channel++)
+    {
+        snprintf(line,sizeof(line),"%s %8ld  %s",positions[channel],long(loadCells.raw[channel]),LoadCells::statusName(loadCells.status[channel]));
+        display.drawStr(2,21+channel*10,line);
+    }
+    display.drawStr(20,63,"STOP: Back   10 Hz");
+    display.sendBuffer();
+}
+
+void drawFirmwareUpdateScreen()
+{
+    display.clearBuffer();display.setDrawColor(1);display.setFont(u8g2_font_5x8_tf);
+    display.drawStr(23,8,"Firmware Update");display.drawHLine(0,11,128);
+    if(FirmwareUpdate::status()==FirmwareUpdateStatus::Ready)
+    {
+        char line[28]{};snprintf(line,sizeof(line),"Wi-Fi: %s",Config::FirmwareUpdateSsid);display.drawStr(2,22,line);
+        snprintf(line,sizeof(line),"Pass: %s",Config::FirmwareUpdatePassword);display.drawStr(2,33,line);
+        display.drawStr(2,44,"Open: 192.168.4.1");
+        display.drawStr(2,61,"STOP: Cancel");
+    }
+    else if(FirmwareUpdate::status()==FirmwareUpdateStatus::Uploading)
+    {
+        char line[24]{};snprintf(line,sizeof(line),"Received: %lu KB",(unsigned long)(FirmwareUpdate::bytesReceived()/1024));
+        display.drawStr(2,31,line);
+        display.drawStr(2,61,"Keep power connected");
+    }
+    else if(FirmwareUpdate::status()==FirmwareUpdateStatus::Success)
+    {
+        display.drawStr(28,31,"Update received");display.drawStr(35,45,"Restarting...");
+    }
+    else
+    {
+        char line[24]{};snprintf(line,sizeof(line),"%s (%u)",FirmwareUpdate::statusText(),FirmwareUpdate::errorCode());
+        display.drawStr(2,29,line);display.drawStr(2,45,"STOP: Back");
+    }
+    display.sendBuffer();
+}
+
+void drawConfigScreen()
+{
+    display.clearBuffer();
+    display.setDrawColor(1);
+    display.setFont(u8g2_font_6x10_tf);
+    display.drawStr(2,10,"Configuration");
+    display.drawHLine(0,13,128);
+
+    display.setFont(u8g2_font_6x10_tf);
+    char value[24]{};
+    if(uiState==UiState::CONFIG_MENU)
+    {
+        static const char* turnItems[]={"Bluetooth","Pair device","Motor","Load Cell Diagnostics","Firmware Update","Exit setup"};
+        static const char* fuhItems[]={"Bluetooth","Pair device","Motor","Weight Targets","Load Cell Diagnostics","Firmware Update","Exit setup"};
+        const bool fuh=weightCapabilityEnabled;
+        display.drawStr(2,29,fuh?fuhItems[configMenuSelection]:turnItems[configMenuSelection]);
+        if(configMenuSelection==0)snprintf(value,sizeof(value),"%s",settings.bluetoothEnabled?"ON":"OFF");
+        else if(configMenuSelection==1)snprintf(value,sizeof(value),"%s",settings.bluetoothEnabled?"Open 60 sec":"Bluetooth OFF");
+        else if(configMenuSelection==2)snprintf(value,sizeof(value),"%u/%u mA  %s",settings.runCurrentMa,settings.holdCurrentMa,settings.clockwise?"CW":"CCW");
+        else if(fuh&&configMenuSelection==3)snprintf(value,sizeof(value),"Mini / Half / Full");
+        else if(configMenuSelection==(fuh?4:3))snprintf(value,sizeof(value),"FL / FR / RL / RR");
+        else if(configMenuSelection==(fuh?5:4))snprintf(value,sizeof(value),"Wi-Fi browser upload");
+        else snprintf(value,sizeof(value),"Return to winding");
+        display.drawStr(2,43,value);
+        snprintf(value,sizeof(value),"%d/%d  Turn / Click",configMenuSelection+1,fuh?7:6);
+        display.setFont(u8g2_font_5x8_tf);display.drawStr(2,61,value);
+    }
+    else if(uiState==UiState::CONFIG_WEIGHT_MENU)
+    {
+        static const char* names[]={"Mini target","Half target","Full target"};
+        display.drawStr(2,29,names[weightTargetMenuSelection]);
+        const uint16_t centi=settings.weightTargetsCentiGrams[weightTargetMenuSelection];
+        snprintf(value,sizeof(value),"%u.%02u g",centi/100,centi%100);
+        display.drawStr(2,43,value);
+        snprintf(value,sizeof(value),"%d/3  Turn / Click",weightTargetMenuSelection+1);
+        display.setFont(u8g2_font_5x8_tf);display.drawStr(2,61,value);
+    }
+    else if(uiState==UiState::CONFIG_WEIGHT_VALUE)
+    {
+        static const char* names[]={"Mini target","Half target","Full target"};
+        display.drawStr(2,29,names[weightTargetMenuSelection]);
+        const uint16_t centi=settings.weightTargetsCentiGrams[weightTargetMenuSelection];
+        snprintf(value,sizeof(value),"%u.%02u g",centi/100,centi%100);
+        display.setFont(u8g2_font_helvB14_tf);display.drawStr(2,49,value);
+        display.setFont(u8g2_font_5x8_tf);display.drawStr(2,61,"Turn / Click save");
+    }
+    else if(uiState==UiState::CONFIG_MOTOR_MENU)
+    {
+        static const char* items[]={"Run Current","Hold Current","Rotation Direction"};
+        display.drawStr(2,29,items[motorMenuSelection]);
+        if(motorMenuSelection==0)snprintf(value,sizeof(value),"%u mA",settings.runCurrentMa);
+        else if(motorMenuSelection==1)snprintf(value,sizeof(value),"%u mA",settings.holdCurrentMa);
+        else snprintf(value,sizeof(value),"%s",settings.clockwise?"Clockwise":"Counter clockwise");
+        display.drawStr(2,43,value);
+        snprintf(value,sizeof(value),"%d/3  Turn / Click",motorMenuSelection+1);
+        display.setFont(u8g2_font_5x8_tf);display.drawStr(2,61,value);
+    }
+    else if(uiState==UiState::CONFIG_PAIRING)
+    {
+        display.drawStr(2,29,DiagnosticsTransport::connected()?"Paired client connected":"Pairing is open");
+        snprintf(value,sizeof(value),"%lu seconds",(unsigned long)DiagnosticsTransport::pairingSecondsRemaining());
+        display.drawStr(2,43,value);display.setFont(u8g2_font_5x8_tf);display.drawStr(2,61,"Click to close");
+    }
+    else if(uiState==UiState::CONFIG_DIRECTION)
+    {
+        display.drawStr(2,29,"Rotation Direction");
+        display.setFont(settings.clockwise?u8g2_font_helvB14_tf:u8g2_font_6x10_tf);
+        display.drawStr(2,49,settings.clockwise?"Clockwise":"Counter clockwise");
+        display.setFont(u8g2_font_5x8_tf);display.drawStr(2,61,"Turn / Click save");
+    }
+    else
+    {
+        const bool run=uiState==UiState::CONFIG_RUN_CURRENT;
+        display.drawStr(2,29,run?"Run current":"Hold current");
+        snprintf(value,sizeof(value),"%u mA",run?settings.runCurrentMa:settings.holdCurrentMa);
+        display.setFont(u8g2_font_helvB14_tf);display.drawStr(2,49,value);
+        display.setFont(u8g2_font_5x8_tf);display.drawStr(2,61,"Turn / Click save");
+    }
+    display.sendBuffer();
 }

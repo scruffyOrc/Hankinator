@@ -67,6 +67,7 @@ extern bool finalRunAborted;
 extern uint32_t launchCompleteElapsedMs;
 extern volatile bool motionActive;
 extern volatile uint32_t currentStepCount,targetStepCount,requestedStepRateHz;
+extern volatile uint32_t motionSegmentStopStep;
 extern alarm_id_t stepAlarmId;
 extern int lastA;
 extern bool lastClick,lastStop,heartbeatState;

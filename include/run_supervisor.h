@@ -2,7 +2,7 @@
 #include <Arduino.h>
 
 enum class StallDetectionState:uint8_t {Monitoring,Candidate,Confirmed};
-enum class WeightApproachState:uint8_t {Disabled,Monitoring,Approach,TargetReached};
+enum class WeightApproachState:uint8_t {Disabled,Calibration,Bulk,Refinement,Approach,TargetReached};
 
 struct RunSupervisorSnapshot {
     StallDetectionState stallState=StallDetectionState::Monitoring;
@@ -15,6 +15,9 @@ struct RunSupervisorSnapshot {
     bool weightArmed=false;
     bool settlingFinalWeight=false;
     bool finalWeightMeasured=false;
+    float gramsPerTurn=NAN;
+    uint16_t plannedStageTurns=0;
+    uint8_t approachBatch=0;
 };
 
 namespace RunSupervisor {

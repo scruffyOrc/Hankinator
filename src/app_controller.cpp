@@ -190,10 +190,12 @@ void updateTareProcess()
         tareProfiling=true;
         digitalWrite(STEPPER_DIR,(settings.clockwise?WIND_DIRECTION_HIGH:!WIND_DIRECTION_HIGH)?HIGH:LOW);
         currentStepCount=0;targetStepCount=Config::StepsPerHubRev;
+        motionSegmentStopStep=UINT32_MAX;
         currentMotorRPS=Config::LoadCellProfileMotorRps;
         requestedStepRateHz=stepsPerSecondForMotorRPS(currentMotorRPS);
         LoadCells::startProfileTare(0);
         motionActive=true;
+        requestStepGeneratorWake();
     }
 
     const LoadCellTareStatus status=tareProfiling?LoadCells::updateProfileTare(safeCurrentStepCount()):LoadCells::updateTare();
@@ -227,7 +229,6 @@ void beginWinding()
 {
     finalRunStepCount=0;finalRunWeightGrams=NAN;finalRunWeightValid=false;finalRunAborted=false;
     Telemetry::start();
-    RunSupervisor::beginRun();
     uint32_t steps =
         calculateTargetSteps();
 
@@ -257,6 +258,9 @@ void beginWinding()
 
     currentStepCount = 0;
     targetStepCount  = steps;
+    motionSegmentStopStep=UINT32_MAX;
+
+    RunSupervisor::beginRun();
 
     requestedStepRateHz =
         stepsPerSecondForMotorRPS(

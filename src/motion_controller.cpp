@@ -74,7 +74,7 @@ int64_t stepAlarmCallback(
 
     if (
         currentStepCount >=
-        targetStepCount
+            targetStepCount
     )
     {
         motionActive = false;
@@ -107,6 +107,12 @@ int64_t stepAlarmCallback(
         stepWakeFirstStep=currentStepCount;
         stepWakeAwaitingFirst=false;
         stepWakeFirstReady=true;
+    }
+
+    if(currentStepCount>=motionSegmentStopStep)
+    {
+        motionActive=false;
+        return -(int64_t)Config::IDLE_TIMER_US;
     }
 
     // ------------------------------------------------
@@ -592,6 +598,11 @@ void requestPause()
         requestedStopStep =
             targetStepCount;
     }
+
+    // Stop one STEP before an automatic weight-measurement boundary so a
+    // user pause cannot collide with, and be mistaken for, the batch stop.
+    if(motionSegmentStopStep!=UINT32_MAX&&motionSegmentStopStep>pauseRampStartStep&&requestedStopStep>=motionSegmentStopStep)
+        requestedStopStep=motionSegmentStopStep-1;
 
     pauseRampStopStep =
         requestedStopStep;

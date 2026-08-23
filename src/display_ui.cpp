@@ -574,7 +574,13 @@ void drawWindingScreen()
     );
 
     const bool weightControl=control.weightArmed;
-    const char* windingTitle=control.settlingFinalWeight?"MEASURING":weightCapabilityEnabled&&activeFuhProgram==FuhProgram::JustTurn?"JUST TURN":control.weightState==WeightApproachState::Approach?"APPROACH":"WINDING";
+    const char* windingTitle="WINDING";
+    if(control.settlingFinalWeight)windingTitle="MEASURING";
+    else if(weightCapabilityEnabled&&activeFuhProgram==FuhProgram::JustTurn)windingTitle="JUST TURN";
+    else if(control.weightState==WeightApproachState::Calibration)windingTitle="LEARNING";
+    else if(control.weightState==WeightApproachState::Bulk)windingTitle="BULK WIND";
+    else if(control.weightState==WeightApproachState::Refinement)windingTitle="REFINING";
+    else if(control.weightState==WeightApproachState::Approach)windingTitle="APPROACH";
     display.drawStr((128-display.getStrWidth(windingTitle))/2,11,windingTitle);
 
     display.drawHLine(

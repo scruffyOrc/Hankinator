@@ -13,7 +13,7 @@ FuhProgram selectedFuhProgram=FuhProgram::Mini,activeFuhProgram=FuhProgram::Mini
 int speedTrimPercent=100; float currentMotorRPS=Config::START_MOTOR_RPS; uint32_t windingStartTime=0;
 uint32_t finalRunStepCount=0;float finalRunWeightGrams=NAN;bool finalRunWeightValid=false,finalRunAborted=false;
 uint32_t launchCompleteElapsedMs=UINT32_MAX;
-volatile bool motionActive=false; volatile uint32_t currentStepCount=0,targetStepCount=0,requestedStepRateHz=0;
+volatile bool motionActive=false; volatile uint32_t currentStepCount=0,targetStepCount=0,requestedStepRateHz=0,motionSegmentStopStep=UINT32_MAX;
 alarm_id_t stepAlarmId=0; int lastA=HIGH; bool lastClick=HIGH,lastStop=HIGH;
 uint32_t lastTurnEncoderTime=0; bool heartbeatState=false; uint32_t lastHeartbeat=0;
 int configMenuSelection=0;

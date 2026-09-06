@@ -5,6 +5,8 @@
 namespace {
 volatile bool stepWakeRequested=false,stepWakeAwaitingFirst=false,stepWakeFirstReady=false;
 volatile uint32_t stepWakeRequestedUs=0,stepWakeFirstDelayUs=0,stepWakeFirstStep=0;
+volatile bool auxiliaryActive=false,auxiliaryComplete=false;
+volatile uint32_t auxiliaryStepsRemaining=0;
 }
 
 uint32_t calculateTargetSteps()
@@ -72,7 +74,7 @@ int64_t stepAlarmCallback(
             Config::IDLE_TIMER_US;
     }
 
-    if (
+    if (!auxiliaryActive&&
         currentStepCount >=
             targetStepCount
     )
@@ -99,7 +101,11 @@ int64_t stepAlarmCallback(
         0
     );
 
-    currentStepCount++;
+    if(auxiliaryActive)
+    {
+        if(auxiliaryStepsRemaining)auxiliaryStepsRemaining--;
+    }
+    else currentStepCount++;
 
     if(stepWakeAwaitingFirst)
     {
@@ -109,7 +115,13 @@ int64_t stepAlarmCallback(
         stepWakeFirstReady=true;
     }
 
-    if(currentStepCount>=motionSegmentStopStep)
+    if(auxiliaryActive&&auxiliaryStepsRemaining==0)
+    {
+        auxiliaryActive=false;auxiliaryComplete=true;motionActive=false;
+        return -(int64_t)Config::IDLE_TIMER_US;
+    }
+
+    if(!auxiliaryActive&&currentStepCount>=motionSegmentStopStep)
     {
         motionActive=false;
         return -(int64_t)Config::IDLE_TIMER_US;
@@ -119,7 +131,7 @@ int64_t stepAlarmCallback(
     // Pause ramp reached its exact stop position
     // ------------------------------------------------
 
-    if (
+    if (!auxiliaryActive&&
         pauseState ==
             PauseState::RAMPING_DOWN &&
         currentStepCount >=
@@ -140,7 +152,7 @@ int64_t stepAlarmCallback(
     // Resume ramp finished
     // ------------------------------------------------
 
-    if (
+    if (!auxiliaryActive&&
         pauseState ==
             PauseState::RAMPING_UP &&
         currentStepCount >=
@@ -152,7 +164,7 @@ int64_t stepAlarmCallback(
     }
 
     // Normal job completion
-    if (
+    if (!auxiliaryActive&&
         currentStepCount >=
         targetStepCount
     )
@@ -208,6 +220,31 @@ bool consumeFirstStepAfterWake(uint32_t& delayUs,uint32_t& step)
     if(!stepWakeFirstReady)return false;
     noInterrupts();delayUs=stepWakeFirstDelayUs;step=stepWakeFirstStep;stepWakeFirstReady=false;interrupts();
     return true;
+}
+
+bool startAuxiliaryHubMotion(bool forward,uint32_t steps,float motorRps)
+{
+    if(!steps||motionActive||auxiliaryActive)return false;
+    const bool windingDirection=settings.clockwise?WIND_DIRECTION_HIGH:!WIND_DIRECTION_HIGH;
+    digitalWrite(STEPPER_DIR,(forward?windingDirection:!windingDirection)?HIGH:LOW);
+    noInterrupts();auxiliaryStepsRemaining=steps;auxiliaryComplete=false;auxiliaryActive=true;interrupts();
+    currentMotorRPS=motorRps;requestedStepRateHz=stepsPerSecondForMotorRPS(motorRps);
+    motionActive=true;requestStepGeneratorWake();
+    return true;
+}
+
+bool consumeAuxiliaryMotionComplete()
+{
+    if(!auxiliaryComplete)return false;
+    noInterrupts();auxiliaryComplete=false;interrupts();
+    return true;
+}
+
+bool auxiliaryMotionActive(){return auxiliaryActive;}
+
+void cancelAuxiliaryMotion()
+{
+    noInterrupts();auxiliaryActive=false;auxiliaryComplete=false;auxiliaryStepsRemaining=0;motionActive=false;interrupts();
 }
 
 uint32_t safeCurrentStepCount()

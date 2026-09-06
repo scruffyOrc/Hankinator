@@ -291,6 +291,11 @@ float LoadCells::weightGrams(const LoadCellSnapshot& value)
 
 float LoadCells::weightGrams(){return weightGrams(snapshot());}
 
+float LoadCells::stoppedWeightGrams(const LoadCellSnapshot& value)
+{
+    return weightGrams(value);
+}
+
 float LoadCells::profileWeightGrams(const LoadCellSnapshot& value,uint32_t hubStep)
 {
     if(!profileTareValid())return NAN;

@@ -13,6 +13,10 @@ namespace {
 bool configurationInputReleaseRequired=false;
 bool tareSettling=false;
 bool tareProfiling=false;
+bool stationaryTareSettling=false;
+bool stationaryTaring=false;
+bool stationaryTareBackingOff=false;
+bool stationaryTareRecovering=false;
 uint32_t tareSettleStartedMs=0;
 
 void printTareResult(const char* context)
@@ -126,6 +130,7 @@ void resetToYarnWeightSelection()
     if(uiState==UiState::TARING)LoadCells::cancelTare();
     if (uiState == UiState::WINDING)
         Telemetry::finish(RunEnd::Abort);
+    cancelAuxiliaryMotion();
     motionActive = false;
 
     pauseState =
@@ -174,6 +179,10 @@ void requestWindingStart()
     enableMotor();
     tareSettling=true;
     tareProfiling=false;
+    stationaryTareSettling=false;
+    stationaryTaring=false;
+    stationaryTareBackingOff=false;
+    stationaryTareRecovering=false;
     tareSettleStartedMs=millis();
     uiState=UiState::TARING;
     drawTareScreen();
@@ -198,20 +207,61 @@ void updateTareProcess()
         requestStepGeneratorWake();
     }
 
+    if(stationaryTareBackingOff)
+    {
+        if(!consumeAuxiliaryMotionComplete())return;
+        stationaryTareBackingOff=false;stationaryTareSettling=true;tareSettleStartedMs=millis();
+        Serial.println("TARE_TENSION_RELIEF_COMPLETE,settling_for_stationary_reference");
+    }
+
+    if(stationaryTareRecovering)
+    {
+        if(!consumeAuxiliaryMotionComplete())return;
+        stationaryTareRecovering=false;
+        printTareResult("pre_winding");
+        uiState=UiState::LOAD_YARN;
+        Serial.println("TARE_STATIONARY_COMPLETE,position_restored,load_yarn_then_click");
+        drawLoadYarnScreen();
+        return;
+    }
+
+    if(stationaryTareSettling)
+    {
+        if(millis()-tareSettleStartedMs<Config::WeightStoppedMechanicalSettleMs)return;
+        stationaryTareSettling=false;
+        stationaryTaring=true;
+        LoadCells::startTare();
+        Serial.println("TARE_STATIONARY_START,context,pre_winding,motor,energized");
+    }
+
     const LoadCellTareStatus status=tareProfiling?LoadCells::updateProfileTare(safeCurrentStepCount()):LoadCells::updateTare();
     static uint32_t lastDraw=0;
     if(millis()-lastDraw>=100){lastDraw=millis();drawTareScreen();}
     if(status==LoadCellTareStatus::Complete)
     {
-        motionActive=false;requestedStepRateHz=0;tareProfiling=false;
-        printTareResult("pre_winding");
-        uiState=UiState::LOAD_YARN;
-        Serial.println("TARE_PROFILE_COMPLETE,load_yarn_then_click");
-        drawLoadYarnScreen();
+        if(tareProfiling)
+        {
+            motionActive=false;requestedStepRateHz=0;tareProfiling=false;
+            if(!startAuxiliaryHubMotion(false,Config::WeightTensionReliefSteps,Config::WeightTensionReliefMotorRps))
+            {
+                LoadCells::cancelTare();uiState=UiState::TARE_FAILED;drawTareScreen();return;
+            }
+            stationaryTareBackingOff=true;
+            Serial.println("TARE_PROFILE_COMPLETE,tension_relief_reverse_start");
+            return;
+        }
+        if(!stationaryTaring)return;
+        stationaryTaring=false;
+        if(!startAuxiliaryHubMotion(true,Config::WeightTensionReliefSteps,Config::WeightTensionReliefMotorRps))
+        {
+            uiState=UiState::TARE_FAILED;drawTareScreen();return;
+        }
+        stationaryTareRecovering=true;
+        Serial.println("TARE_STATIONARY_CAPTURE_COMPLETE,position_restore_start");
     }
     else if(status==LoadCellTareStatus::Failed)
     {
-        motionActive=false;requestedStepRateHz=0;tareProfiling=false;
+        cancelAuxiliaryMotion();requestedStepRateHz=0;tareProfiling=false;stationaryTareSettling=false;stationaryTaring=false;stationaryTareBackingOff=false;stationaryTareRecovering=false;
         printTareResult("pre_winding");
         if(activeFuhProgram==FuhProgram::JustTurn)
         {
@@ -374,10 +424,17 @@ void updateMotor()
 
     RunSupervisor::service();
 
-    updateWindingSpeed();
-
-    currentMotorRPS=RunSupervisor::limitMotorRps(currentMotorRPS);
-    requestedStepRateHz=currentMotorRPS>0.0f?stepsPerSecondForMotorRPS(currentMotorRPS):0;
+    if(auxiliaryMotionActive())
+    {
+        currentMotorRPS=Config::WeightTensionReliefMotorRps;
+        requestedStepRateHz=stepsPerSecondForMotorRPS(currentMotorRPS);
+    }
+    else
+    {
+        updateWindingSpeed();
+        currentMotorRPS=RunSupervisor::limitMotorRps(currentMotorRPS);
+        requestedStepRateHz=currentMotorRPS>0.0f?stepsPerSecondForMotorRPS(currentMotorRPS):0;
+    }
 
     const int wakeResult=serviceStepGeneratorWake();
     if(wakeResult)

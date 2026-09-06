@@ -46,5 +46,8 @@ bool profileTareValid();
 LoadCellProfileTareResult profileTareResult();
 float weightGrams(const LoadCellSnapshot& snapshot);
 float weightGrams();
+// Uses the settled, stationary empty-machine tare. This is the correct
+// reference for weight decisions made while the hub is stopped.
+float stoppedWeightGrams(const LoadCellSnapshot& snapshot);
 float profileWeightGrams(const LoadCellSnapshot& snapshot,uint32_t hubStep);
 }

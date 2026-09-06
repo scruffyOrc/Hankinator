@@ -86,7 +86,7 @@ constexpr uint8_t WeightProbeMinimumSamples=16;
 constexpr float WeightProbeMaxRangeGrams=15.0f;
 constexpr uint8_t WeightProbeMaxConsecutiveRetries=3;
 constexpr uint8_t WeightEstimateCalibrationTurns=8;
-constexpr float WeightEstimateCalibrationMotorRps=0.5f;
+constexpr float WeightEstimateCalibrationMotorRps=1.0f;
 constexpr float WeightEstimateBulkFraction=0.80f;
 constexpr uint8_t WeightEstimateFinalReserveTurns=4;
 constexpr uint8_t WeightEstimateMaxApproachTurns=4,WeightEstimateMaxApproachBatches=12;
@@ -98,7 +98,12 @@ constexpr float FuhCruiseMotorRps=3.0f;
 constexpr uint8_t WeightFinalSettleSamples=8;
 constexpr float WeightFinalSettleMaxRangeGrams=2.0f;
 constexpr uint32_t WeightFinalSettleTimeoutMs=15000;
-constexpr uint32_t WeightStoppedMechanicalSettleMs=1500;
+// The frame and four load-cell mounts continue redistributing load for several
+// seconds after the hub stops. Do not begin the quiet-window test until that
+// initial mechanical relaxation has passed.
+constexpr uint32_t WeightStoppedMechanicalSettleMs=3000;
+constexpr uint32_t WeightTensionReliefSteps=StepsPerHubRev/16;
+constexpr float WeightTensionReliefMotorRps=0.5f;
 // Development instrumentation only. Disable for production builds while
 // retaining Bluetooth access to persisted LOG commands.
 constexpr bool EnableBluetoothLiveTelemetry=true;

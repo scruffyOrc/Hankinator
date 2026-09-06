@@ -9,6 +9,9 @@
 namespace {
 RunSupervisorSnapshot state{};
 bool armed=false,abortCompletion=false,measurementPending=false,measurementOnly=false;
+enum class TensionReliefPhase:uint8_t {Idle,BackingOff,Measuring,Recovering};
+TensionReliefPhase tensionReliefPhase=TensionReliefPhase::Idle;
+float recoveredMeasurementGrams=NAN;
 float configuredTarget=NAN;
 uint32_t lastServiceMs=0,lastStallEventMs=0,lastWeightSequence=0;
 uint32_t stageStartStep=0,lastMeasurementStep=0;
@@ -47,6 +50,7 @@ void emitStall(const char* name)
 void abortWeightRun(const char* event)
 {
     abortCompletion=true;measurementPending=false;state.settlingFinalWeight=false;
+    cancelAuxiliaryMotion();tensionReliefPhase=TensionReliefPhase::Idle;
     motionActive=false;motionSegmentStopStep=UINT32_MAX;
     Telemetry::event(event);
 }
@@ -89,9 +93,31 @@ void beginStoppedMeasurement()
     if(measurementPending)return;
     if(pauseState==PauseState::RAMPING_UP)pauseState=PauseState::RUNNING;
     measurementPending=true;state.settlingFinalWeight=true;
-    settleCount=0;settleWrite=0;settleStartedMs=millis();
     motionActive=false;motionSegmentStopStep=UINT32_MAX;
+    if(!startAuxiliaryHubMotion(false,Config::WeightTensionReliefSteps,Config::WeightTensionReliefMotorRps))
+    {
+        abortWeightRun("WEIGHT_TENSION_RELIEF_START_ABORT");return;
+    }
+    tensionReliefPhase=TensionReliefPhase::BackingOff;
+    Telemetry::event("WEIGHT_TENSION_RELIEF_REVERSE_START");
+}
+
+void startStoppedMeasurementWindow()
+{
+    settleCount=0;settleWrite=0;settleStartedMs=millis();lastWeightSequence=0;
+    tensionReliefPhase=TensionReliefPhase::Measuring;
     Telemetry::event("WEIGHT_STOPPED_MEASUREMENT_START");
+}
+
+void recoverAfterMeasurement(float grams)
+{
+    recoveredMeasurementGrams=grams;state.settlingFinalWeight=false;
+    if(!startAuxiliaryHubMotion(true,Config::WeightTensionReliefSteps,Config::WeightTensionReliefMotorRps))
+    {
+        abortWeightRun("WEIGHT_TENSION_RECOVERY_START_ABORT");return;
+    }
+    tensionReliefPhase=TensionReliefPhase::Recovering;
+    Telemetry::event("WEIGHT_TENSION_RECOVERY_FORWARD_START");
 }
 
 void updateSlope(float grams,uint32_t step)
@@ -116,7 +142,7 @@ void handleStoppedWeight(float grams)
     state.filteredWeightGrams=grams;
     if(measurementOnly)
     {
-        measurementOnly=false;measurementPending=false;state.settlingFinalWeight=false;state.finalWeightMeasured=true;
+        measurementOnly=false;measurementPending=false;state.settlingFinalWeight=false;state.finalWeightMeasured=!isnan(grams);
         Telemetry::event("FINAL_WEIGHT_SETTLED");return;
     }
     if(grams>=configuredTarget){finishAtWeight(grams);return;}
@@ -153,20 +179,41 @@ void updateStoppedMeasurement()
 {
     if(millis()-settleStartedMs<Config::WeightStoppedMechanicalSettleMs)return;
     const LoadCellSnapshot loadCells=LoadCells::snapshot();
-    if(loadCells.sequence==lastWeightSequence)return;
+    const bool timedOut=millis()-settleStartedMs>=Config::WeightFinalSettleTimeoutMs;
+    const uint8_t requiredMask=uint8_t((1u<<Config::LoadCellChannelCount)-1u);
+    if(loadCells.sequence==lastWeightSequence)
+    {
+        if(timedOut)
+        {
+            if(measurementOnly){Telemetry::event("FINAL_WEIGHT_UNAVAILABLE");recoverAfterMeasurement(NAN);}
+            else abortWeightRun("LOAD_CELL_UNHEALTHY_AT_MEASUREMENT_ABORT");
+        }
+        return;
+    }
     lastWeightSequence=loadCells.sequence;
-    const float grams=LoadCells::profileWeightGrams(loadCells,safeCurrentStepCount());
-    if(isnan(grams))return;
+    const float grams=LoadCells::stoppedWeightGrams(loadCells);
+    if(isnan(grams))
+    {
+        if(timedOut)
+        {
+            if(measurementOnly){Telemetry::event("FINAL_WEIGHT_UNAVAILABLE");recoverAfterMeasurement(NAN);}
+            else abortWeightRun("LOAD_CELL_UNHEALTHY_AT_MEASUREMENT_ABORT");
+        }
+        return;
+    }
     settleWindow[settleWrite]=grams;settleWrite=uint8_t((settleWrite+1)%Config::WeightFinalSettleSamples);
     if(settleCount<Config::WeightFinalSettleSamples)settleCount++;
     float minimum=settleWindow[0],maximum=settleWindow[0];
     for(uint8_t i=1;i<settleCount;i++){minimum=min(minimum,settleWindow[i]);maximum=max(maximum,settleWindow[i]);}
     state.filteredWeightGrams=median(settleWindow,settleCount);state.weightSpreadGrams=maximum-minimum;
-    if(settleCount==Config::WeightFinalSettleSamples&&state.weightSpreadGrams<=Config::WeightFinalSettleMaxRangeGrams){handleStoppedWeight(state.filteredWeightGrams);return;}
-    if(millis()-settleStartedMs>=Config::WeightFinalSettleTimeoutMs)
+    if(settleCount==Config::WeightFinalSettleSamples&&state.weightSpreadGrams<=Config::WeightFinalSettleMaxRangeGrams){recoverAfterMeasurement(state.filteredWeightGrams);return;}
+    if(timedOut)
     {
-        if(measurementOnly&&settleCount){measurementOnly=false;measurementPending=false;state.settlingFinalWeight=false;state.finalWeightMeasured=true;Telemetry::event("FINAL_WEIGHT_SETTLE_TIMEOUT");}
-        else abortWeightRun("WEIGHT_SETTLE_TIMEOUT_ABORT");
+        if(measurementOnly&&settleCount){Telemetry::event("FINAL_WEIGHT_SETTLE_TIMEOUT");recoverAfterMeasurement(state.filteredWeightGrams);}
+        else
+        {
+            abortWeightRun((loadCells.healthyMask&requiredMask)==requiredMask?"WEIGHT_SETTLE_TIMEOUT_ABORT":"LOAD_CELL_UNHEALTHY_AT_MEASUREMENT_ABORT");
+        }
     }
 }
 
@@ -189,8 +236,8 @@ void updateStall()
 
 void RunSupervisor::beginRun()
 {
-    state=RunSupervisorSnapshot{};state.weightArmed=armed&&weightCapabilityEnabled&&LoadCells::profileTareValid();state.targetWeightGrams=configuredTarget;
-    abortCompletion=false;measurementPending=false;measurementOnly=false;lastServiceMs=0;lastStallEventMs=0;lastWeightSequence=0;lowSgSamples=0;sgCount=0;sgWrite=0;
+    state=RunSupervisorSnapshot{};state.weightArmed=armed&&weightCapabilityEnabled&&LoadCells::profileTareValid()&&LoadCells::tareValid();state.targetWeightGrams=configuredTarget;
+    abortCompletion=false;measurementPending=false;measurementOnly=false;tensionReliefPhase=TensionReliefPhase::Idle;recoveredMeasurementGrams=NAN;lastServiceMs=0;lastStallEventMs=0;lastWeightSequence=0;lowSgSamples=0;sgCount=0;sgWrite=0;
     lastMeasurementStep=0;lastMeasurementWeight=0.0f;stageStartStep=0;
     if(state.weightArmed)
     {
@@ -204,14 +251,19 @@ void RunSupervisor::beginRun()
 void RunSupervisor::service()
 {
     const uint32_t now=millis();if(now-lastServiceMs<Config::ControlSupervisorIntervalMs)return;lastServiceMs=now;
-    if(state.weightArmed)
-    {
-        const LoadCellSnapshot loadCells=LoadCells::snapshot();const uint8_t requiredMask=uint8_t((1u<<Config::LoadCellChannelCount)-1u);
-        if((loadCells.healthyMask&requiredMask)!=requiredMask){abortWeightRun("LOAD_CELL_UNHEALTHY_ABORT");return;}
-    }
+    // Load cells remain observational while the hub is moving. Weight control
+    // only requires them after tension relief, while stopped; a missed HX711
+    // conversion during motion must not terminate an otherwise healthy run.
     updateStall();
-    if(state.weightArmed&&!measurementPending&&!motionActive&&state.weightState!=WeightApproachState::TargetReached)beginStoppedMeasurement();
-    if(measurementPending)updateStoppedMeasurement();
+    if(tensionReliefPhase==TensionReliefPhase::BackingOff&&consumeAuxiliaryMotionComplete())startStoppedMeasurementWindow();
+    else if(tensionReliefPhase==TensionReliefPhase::Recovering&&consumeAuxiliaryMotionComplete())
+    {
+        tensionReliefPhase=TensionReliefPhase::Idle;
+        Telemetry::event("WEIGHT_TENSION_RECOVERY_COMPLETE");
+        handleStoppedWeight(recoveredMeasurementGrams);
+    }
+    if(state.weightArmed&&!measurementPending&&!motionActive&&tensionReliefPhase==TensionReliefPhase::Idle&&state.weightState!=WeightApproachState::TargetReached)beginStoppedMeasurement();
+    if(measurementPending&&tensionReliefPhase==TensionReliefPhase::Measuring)updateStoppedMeasurement();
 }
 
 float RunSupervisor::limitMotorRps(float requestedRps)
@@ -247,8 +299,8 @@ bool RunSupervisor::completionPending()
 bool RunSupervisor::requestFinalMeasurement()
 {
     if(measurementPending||state.finalWeightMeasured||!LoadCells::profileTareValid())return false;
-    measurementPending=true;measurementOnly=true;state.settlingFinalWeight=true;settleCount=0;settleWrite=0;settleStartedMs=millis();motionActive=false;motionSegmentStopStep=UINT32_MAX;
-    Telemetry::event("FINAL_WEIGHT_VERIFY_STOP");return true;
+    measurementOnly=true;motionActive=false;motionSegmentStopStep=UINT32_MAX;
+    Telemetry::event("FINAL_WEIGHT_VERIFY_STOP");beginStoppedMeasurement();return measurementPending;
 }
 const char* RunSupervisor::stallStateName(StallDetectionState value){return value==StallDetectionState::Candidate?"candidate":value==StallDetectionState::Confirmed?"confirmed":"monitoring";}
 const char* RunSupervisor::weightStateName(WeightApproachState value)

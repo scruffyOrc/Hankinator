@@ -5,7 +5,7 @@ namespace Pins {
 constexpr uint8_t Step=2, Dir=3, Enable=4, Stop=6, Diag=7;
 // RP2040/RP2350 UART1 alternate function: GP8=TX, GP9=RX.
 constexpr uint8_t TmcTx=8, TmcRx=9, NeoPixel=11, Beeper=12;
-constexpr uint8_t EncoderClick=13, EncoderA=14, EncoderB=15;
+constexpr uint8_t EncoderClick=13, EncoderA=15, EncoderB=14;
 constexpr uint8_t LcdDc=16, LcdCs=17, LcdClock=18, LcdData=19, LcdReset=20;
 constexpr uint8_t LoadCellClock=21;
 constexpr uint8_t LoadCellData[]={22,26,27,28};

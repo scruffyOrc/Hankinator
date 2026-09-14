@@ -201,7 +201,7 @@ void DiagnosticsTransport::poll()
     const bool connected=bluetoothRunning&&SerialBT.availableForWrite()>0;
     if(connected&&!bluetoothConnected) {
         Serial.println("Bluetooth diagnostics client connected");
-        SerialBT.println("Hankinator diagnostics connected");
+        SerialBT.println("HankWinder diagnostics connected");
         SerialBT.println("LOG DUMP | LOG CLEAR | LOG HELP | LOAD CELLS | MARK <label>");
     }
     if(!connected&&bluetoothConnected) {

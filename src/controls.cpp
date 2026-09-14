@@ -18,16 +18,23 @@ void finishConfiguration()
         return;
     }
     runStartupSplash();
-    uiState=weightCapabilityEnabled?UiState::FUH_PROGRAM_SELECT:UiState::YARN_WEIGHT_SELECT;
-    if(!weightCapabilityEnabled)loadSelectedTurnCount();
+    uiState=weightCapabilityEnabled?UiState::AUTO_MODE_SELECT:UiState::TURN_SELECT;
+    if(!weightCapabilityEnabled){autoCountMode=true;selectedTurns=settings.autoTurns;}
 }
 
 void startFuhProgram()
 {
+    if(autoCountMode)
+    {
+        selectedTurns=settings.autoTurns;
+        selectedCruiseMotorRPS=Config::FuhCruiseMotorRps;
+        RunSupervisor::disarmWeightTarget();
+        requestWindingStart();
+        return;
+    }
     activeFuhProgram=selectedFuhProgram;selectedTurns=Config::FuhSafetyTurnCeiling;selectedCruiseMotorRPS=Config::FuhCruiseMotorRps;
     for(uint8_t i=0;i<Config::CruiseSpeedOptionCount;i++)if(Config::CruiseSpeedOptions[i]==Config::FuhCruiseMotorRps)selectedCruiseSpeedIndex=i;
-    if(activeFuhProgram==FuhProgram::JustTurn)RunSupervisor::disarmWeightTarget();
-    else RunSupervisor::armWeightTarget(settings.weightTargetsCentiGrams[uint8_t(activeFuhProgram)]/100.0f);
+    RunSupervisor::armWeightTarget(settings.weightTargetsCentiGrams[uint8_t(activeFuhProgram)]/100.0f);
     requestWindingStart();
 }
 }
@@ -141,7 +148,7 @@ void updateEncoder()
             // or resume behavior is underway.
             if (
                 pauseState ==
-                PauseState::RUNNING&&!weightCapabilityEnabled
+                PauseState::RUNNING&&!weightCapabilityEnabled&&!autoCountMode
             )
             {
                 if (clockwise)
@@ -186,84 +193,6 @@ void updateEncoder()
         }
 
         // ------------------------------------------
-        // YARN WEIGHT
-        // ------------------------------------------
-
-        else if (
-            uiState ==
-            UiState::YARN_WEIGHT_SELECT
-        )
-        {
-            if (clockwise)
-            {
-                selectedYarnWeight++;
-
-                if (
-                    selectedYarnWeight >=
-                    YARN_WEIGHT_COUNT
-                )
-                {
-                    selectedYarnWeight = 0;
-                }
-            }
-            else
-            {
-                selectedYarnWeight--;
-
-                if (
-                    selectedYarnWeight < 0
-                )
-                {
-                    selectedYarnWeight =
-                        YARN_WEIGHT_COUNT - 1;
-                }
-            }
-
-            loadSelectedTurnCount();
-
-            drawCurrentScreen();
-        }
-
-        // ------------------------------------------
-        // SKEIN SIZE
-        // ------------------------------------------
-
-        else if (
-            uiState ==
-            UiState::SKEIN_SELECT
-        )
-        {
-            if (clockwise)
-            {
-                selectedSkeinSize++;
-
-                if (
-                    selectedSkeinSize >=
-                    SKEIN_SIZE_COUNT
-                )
-                {
-                    selectedSkeinSize = 0;
-                }
-            }
-            else
-            {
-                selectedSkeinSize--;
-
-                if (
-                    selectedSkeinSize < 0
-                )
-                {
-                    selectedSkeinSize =
-                        SKEIN_SIZE_COUNT - 1;
-                }
-            }
-
-            loadSelectedTurnCount();
-
-            drawCurrentScreen();
-        }
-
-        // ------------------------------------------
         // TURN COUNT
         // ------------------------------------------
 
@@ -304,23 +233,19 @@ void updateEncoder()
                     Config::MAX_TURNS;
             }
 
+            if(autoCountMode)selectedTurns=min(selectedTurns,int(Config::FuhSafetyTurnCeiling));
             drawCurrentScreen();
         }
 
+        else if(uiState==UiState::AUTO_MODE_SELECT)
+        {
+            autoCountMode=!autoCountMode;drawCurrentScreen();
+        }
         else if(uiState==UiState::FUH_PROGRAM_SELECT)
         {
             int selection=int(selectedFuhProgram)+(clockwise?1:-1);
-            if(selection>3)selection=0;if(selection<0)selection=3;
+            if(selection>2)selection=0;if(selection<0)selection=2;
             selectedFuhProgram=FuhProgram(selection);drawCurrentScreen();
-        }
-
-        else if(uiState==UiState::SPEED_SELECT)
-        {
-            selectedCruiseSpeedIndex+=clockwise?1:-1;
-            if(selectedCruiseSpeedIndex<0)selectedCruiseSpeedIndex=Config::CruiseSpeedOptionCount-1;
-            if(selectedCruiseSpeedIndex>=Config::CruiseSpeedOptionCount)selectedCruiseSpeedIndex=0;
-            selectedCruiseMotorRPS=Config::CruiseSpeedOptions[selectedCruiseSpeedIndex];
-            drawCurrentScreen();
         }
 
         // ------------------------------------------
@@ -438,51 +363,20 @@ void updateButton()
             case UiState::CONFIG_FIRMWARE_UPDATE:
                 break;
 
-            case UiState::YARN_WEIGHT_SELECT:
-
-                loadSelectedTurnCount();
-
-                uiState =
-                    UiState::SKEIN_SELECT;
-
-                break;
-
-            case UiState::SKEIN_SELECT:
-
-                loadSelectedTurnCount();
-
-                lastTurnEncoderTime = 0;
-
-                uiState =
-                    UiState::TURN_SELECT;
-
+            case UiState::AUTO_MODE_SELECT:
+                if(autoCountMode){selectedTurns=settings.autoTurns;lastTurnEncoderTime=0;uiState=UiState::TURN_SELECT;}
+                else uiState=UiState::FUH_PROGRAM_SELECT;
                 break;
 
             case UiState::TURN_SELECT:
-
-                saveSelectedTurnCount();
-
-                uiState =
-                    UiState::SPEED_SELECT;
-
+                autoCountMode=true;
+                if(settings.autoTurns!=selectedTurns){settings.autoTurns=selectedTurns;saveSettings();}
+                startFuhProgram();
                 break;
 
             case UiState::FUH_PROGRAM_SELECT:
 
                 startFuhProgram();
-
-                break;
-
-            case UiState::SPEED_SELECT:
-
-                uiState =
-                    UiState::READY;
-
-                break;
-
-            case UiState::READY:
-
-                requestWindingStart();
 
                 break;
 
@@ -518,33 +412,8 @@ void updateButton()
                 break;
 
             case UiState::REPEAT_PROMPT:
-
-                if(weightCapabilityEnabled)
-                {
-                    if(repeatYes)startFuhProgram();
-                    else uiState=UiState::FUH_PROGRAM_SELECT;
-                    break;
-                }
-
-                if (repeatYes)
-                {
-                    speedTrimPercent = 100;
-
-                    uiState =
-                        UiState::READY;
-                }
-                else
-                {
-                    loadSelectedTurnCount();
-
-                    speedTrimPercent = 100;
-
-                    lastTurnEncoderTime = 0;
-
-                    uiState =
-                        UiState::YARN_WEIGHT_SELECT;
-                }
-
+                if(repeatYes)startFuhProgram();
+                else uiState=autoCountMode?UiState::TURN_SELECT:UiState::FUH_PROGRAM_SELECT;
                 break;
         }
 
@@ -569,17 +438,13 @@ void updateStopButton()
         stop == LOW
     )
     {
-        if(uiState==UiState::WINDING&&weightCapabilityEnabled&&activeFuhProgram==FuhProgram::JustTurn)
-        {
-            motionActive=false;requestedStepRateHz=0;beep(100);lastStop=stop;return;
-        }
         if(uiState==UiState::TARING||uiState==UiState::TARE_FAILED)
         {
             LoadCells::cancelTare();
             motionActive=false;
             requestedStepRateHz=0;
             disableMotor();
-            uiState=weightCapabilityEnabled?UiState::FUH_PROGRAM_SELECT:UiState::READY;
+            uiState=weightCapabilityEnabled?(autoCountMode?UiState::TURN_SELECT:UiState::FUH_PROGRAM_SELECT):UiState::TURN_SELECT;
             drawCurrentScreen();delay(120);lastStop=stop;return;
         }
         if(uiState==UiState::CONFIG_MENU)
@@ -623,6 +488,11 @@ void updateStopButton()
             if(settings.bluetoothEnabled)DiagnosticsTransport::setEnabled(true);
             uiState=UiState::CONFIG_MENU;
             drawCurrentScreen();delay(120);lastStop=stop;return;
+        }
+        if(weightCapabilityEnabled&&(uiState==UiState::TURN_SELECT||uiState==UiState::FUH_PROGRAM_SELECT))
+        {
+            uiState=UiState::AUTO_MODE_SELECT;
+            drawCurrentScreen();lastStop=stop;return;
         }
         // RESET remains a genuine immediate abort.
         // Unlike Pause, it intentionally does NOT ramp.

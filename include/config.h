@@ -13,7 +13,7 @@ constexpr uint8_t Heartbeat=LED_BUILTIN;
 }
 
 namespace Config {
-constexpr char FirmwareVersion[]="0.5.0-dev";
+constexpr char FirmwareVersion[]="0.6.0";
 constexpr char FirmwareUpdateSsid[]="Hankinator-Update";
 constexpr char FirmwareUpdatePassword[]="hankinator";
 constexpr uint16_t MotorStepsPerRev=200;
@@ -34,7 +34,7 @@ constexpr uint32_t StepPulseUs=2, IdleTimerUs=1000;
 constexpr uint32_t SplashTimeMs=4000, RainbowCycleMs=1200;
 constexpr size_t EepromSize=4096;
 constexpr uint32_t SettingsMagic=0x48414E4B, LogMagic=0x484C4F47;
-constexpr uint16_t SettingsVersion=4, LogVersion=9;
+constexpr uint16_t SettingsVersion=5, LogVersion=9;
 constexpr bool WindDirectionHigh=true;
 constexpr float TmcRsense=.11f;
 constexpr uint8_t TmcAddress=0, StallThreshold=10;
@@ -44,7 +44,10 @@ constexpr uint16_t MinHoldCurrentMa=100,MaxHoldCurrentMa=600;
 constexpr uint32_t ConfigHoldMs=1500,PairingWindowMs=60000;
 constexpr uint8_t LoadCellChannelCount=sizeof(Pins::LoadCellData)/sizeof(Pins::LoadCellData[0]);
 constexpr uint8_t RequiredLoadCells=4;
-constexpr uint8_t LoadCellDetectionSamples=2;
+constexpr uint8_t PanelBacklightPixel=2,PanelEncoderFirstPixel=0,PanelEncoderSecondPixel=1;
+constexpr uint32_t StatusLedRefreshMs=50,StatusLedPulseMs=2000,StatusLedRainbowMs=3000,StatusLedStopMs=500;
+constexpr uint16_t DefaultAutoTurns=62;
+constexpr uint8_t LoadCellDetectionSamples=5;
 constexpr uint32_t LoadCellDetectionWindowMs=1500,LoadCellHealthyTimeoutMs=1000;
 constexpr uint32_t LoadCellDiagnosticsRefreshMs=100;
 constexpr uint8_t LoadCellTareSamples=16;

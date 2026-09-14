@@ -8,6 +8,7 @@
 
 namespace {
 RunSupervisorSnapshot state{};
+bool finalMeasurementAttempted=false;
 bool armed=false,abortCompletion=false,measurementPending=false,measurementOnly=false;
 enum class TensionReliefPhase:uint8_t {Idle,BackingOff,Measuring,Recovering};
 TensionReliefPhase tensionReliefPhase=TensionReliefPhase::Idle;
@@ -111,6 +112,15 @@ void startStoppedMeasurementWindow()
 
 void recoverAfterMeasurement(float grams)
 {
+    // Count mode finishes with tension released for unloading.
+    if(measurementOnly&&autoCountMode)
+    {
+        tensionReliefPhase=TensionReliefPhase::Idle;
+        measurementOnly=false;measurementPending=false;state.settlingFinalWeight=false;
+        state.filteredWeightGrams=grams;state.finalWeightMeasured=!isnan(grams);
+        if(isnan(grams))abortCompletion=true;
+        Telemetry::event("FINAL_WEIGHT_SETTLED");return;
+    }
     recoveredMeasurementGrams=grams;state.settlingFinalWeight=false;
     if(!startAuxiliaryHubMotion(true,Config::WeightTensionReliefSteps,Config::WeightTensionReliefMotorRps))
     {
@@ -209,7 +219,7 @@ void updateStoppedMeasurement()
     if(settleCount==Config::WeightFinalSettleSamples&&state.weightSpreadGrams<=Config::WeightFinalSettleMaxRangeGrams){recoverAfterMeasurement(state.filteredWeightGrams);return;}
     if(timedOut)
     {
-        if(measurementOnly&&settleCount){Telemetry::event("FINAL_WEIGHT_SETTLE_TIMEOUT");recoverAfterMeasurement(state.filteredWeightGrams);}
+        if(measurementOnly&&settleCount&&!autoCountMode){Telemetry::event("FINAL_WEIGHT_SETTLE_TIMEOUT");recoverAfterMeasurement(state.filteredWeightGrams);}
         else
         {
             abortWeightRun((loadCells.healthyMask&requiredMask)==requiredMask?"WEIGHT_SETTLE_TIMEOUT_ABORT":"LOAD_CELL_UNHEALTHY_AT_MEASUREMENT_ABORT");
@@ -236,7 +246,8 @@ void updateStall()
 
 void RunSupervisor::beginRun()
 {
-    state=RunSupervisorSnapshot{};state.weightArmed=armed&&weightCapabilityEnabled&&LoadCells::profileTareValid()&&LoadCells::tareValid();state.targetWeightGrams=configuredTarget;
+    state=RunSupervisorSnapshot{};state.weightArmed=armed&&weightCapabilityEnabled&&!autoCountMode&&LoadCells::tareValid();state.targetWeightGrams=configuredTarget;
+    finalMeasurementAttempted=false;
     abortCompletion=false;measurementPending=false;measurementOnly=false;tensionReliefPhase=TensionReliefPhase::Idle;recoveredMeasurementGrams=NAN;lastServiceMs=0;lastStallEventMs=0;lastWeightSequence=0;lowSgSamples=0;sgCount=0;sgWrite=0;
     lastMeasurementStep=0;lastMeasurementWeight=0.0f;stageStartStep=0;
     if(state.weightArmed)
@@ -298,7 +309,8 @@ bool RunSupervisor::completionPending()
 }
 bool RunSupervisor::requestFinalMeasurement()
 {
-    if(measurementPending||state.finalWeightMeasured||!LoadCells::profileTareValid())return false;
+    if(finalMeasurementAttempted||abortCompletion||measurementPending||state.finalWeightMeasured||!LoadCells::tareValid())return false;
+    finalMeasurementAttempted=true;
     measurementOnly=true;motionActive=false;motionSegmentStopStep=UINT32_MAX;
     Telemetry::event("FINAL_WEIGHT_VERIFY_STOP");beginStoppedMeasurement();return measurementPending;
 }

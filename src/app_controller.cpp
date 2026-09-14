@@ -12,11 +12,6 @@
 namespace {
 bool configurationInputReleaseRequired=false;
 bool tareSettling=false;
-bool tareProfiling=false;
-bool stationaryTareSettling=false;
-bool stationaryTaring=false;
-bool stationaryTareBackingOff=false;
-bool stationaryTareRecovering=false;
 uint32_t tareSettleStartedMs=0;
 
 void printTareResult(const char* context)
@@ -32,26 +27,6 @@ void printTareResult(const char* context)
     Serial.println();
 }
 
-bool performStartupTare()
-{
-    display.clearBuffer();display.setFont(u8g2_font_6x10_tf);display.drawStr(25,22,"STARTUP TARE");display.drawStr(17,38,"Do not touch");display.drawStr(16,55,"Motor holding");display.sendBuffer();
-    enableMotor();
-    const uint32_t settleStarted=millis();
-    while(millis()-settleStarted<Config::LoadCellTareMotorSettleMs){LoadCells::service();delay(1);}
-    LoadCells::startTare();
-    uint32_t lastDraw=0;
-    while(LoadCells::tareStatus()==LoadCellTareStatus::Collecting)
-    {
-        LoadCells::service();
-        LoadCells::updateTare();
-        if(digitalRead(STOP_BUTTON)==LOW){LoadCells::cancelTare();break;}
-        if(millis()-lastDraw>=250){lastDraw=millis();drawTareScreen();}
-        delay(1);
-    }
-    printTareResult("startup");
-    disableMotor();
-    return LoadCells::tareValid();
-}
 }
 
 bool configurationButtonsHeld()
@@ -127,6 +102,7 @@ bool updateConfigurationShortcut()
 
 void resetToYarnWeightSelection()
 {
+    signalStoppedLights();
     if(uiState==UiState::TARING)LoadCells::cancelTare();
     if (uiState == UiState::WINDING)
         Telemetry::finish(RunEnd::Abort);
@@ -144,8 +120,8 @@ void resetToYarnWeightSelection()
     pauseStartedTime = 0;
     pauseTimeRecorded = false;
 
-    uiState=weightCapabilityEnabled?UiState::FUH_PROGRAM_SELECT:UiState::YARN_WEIGHT_SELECT;
-    if(!weightCapabilityEnabled)loadSelectedTurnCount();
+    uiState=weightCapabilityEnabled&&!autoCountMode?UiState::FUH_PROGRAM_SELECT:UiState::TURN_SELECT;
+    if(!weightCapabilityEnabled){autoCountMode=true;selectedTurns=settings.autoTurns;}
 
     speedTrimPercent = 100;
 
@@ -178,15 +154,10 @@ void requestWindingStart()
     requestedStepRateHz=0;
     enableMotor();
     tareSettling=true;
-    tareProfiling=false;
-    stationaryTareSettling=false;
-    stationaryTaring=false;
-    stationaryTareBackingOff=false;
-    stationaryTareRecovering=false;
     tareSettleStartedMs=millis();
     uiState=UiState::TARING;
     drawTareScreen();
-    Serial.println("TARE_START,context,pre_winding,mode,one_hub_revolution,motor,energized");
+    Serial.println("TARE_START,context,pre_winding,mode,stationary,motor,energized");
 }
 
 void updateTareProcess()
@@ -194,80 +165,25 @@ void updateTareProcess()
     if(uiState!=UiState::TARING)return;
     if(tareSettling)
     {
-        if(millis()-tareSettleStartedMs<Config::LoadCellTareMotorSettleMs)return;
-        tareSettling=false;
-        tareProfiling=true;
-        digitalWrite(STEPPER_DIR,(settings.clockwise?WIND_DIRECTION_HIGH:!WIND_DIRECTION_HIGH)?HIGH:LOW);
-        currentStepCount=0;targetStepCount=Config::StepsPerHubRev;
-        motionSegmentStopStep=UINT32_MAX;
-        currentMotorRPS=Config::LoadCellProfileMotorRps;
-        requestedStepRateHz=stepsPerSecondForMotorRPS(currentMotorRPS);
-        LoadCells::startProfileTare(0);
-        motionActive=true;
-        requestStepGeneratorWake();
-    }
-
-    if(stationaryTareBackingOff)
-    {
-        if(!consumeAuxiliaryMotionComplete())return;
-        stationaryTareBackingOff=false;stationaryTareSettling=true;tareSettleStartedMs=millis();
-        Serial.println("TARE_TENSION_RELIEF_COMPLETE,settling_for_stationary_reference");
-    }
-
-    if(stationaryTareRecovering)
-    {
-        if(!consumeAuxiliaryMotionComplete())return;
-        stationaryTareRecovering=false;
-        printTareResult("pre_winding");
-        uiState=UiState::LOAD_YARN;
-        Serial.println("TARE_STATIONARY_COMPLETE,position_restored,load_yarn_then_click");
-        drawLoadYarnScreen();
-        return;
-    }
-
-    if(stationaryTareSettling)
-    {
+        // Match the settling interval used for authoritative stopped weighing.
         if(millis()-tareSettleStartedMs<Config::WeightStoppedMechanicalSettleMs)return;
-        stationaryTareSettling=false;
-        stationaryTaring=true;
+        tareSettling=false;
         LoadCells::startTare();
         Serial.println("TARE_STATIONARY_START,context,pre_winding,motor,energized");
     }
-
-    const LoadCellTareStatus status=tareProfiling?LoadCells::updateProfileTare(safeCurrentStepCount()):LoadCells::updateTare();
+    const LoadCellTareStatus status=LoadCells::updateTare();
     static uint32_t lastDraw=0;
     if(millis()-lastDraw>=100){lastDraw=millis();drawTareScreen();}
     if(status==LoadCellTareStatus::Complete)
     {
-        if(tareProfiling)
-        {
-            motionActive=false;requestedStepRateHz=0;tareProfiling=false;
-            if(!startAuxiliaryHubMotion(false,Config::WeightTensionReliefSteps,Config::WeightTensionReliefMotorRps))
-            {
-                LoadCells::cancelTare();uiState=UiState::TARE_FAILED;drawTareScreen();return;
-            }
-            stationaryTareBackingOff=true;
-            Serial.println("TARE_PROFILE_COMPLETE,tension_relief_reverse_start");
-            return;
-        }
-        if(!stationaryTaring)return;
-        stationaryTaring=false;
-        if(!startAuxiliaryHubMotion(true,Config::WeightTensionReliefSteps,Config::WeightTensionReliefMotorRps))
-        {
-            uiState=UiState::TARE_FAILED;drawTareScreen();return;
-        }
-        stationaryTareRecovering=true;
-        Serial.println("TARE_STATIONARY_CAPTURE_COMPLETE,position_restore_start");
+        printTareResult("pre_winding");
+        uiState=UiState::LOAD_YARN;
+        Serial.println("TARE_STATIONARY_COMPLETE,load_yarn_then_click");
+        drawLoadYarnScreen();
     }
     else if(status==LoadCellTareStatus::Failed)
     {
-        cancelAuxiliaryMotion();requestedStepRateHz=0;tareProfiling=false;stationaryTareSettling=false;stationaryTaring=false;stationaryTareBackingOff=false;stationaryTareRecovering=false;
         printTareResult("pre_winding");
-        if(activeFuhProgram==FuhProgram::JustTurn)
-        {
-            Serial.println("TARE_PROFILE_FAILED,just_turn_continues_without_weight");
-            uiState=UiState::LOAD_YARN;drawLoadYarnScreen();return;
-        }
         disableMotor();
         uiState=UiState::TARE_FAILED;
         beep(150);
@@ -360,6 +276,7 @@ void beginWinding()
 
 void updateHeartbeat()
 {
+    updatePanelLights();
     if (
         millis() -
         lastHeartbeat >=
@@ -472,7 +389,7 @@ void updateMotor()
         !motionActive&&!RunSupervisor::completionPending()
     )
     {
-        if(weightCapabilityEnabled&&activeFuhProgram==FuhProgram::JustTurn&&RunSupervisor::requestFinalMeasurement())return;
+        if(weightCapabilityEnabled&&autoCountMode&&RunSupervisor::requestFinalMeasurement())return;
         finalRunStepCount=safeCurrentStepCount();
         const RunSupervisorSnapshot finalControl=RunSupervisor::snapshot();
         finalRunWeightValid=finalControl.finalWeightMeasured&&!isnan(finalControl.filteredWeightGrams);
@@ -591,7 +508,7 @@ void App::setup()
     // Persistent settings
     loadSettings();
 
-    loadSelectedTurnCount();
+    selectedTurns=settings.autoTurns;
 
     // RGB
     pixels.begin();
@@ -618,6 +535,7 @@ void App::setup()
     display.clearBuffer();display.setFont(u8g2_font_6x10_tf);display.drawStr(11,31,"Checking hardware");display.sendBuffer();
     LoadCells::begin();
     Product::resolve(LoadCells::detectAtStartup());
+    if(LoadCells::startupFault()){productMode=ProductMode::LoadCellFault;weightCapabilityEnabled=false;}
 
     Serial.print("Load cells: required=");Serial.print(Config::RequiredLoadCells);
     Serial.print(" detected=");Serial.print(detectedLoadCellCount);
@@ -649,9 +567,6 @@ void App::setup()
     // user-visible display is alive so a driver fault cannot hide startup.
     TmcDriver::begin();
 
-    // This initial diagnostic zero is replaced by the mandatory tare taken
-    // immediately before each winding run.
-    if(!configurationRequested&&weightCapabilityEnabled)performStartupTare();
 
     // Let the CYW43 Bluetooth stack initialize its background timing before
     // the continuously rescheduled motion alarm is created.
@@ -666,7 +581,12 @@ void App::setup()
             true
         );
 
-    if(productMode==ProductMode::Fuhgeddabouditinator)uiState=UiState::FUH_PROGRAM_SELECT;
+    if(productMode==ProductMode::Turninator)autoCountMode=true;
+    if(!configurationRequested)
+    {
+        if(productMode==ProductMode::Fuhgeddabouditinator)uiState=UiState::AUTO_MODE_SELECT;
+        else if(productMode==ProductMode::Turninator){selectedTurns=settings.autoTurns;uiState=UiState::TURN_SELECT;}
+    }
     drawCurrentScreen();
 
     // Debug

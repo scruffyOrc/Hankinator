@@ -14,13 +14,13 @@ void formatOneDecimal(char* output,size_t size,float value)
 
 const char* fuhProgramName(FuhProgram program)
 {
-    static const char* names[]={"Mini  20g","Half  50g","Full  100g","Just Turn"};
+    static const char* names[]={"Mini  20g","Half  50g","Full  100g"};
     return names[uint8_t(program)];
 }
 
 void formatFuhProgress(char* output,size_t size,int completedTurns,const RunSupervisorSnapshot& control)
 {
-    if(activeFuhProgram==FuhProgram::JustTurn){snprintf(output,size,"%d turns",completedTurns);return;}
+    if(autoCountMode){snprintf(output,size,"%d / %d turns",completedTurns,selectedTurns);return;}
     if(isnan(control.filteredWeightGrams)){snprintf(output,size,"Measuring...");return;}
     char measured[12]{};formatOneDecimal(measured,sizeof(measured),control.filteredWeightGrams);
     static const char* nominal[]={"20g","50g","100g"};
@@ -31,323 +31,11 @@ void formatFuhProgress(char* output,size_t size,int completedTurns,const RunSupe
 void drawFuhProgramScreen()
 {
     display.clearBuffer();display.setFont(u8g2_font_5x8_tf);
-    display.drawStr(7,9,"FUHGEDDABOUDITINATOR");display.drawHLine(0,12,128);
+    display.drawStr((128-display.getStrWidth("Auto HankWinder"))/2,9,"Auto HankWinder");display.drawHLine(0,12,128);
     display.setFont(u8g2_font_6x12_tf);display.drawStr(25,29,"Select winding");
     const char* label=fuhProgramName(selectedFuhProgram);
     display.setFont(u8g2_font_ncenB14_tr);const int width=display.getStrWidth(label);display.drawStr((128-width)/2,53,label);
     display.setFont(u8g2_font_5x8_tf);display.drawStr(24,63,"Turn / Click");display.sendBuffer();
-}
-
-void drawYarnWeightScreen()
-{
-    display.clearBuffer();
-
-    display.setFont(
-        u8g2_font_6x12_tf
-    );
-
-    display.drawStr(
-        19,
-        11,
-        "THE HANKINATOR"
-    );
-
-    display.drawHLine(
-        0,
-        15,
-        128
-    );
-
-    display.drawStr(
-        32,
-        29,
-        "Yarn Weight"
-    );
-
-    const char* label =
-        YARN_WEIGHTS[
-            selectedYarnWeight
-        ].label;
-
-    display.setFont(
-        u8g2_font_ncenB14_tr
-    );
-
-    int width =
-        display.getStrWidth(
-            label
-        );
-
-    display.drawStr(
-        (128 - width) / 2,
-        53,
-        label
-    );
-
-    display.setFont(
-        u8g2_font_5x8_tf
-    );
-
-    display.drawStr(
-        2,
-        63,
-        "Turn"
-    );
-
-    display.drawStr(
-        96,
-        63,
-        "Click"
-    );
-
-    display.sendBuffer();
-}
-
-void drawSkeinScreen()
-{
-    display.clearBuffer();
-
-    display.setFont(
-        u8g2_font_6x12_tf
-    );
-
-    display.drawStr(
-        19,
-        11,
-        "THE HANKINATOR"
-    );
-
-    display.drawHLine(
-        0,
-        15,
-        128
-    );
-
-    display.drawStr(
-        35,
-        29,
-        "Skein Size"
-    );
-
-    display.setFont(
-        u8g2_font_ncenB18_tr
-    );
-
-    const char* label =
-        SKEIN_SIZES[
-            selectedSkeinSize
-        ].label;
-
-    int width =
-        display.getStrWidth(
-            label
-        );
-
-    display.drawStr(
-        (128 - width) / 2,
-        53,
-        label
-    );
-
-    display.setFont(
-        u8g2_font_5x8_tf
-    );
-
-    display.drawStr(
-        2,
-        63,
-        "Turn"
-    );
-
-    display.drawStr(
-        96,
-        63,
-        "Click"
-    );
-
-    display.sendBuffer();
-}
-
-void drawTurnScreen()
-{
-    display.clearBuffer();
-
-    display.setFont(
-        u8g2_font_6x12_tf
-    );
-
-    display.drawStr(
-        19,
-        11,
-        "THE HANKINATOR"
-    );
-
-    display.drawHLine(
-        0,
-        15,
-        128
-    );
-
-    char context[32];
-
-    snprintf(
-        context,
-        sizeof(context),
-        "%s / %s",
-        YARN_WEIGHTS[
-            selectedYarnWeight
-        ].label,
-        SKEIN_SIZES[
-            selectedSkeinSize
-        ].label
-    );
-
-    display.setFont(
-        u8g2_font_5x8_tf
-    );
-
-    int contextWidth =
-        display.getStrWidth(
-            context
-        );
-
-    display.drawStr(
-        (128 - contextWidth) / 2,
-        25,
-        context
-    );
-
-    display.setFont(
-        u8g2_font_6x12_tf
-    );
-
-    display.drawStr(
-        25,
-        36,
-        "Number of Turns"
-    );
-
-    char buffer[16];
-
-    snprintf(
-        buffer,
-        sizeof(buffer),
-        "%d",
-        selectedTurns
-    );
-
-    display.setFont(
-        u8g2_font_ncenB18_tr
-    );
-
-    int width =
-        display.getStrWidth(
-            buffer
-        );
-
-    display.drawStr(
-        (128 - width) / 2,
-        58,
-        buffer
-    );
-
-    display.sendBuffer();
-}
-
-void drawSpeedScreen()
-{
-    display.clearBuffer();
-    display.setFont(u8g2_font_6x12_tf);
-    display.drawStr(19,11,"THE HANKINATOR");
-    display.drawHLine(0,15,128);
-    display.drawStr(29,32,"Motor Speed");
-    char speed[12]{},line[20]{};
-    formatOneDecimal(speed,sizeof(speed),selectedCruiseMotorRPS);
-    snprintf(line,sizeof(line),"%s RPS",speed);
-    display.setFont(u8g2_font_ncenB18_tr);
-    const int width=display.getStrWidth(line);
-    display.drawStr((128-width)/2,58,line);
-    display.sendBuffer();
-}
-
-void drawReadyScreen()
-{
-    display.clearBuffer();
-
-    display.setFont(
-        u8g2_font_6x12_tf
-    );
-
-    display.drawStr(
-        45,
-        11,
-        "READY"
-    );
-
-    display.drawHLine(
-        0,
-        15,
-        128
-    );
-
-    char line[32];
-
-    snprintf(
-        line,
-        sizeof(line),
-        "%s / %s",
-        YARN_WEIGHTS[
-            selectedYarnWeight
-        ].label,
-        SKEIN_SIZES[
-            selectedSkeinSize
-        ].label
-    );
-
-    display.setFont(
-        u8g2_font_5x8_tf
-    );
-
-    int width =
-        display.getStrWidth(
-            line
-        );
-
-    display.drawStr(
-        (128 - width) / 2,
-        29,
-        line
-    );
-
-    char speed[12]{};formatOneDecimal(speed,sizeof(speed),selectedCruiseMotorRPS);
-    snprintf(line,sizeof(line),"%d turns / %s r/s",selectedTurns,speed);
-
-    display.setFont(
-        u8g2_font_6x12_tf
-    );
-
-    width =
-        display.getStrWidth(
-            line
-        );
-
-    display.drawStr(
-        (128 - width) / 2,
-        44,
-        line
-    );
-
-    display.setFont(
-        u8g2_font_5x8_tf
-    );
-
-    display.drawStr(
-        28,
-        62,
-        "Click to start"
-    );
-
-    display.sendBuffer();
 }
 
 void drawWindingScreen()
@@ -419,7 +107,7 @@ void drawWindingScreen()
             u8g2_font_6x12_tf
         );
 
-        if(weightCapabilityEnabled)formatFuhProgress(buffer,sizeof(buffer),completedTurns,control);
+        if(weightCapabilityEnabled||autoCountMode)formatFuhProgress(buffer,sizeof(buffer),completedTurns,control);
         else snprintf(buffer,sizeof(buffer),"%d / %d turns",completedTurns,selectedTurns);
 
         width =
@@ -478,7 +166,7 @@ void drawWindingScreen()
             u8g2_font_6x12_tf
         );
 
-        if(weightCapabilityEnabled)formatFuhProgress(buffer,sizeof(buffer),completedTurns,control);
+        if(weightCapabilityEnabled||autoCountMode)formatFuhProgress(buffer,sizeof(buffer),completedTurns,control);
         else snprintf(buffer,sizeof(buffer),"%d / %d turns",completedTurns,selectedTurns);
 
         width =
@@ -537,7 +225,7 @@ void drawWindingScreen()
             u8g2_font_6x12_tf
         );
 
-        if(weightCapabilityEnabled)formatFuhProgress(buffer,sizeof(buffer),completedTurns,control);
+        if(weightCapabilityEnabled||autoCountMode)formatFuhProgress(buffer,sizeof(buffer),completedTurns,control);
         else snprintf(buffer,sizeof(buffer),"%d / %d turns",completedTurns,selectedTurns);
 
         width =
@@ -576,7 +264,6 @@ void drawWindingScreen()
     const bool weightControl=control.weightArmed;
     const char* windingTitle="WINDING";
     if(control.settlingFinalWeight)windingTitle="MEASURING";
-    else if(weightCapabilityEnabled&&activeFuhProgram==FuhProgram::JustTurn)windingTitle="JUST TURN";
     else if(control.weightState==WeightApproachState::Calibration)windingTitle="LEARNING";
     else if(control.weightState==WeightApproachState::Bulk)windingTitle="BULK WIND";
     else if(control.weightState==WeightApproachState::Refinement)windingTitle="REFINING";
@@ -589,7 +276,7 @@ void drawWindingScreen()
         128
     );
 
-    if(weightCapabilityEnabled)formatFuhProgress(buffer,sizeof(buffer),completedTurns,control);
+    if(weightCapabilityEnabled||autoCountMode)formatFuhProgress(buffer,sizeof(buffer),completedTurns,control);
     else if(weightControl&&!isnan(control.filteredWeightGrams))
     {
         char measured[12]{},target[12]{};
@@ -615,7 +302,7 @@ void drawWindingScreen()
     );
 
     char rps[12]{};formatOneDecimal(rps,sizeof(rps),currentMotorRPS);
-    if(weightCapabilityEnabled)snprintf(buffer,sizeof(buffer),"%s r/s   Click: Pause",rps);
+    if(weightCapabilityEnabled||autoCountMode)snprintf(buffer,sizeof(buffer),"%s r/s   Click: Pause",rps);
     else if(weightControl)snprintf(buffer,sizeof(buffer),"%s r/s  %d/%d turns",rps,completedTurns,selectedTurns);
     else snprintf(buffer,sizeof(buffer),"%s r/s  %d%%",rps,speedTrimPercent);
 
@@ -697,7 +384,7 @@ void drawCompleteScreen()
         display.drawStr(18,45,"Target not reached");
     }
     display.setFont(u8g2_font_5x8_tf);
-    display.drawStr(24,61,"Click to continue");
+    display.drawStr(weightCapabilityEnabled?1:24,61,weightCapabilityEnabled?"Remove hank, then click":"Click to continue");
 
     display.sendBuffer();
 }
@@ -825,28 +512,29 @@ void drawCurrentScreen()
 {
     switch (uiState)
     {
-        case UiState::YARN_WEIGHT_SELECT:
-            drawYarnWeightScreen();
-            break;
-
-        case UiState::SKEIN_SELECT:
-            drawSkeinScreen();
+        case UiState::AUTO_MODE_SELECT:
+            display.clearBuffer();display.setFont(u8g2_font_6x12_tf);
+            display.drawStr(19,12,"Auto HankWinder");
+            display.drawHLine(0,16,128);
+            display.drawStr(16,34,autoCountMode?"> Count based":"  Count based");
+            display.drawStr(16,48,autoCountMode?"  Weight based":"> Weight based");
+            display.setFont(u8g2_font_5x8_tf);display.drawStr(24,63,"Turn / Click");display.sendBuffer();
             break;
 
         case UiState::TURN_SELECT:
-            drawTurnScreen();
-            break;
-
-        case UiState::SPEED_SELECT:
-            drawSpeedScreen();
+            {
+                display.clearBuffer();display.setFont(u8g2_font_6x12_tf);
+                const char* title=weightCapabilityEnabled?"Auto HankWinder":"HankWinder";
+                display.drawStr((128-display.getStrWidth(title))/2,12,title);
+                display.drawHLine(0,16,128);display.drawStr(28,29,"Turn count");
+                char count[12]{};snprintf(count,sizeof(count),"%d",selectedTurns);
+                display.setFont(u8g2_font_ncenB14_tr);display.drawStr((128-display.getStrWidth(count))/2,49,count);
+                display.setFont(u8g2_font_5x8_tf);display.drawStr(4,63,"Click: Start STOP: Back");display.sendBuffer();
+            }
             break;
 
         case UiState::FUH_PROGRAM_SELECT:
             drawFuhProgramScreen();
-            break;
-
-        case UiState::READY:
-            drawReadyScreen();
             break;
 
         case UiState::TARING:
@@ -915,7 +603,7 @@ void drawTareScreen()
         display.drawStr(36,34,"TARING");
         display.setFont(u8g2_font_5x8_tf);
         display.drawStr(19,49,"Do not touch");
-        display.drawStr(9,60,"Hub rotating slowly");
+        display.drawStr(9,60,"Motor holding still");
     }
     display.sendBuffer();
 }

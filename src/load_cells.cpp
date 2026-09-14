@@ -10,6 +10,8 @@ bool hasResult[Config::LoadCellChannelCount]{};
 bool lastResultValid[Config::LoadCellChannelCount]{};
 uint32_t resultSequence[Config::LoadCellChannelCount]{};
 uint32_t snapshotSequence=0;
+bool startupValidationFault=false;
+bool startupChannelFault[Config::LoadCellChannelCount]{};
 
 int32_t tareWindow[Config::LoadCellChannelCount][Config::LoadCellTareSamples]{};
 uint8_t tareWindowCount[Config::LoadCellChannelCount]{};
@@ -108,17 +110,46 @@ void LoadCells::service()
 
 uint8_t LoadCells::detectAtStartup()
 {
+    uint32_t seen[Config::LoadCellChannelCount]{};
+    uint16_t samples[Config::LoadCellChannelCount]{};
+    int32_t first[Config::LoadCellChannelCount]{};
+    bool changed[Config::LoadCellChannelCount]{};
+    bool responded[Config::LoadCellChannelCount]{};
+    startupValidationFault=false;
+    for(uint8_t channel=0;channel<Config::LoadCellChannelCount;channel++)
+    {
+        seen[channel]=resultSequence[channel];
+        startupChannelFault[channel]=false;
+    }
     const uint32_t started=millis();
     while(millis()-started<Config::LoadCellDetectionWindowMs)
     {
         service();
+        for(uint8_t channel=0;channel<Config::LoadCellChannelCount;channel++)
+        {
+            if(seen[channel]==resultSequence[channel])continue;
+            seen[channel]=resultSequence[channel];
+            responded[channel]=true;
+            if(!lastResultValid[channel])continue;
+            if(samples[channel]==0)first[channel]=rawValues[channel];
+            else if(rawValues[channel]!=first[channel])changed[channel]=true;
+            samples[channel]++;
+        }
         delay(1);
     }
     uint8_t count=0;
     for(uint8_t channel=0;channel<Config::LoadCellChannelCount;channel++)
-        if(validSamples[channel]>=Config::LoadCellDetectionSamples)count++;
+    {
+        const bool passed=samples[channel]>=Config::LoadCellDetectionSamples&&changed[channel]
+            &&lastResultValid[channel]&&millis()-lastResultMs[channel]<=Config::LoadCellHealthyTimeoutMs;
+        if(passed)count++;
+        startupChannelFault[channel]=responded[channel]&&!passed;
+        startupValidationFault|=startupChannelFault[channel];
+    }
     return count;
 }
+
+bool LoadCells::startupFault(){return startupValidationFault;}
 
 bool LoadCells::healthy(uint8_t channel)
 {
@@ -128,7 +159,7 @@ bool LoadCells::healthy(uint8_t channel)
 LoadCellStatus LoadCells::status(uint8_t channel)
 {
     if(channel>=Config::LoadCellChannelCount||!hasResult[channel])return LoadCellStatus::NoData;
-    if(!lastResultValid[channel]||millis()-lastResultMs[channel]>Config::LoadCellHealthyTimeoutMs)return LoadCellStatus::Error;
+    if(startupChannelFault[channel]||!lastResultValid[channel]||millis()-lastResultMs[channel]>Config::LoadCellHealthyTimeoutMs)return LoadCellStatus::Error;
     return LoadCellStatus::Ok;
 }
 

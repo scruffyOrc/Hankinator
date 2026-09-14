@@ -29,6 +29,8 @@ namespace LoadCells {
 void begin();
 void service();
 uint8_t detectAtStartup();
+// Latched startup validation failure, including responding but stuck channels.
+bool startupFault();
 LoadCellSnapshot snapshot();
 bool healthy(uint8_t channel);
 LoadCellStatus status(uint8_t channel);

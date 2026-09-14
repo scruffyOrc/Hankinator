@@ -25,6 +25,7 @@ void loadFactoryDefaults()
     settings.runCurrentMa=Config::DefaultRunCurrentMa;
     settings.holdCurrentMa=Config::DefaultHoldCurrentMa;
     settings.bluetoothEnabled=1;
+    settings.autoTurns=Config::DefaultAutoTurns;
     settings.clockwise=1;
     memcpy(settings.weightTargetsCentiGrams,Config::DefaultWeightTargetsCentiGrams,sizeof(settings.weightTargetsCentiGrams));
 
@@ -66,6 +67,7 @@ bool settingsAreValid()
     }
 
     if(!turnsAreValid(settings.turns))return false;
+    if(settings.autoTurns<Config::MinTurns||settings.autoTurns>Config::FuhSafetyTurnCeiling)return false;
     if(settings.runCurrentMa<Config::MinRunCurrentMa||settings.runCurrentMa>Config::MaxRunCurrentMa)return false;
     if(settings.holdCurrentMa<Config::MinHoldCurrentMa||settings.holdCurrentMa>Config::MaxHoldCurrentMa||settings.holdCurrentMa>settings.runCurrentMa)return false;
     for(uint8_t i=0;i<3;i++)if(settings.weightTargetsCentiGrams[i]<Config::MinWeightTargetCentiGrams||settings.weightTargetsCentiGrams[i]>Config::MaxWeightTargetCentiGrams)return false;
@@ -137,6 +139,14 @@ void loadSettings()
         }
     }
 
+    // v5 appends autoTurns; the complete v4 prefix retains its original layout.
+    if(settings.magic==Config::SETTINGS_MAGIC&&settings.version==4)
+    {
+        settings.version=Config::SETTINGS_VERSION;
+        settings.autoTurns=Config::DefaultAutoTurns;
+        if(settingsAreValid()){saveSettings();Serial.println("Settings v4 migrated; Auto count defaults to 62");return;}
+    }
+
     if (!settingsAreValid())
     {
         Serial.println(
@@ -152,78 +162,4 @@ void loadSettings()
             "Settings loaded from flash"
         );
     }
-}
-
-uint16_t getSavedTurns()
-{
-    return settings.turns[
-        selectedYarnWeight
-    ][
-        selectedSkeinSize
-    ];
-}
-
-void loadSelectedTurnCount()
-{
-    selectedTurns =
-        getSavedTurns();
-}
-
-void saveSelectedTurnCount()
-{
-    uint16_t currentSaved =
-        settings.turns[
-            selectedYarnWeight
-        ][
-            selectedSkeinSize
-        ];
-
-    if (
-        currentSaved ==
-        selectedTurns
-    )
-    {
-        return;
-    }
-
-    settings.turns[
-        selectedYarnWeight
-    ][
-        selectedSkeinSize
-    ] =
-        selectedTurns;
-
-    saveSettings();
-
-    Serial.print(
-        "Updated "
-    );
-
-    Serial.print(
-        YARN_WEIGHTS[
-            selectedYarnWeight
-        ].label
-    );
-
-    Serial.print(
-        " / "
-    );
-
-    Serial.print(
-        SKEIN_SIZES[
-            selectedSkeinSize
-        ].label
-    );
-
-    Serial.print(
-        " = "
-    );
-
-    Serial.print(
-        selectedTurns
-    );
-
-    Serial.println(
-        " turns"
-    );
 }

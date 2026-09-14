@@ -23,11 +23,11 @@ bool serverConfigured=false;
 
 const char updatePage[] PROGMEM=R"HTML(
 <!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Hankinator Firmware Update</title><style>
+<title>HankWinder Firmware Update</title><style>
 body{font:16px system-ui;max-width:34rem;margin:3rem auto;padding:0 1rem;background:#f7f5f0;color:#25231f}
 main{background:white;padding:1.5rem;border-radius:12px;box-shadow:0 2px 14px #0002}button,input{font:inherit;margin:.5rem 0}
 button{padding:.6rem 1rem}progress{width:100%;height:1.2rem}small{color:#666}</style></head><body><main>
-<h2>Hankinator Firmware Update</h2><p>Current version: <b>%VERSION%</b></p>
+<h2>HankWinder Firmware Update</h2><p>Current version: <b>%VERSION%</b></p>
 <form id="f"><input id="file" type="file" accept=".bin,application/octet-stream" required><br><button>Install Update</button></form>
 <progress id="p" max="100" value="0"></progress><p id="s">Choose a firmware.bin file.</p>
 <small>Keep the machine powered. It will restart automatically after a successful update.</small>
@@ -44,7 +44,7 @@ void configureServer()
         server.sendHeader("Connection","close");
         if(currentStatus==FirmwareUpdateStatus::Success)
         {
-            server.send(200,"text/plain","Update received. Hankinator is restarting...");
+            server.send(200,"text/plain","Update received. HankWinder is restarting...");
             rebootAt=millis()+Config::FirmwareUpdateRebootDelayMs;
         }
         else server.send(500,"text/plain",String("Update failed (error ")+currentError+"). USB firmware remains unchanged.");

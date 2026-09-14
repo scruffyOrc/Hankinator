@@ -1,7 +1,7 @@
 #pragma once
 #include <Arduino.h>
 #include <U8g2lib.h>
-#include <Adafruit_NeoPixel.h>
+#include "panel_pixels.h"
 #include <EEPROM.h>
 #include "pico/time.h"
 #include "config.h"
@@ -33,15 +33,15 @@ inline constexpr YarnWeight YARN_WEIGHTS[]={{"Lace/Suri"},{"Fingering"},{"Sport"
 inline constexpr SkeinSize SKEIN_SIZES[]={{"Mini",63},{"Half",90},{"Full",110}};
 inline constexpr int YARN_WEIGHT_COUNT=sizeof(YARN_WEIGHTS)/sizeof(YARN_WEIGHTS[0]);
 inline constexpr int SKEIN_SIZE_COUNT=sizeof(SKEIN_SIZES)/sizeof(SKEIN_SIZES[0]);
-struct PersistentSettings{uint32_t magic;uint16_t version;uint16_t turns[YARN_WEIGHT_COUNT][SKEIN_SIZE_COUNT];uint16_t runCurrentMa;uint16_t holdCurrentMa;uint8_t bluetoothEnabled;uint8_t clockwise;uint16_t weightTargetsCentiGrams[3];};
+struct PersistentSettings{uint32_t magic;uint16_t version;uint16_t turns[YARN_WEIGHT_COUNT][SKEIN_SIZE_COUNT];uint16_t runCurrentMa;uint16_t holdCurrentMa;uint8_t bluetoothEnabled;uint8_t clockwise;uint16_t weightTargetsCentiGrams[3];uint16_t autoTurns;};
 enum class ProductMode:uint8_t{Turninator,Fuhgeddabouditinator,LoadCellFault};
-enum class FuhProgram:uint8_t{Mini,Half,Full,JustTurn};
-enum class UiState{YARN_WEIGHT_SELECT,SKEIN_SELECT,TURN_SELECT,SPEED_SELECT,FUH_PROGRAM_SELECT,READY,TARING,TARE_FAILED,LOAD_YARN,WINDING,COMPLETE,REPEAT_PROMPT,CONFIG_MENU,CONFIG_MOTOR_MENU,CONFIG_RUN_CURRENT,CONFIG_HOLD_CURRENT,CONFIG_DIRECTION,CONFIG_WEIGHT_MENU,CONFIG_WEIGHT_VALUE,CONFIG_PAIRING,CONFIG_LOAD_CELL_DIAGNOSTICS,CONFIG_FIRMWARE_UPDATE,LOAD_CELL_FAULT};
+enum class FuhProgram:uint8_t{Mini,Half,Full};
+enum class UiState{AUTO_MODE_SELECT,TURN_SELECT,FUH_PROGRAM_SELECT,TARING,TARE_FAILED,LOAD_YARN,WINDING,COMPLETE,REPEAT_PROMPT,CONFIG_MENU,CONFIG_MOTOR_MENU,CONFIG_RUN_CURRENT,CONFIG_HOLD_CURRENT,CONFIG_DIRECTION,CONFIG_WEIGHT_MENU,CONFIG_WEIGHT_VALUE,CONFIG_PAIRING,CONFIG_LOAD_CELL_DIAGNOSTICS,CONFIG_FIRMWARE_UPDATE,LOAD_CELL_FAULT};
 enum class PauseState:uint8_t{RUNNING,RAMPING_DOWN,PAUSED,RAMPING_UP};
 enum class MotionPhase:uint8_t{LAUNCH,START_HOLD,ACCEL,CRUISE,DECEL,PAUSE_DOWN,PAUSED,RESUME};
 
 extern U8G2_UC1701_MINI12864_F_4W_SW_SPI display;
-extern Adafruit_NeoPixel pixels;
+extern PanelPixels pixels;
 extern PersistentSettings settings;
 extern ProductMode productMode;
 extern bool weightCapabilityEnabled;
@@ -57,6 +57,7 @@ extern int selectedCruiseSpeedIndex;
 extern float selectedCruiseMotorRPS;
 extern FuhProgram selectedFuhProgram,activeFuhProgram;
 extern bool repeatYes;
+extern bool autoCountMode;
 extern int speedTrimPercent;
 extern float currentMotorRPS;
 extern uint32_t windingStartTime;

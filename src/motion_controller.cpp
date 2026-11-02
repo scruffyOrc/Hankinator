@@ -1,4 +1,6 @@
 #include "app_api.h"
+#include "hall_sensor.h"
+#include "resume_profile.h"
 
 #include "pico/stdlib.h"
 
@@ -7,6 +9,7 @@ volatile bool stepWakeRequested=false,stepWakeAwaitingFirst=false,stepWakeFirstR
 volatile uint32_t stepWakeRequestedUs=0,stepWakeFirstDelayUs=0,stepWakeFirstStep=0;
 volatile bool auxiliaryActive=false,auxiliaryComplete=false;
 volatile uint32_t auxiliaryStepsRemaining=0;
+volatile uint32_t auxiliaryStepsTaken=0;
 }
 
 uint32_t calculateTargetSteps()
@@ -103,7 +106,7 @@ int64_t stepAlarmCallback(
 
     if(auxiliaryActive)
     {
-        if(auxiliaryStepsRemaining)auxiliaryStepsRemaining--;
+        if(auxiliaryStepsRemaining){auxiliaryStepsRemaining--;auxiliaryStepsTaken++;}
     }
     else currentStepCount++;
 
@@ -146,21 +149,6 @@ int64_t stepAlarmCallback(
         return
             -(int64_t)
             Config::IDLE_TIMER_US;
-    }
-
-    // ------------------------------------------------
-    // Resume ramp finished
-    // ------------------------------------------------
-
-    if (!auxiliaryActive&&
-        pauseState ==
-            PauseState::RAMPING_UP &&
-        currentStepCount >=
-            resumeRampEndStep
-    )
-    {
-        pauseState =
-            PauseState::RUNNING;
     }
 
     // Normal job completion
@@ -227,7 +215,7 @@ bool startAuxiliaryHubMotion(bool forward,uint32_t steps,float motorRps)
     if(!steps||motionActive||auxiliaryActive)return false;
     const bool windingDirection=settings.clockwise?WIND_DIRECTION_HIGH:!WIND_DIRECTION_HIGH;
     digitalWrite(STEPPER_DIR,(forward?windingDirection:!windingDirection)?HIGH:LOW);
-    noInterrupts();auxiliaryStepsRemaining=steps;auxiliaryComplete=false;auxiliaryActive=true;interrupts();
+    noInterrupts();auxiliaryStepsRemaining=steps;auxiliaryStepsTaken=0;auxiliaryComplete=false;auxiliaryActive=true;interrupts();
     currentMotorRPS=motorRps;requestedStepRateHz=stepsPerSecondForMotorRPS(motorRps);
     motionActive=true;requestStepGeneratorWake();
     return true;
@@ -244,8 +232,10 @@ bool auxiliaryMotionActive(){return auxiliaryActive;}
 
 void cancelAuxiliaryMotion()
 {
-    noInterrupts();auxiliaryActive=false;auxiliaryComplete=false;auxiliaryStepsRemaining=0;motionActive=false;interrupts();
+    noInterrupts();auxiliaryActive=false;auxiliaryComplete=false;auxiliaryStepsRemaining=0;auxiliaryStepsTaken=0;motionActive=false;interrupts();
 }
+
+uint32_t auxiliaryStepsTravelled(){return auxiliaryStepsTaken;}
 
 uint32_t safeCurrentStepCount()
 {
@@ -255,7 +245,7 @@ uint32_t safeCurrentStepCount()
 float turnsCompleted()
 {
     return
-        safeCurrentStepCount() /
+        (safeCurrentStepCount()-(autoCountMode?min(safeCurrentStepCount(),HallSensor::correctionSteps()):0)) /
         (float)
         Config::STEPS_PER_HUB_REV;
 }
@@ -520,67 +510,17 @@ void updateWindingSpeed()
         PauseState::RAMPING_UP
     )
     {
-        uint32_t current =
-            safeCurrentStepCount();
+        const float normalRPS=normalRequestedMotorRPS();
+        const ResumeProfile::Settings profile{
+            Config::RESUME_START_MOTOR_RPS,
+            Config::ResumeBaseRampRpsPerSecond,
+            Config::ResumeResonanceCrossRpsPerSecond,
+            Config::ResumeResonanceLowMotorRps,
+            Config::ResumeResonanceHighMotorRps
+        };
+        currentMotorRPS=ResumeProfile::speedForElapsedMs(millis()-resumeRampStartedTime,normalRPS,profile);
 
-        uint32_t totalRampSteps =
-            resumeRampEndStep -
-            resumeRampStartStep;
-
-        uint32_t completedRampSteps = 0;
-
-        if (
-            current >
-            resumeRampStartStep
-        )
-        {
-            completedRampSteps =
-                current -
-                resumeRampStartStep;
-        }
-
-        float progress = 1.0f;
-
-        if (totalRampSteps > 0)
-        {
-            progress =
-                completedRampSteps /
-                (float)totalRampSteps;
-        }
-
-        if (progress < 0.0f)
-            progress = 0.0f;
-
-        if (progress > 1.0f)
-            progress = 1.0f;
-
-        float normalRPS =
-            normalRequestedMotorRPS();
-
-        // Ramp from 0.5 RPS toward whatever the
-        // normal profile currently wants.
-        float rampRPS =
-            Config::RESUME_START_MOTOR_RPS +
-            (
-                normalRPS -
-                Config::RESUME_START_MOTOR_RPS
-            ) *
-            progress;
-
-        // If the normal finishing profile happens
-        // to be below our resume-start speed, honor
-        // the lower normal speed instead.
-        if (
-            normalRPS <
-            Config::RESUME_START_MOTOR_RPS
-        )
-        {
-            rampRPS =
-                normalRPS;
-        }
-
-        currentMotorRPS =
-            rampRPS;
+        if(currentMotorRPS>=normalRPS-.001f)pauseState=PauseState::RUNNING;
 
         requestedStepRateHz =
             stepsPerSecondForMotorRPS(
@@ -664,10 +604,18 @@ void requestResume()
     if (
         uiState !=
             UiState::WINDING ||
-        !motionActive ||
         pauseState !=
             PauseState::PAUSED
     )
+    {
+        return;
+    }
+
+    // A paused run deliberately leaves the hardware alarm idle.  Some alarm
+    // replacement paths also clear motionActive while it is parked, so resume
+    // must explicitly re-arm the step engine instead of depending on that
+    // implementation detail still being true.
+    if (safeCurrentStepCount() >= targetStepCount)
     {
         return;
     }
@@ -683,27 +631,7 @@ void requestResume()
 
     pauseTimeRecorded = false;
 
-    resumeRampStartStep =
-        safeCurrentStepCount();
-
-    uint32_t requestedEndStep =
-        resumeRampStartStep +
-        (uint32_t)(
-            Config::RESUME_RAMP_TURNS *
-            Config::STEPS_PER_HUB_REV
-        );
-
-    if (
-        requestedEndStep >
-        targetStepCount
-    )
-    {
-        requestedEndStep =
-            targetStepCount;
-    }
-
-    resumeRampEndStep =
-        requestedEndStep;
+    resumeRampStartedTime=millis();
 
     pauseState =
         PauseState::RAMPING_UP;
@@ -715,6 +643,8 @@ void requestResume()
         stepsPerSecondForMotorRPS(
             currentMotorRPS
         );
+
+    motionActive = true;
 
     requestStepGeneratorWake();
 

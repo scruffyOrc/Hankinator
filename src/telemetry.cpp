@@ -8,13 +8,34 @@
 #include "load_cells.h"
 #include "product_mode.h"
 #include "run_supervisor.h"
+#include "hall_sensor.h"
 
 namespace {
-struct Sample {uint32_t ms,steps,status;uint16_t rps100,sg;uint8_t flags,pause;int32_t loadCellRaw[Config::LoadCellChannelCount];int32_t weightCentiGrams,filteredWeightCentiGrams;uint16_t weightSpreadCentiGrams,sgBaseline;uint8_t loadCellHealthyMask,tareValid,weightValid,controlFlags;};
+struct Sample {uint32_t ms,steps,status;uint16_t rps100,sg;uint8_t flags,pause;int32_t loadCellRaw[Config::LoadCellChannelCount];int32_t weightCentiGrams,filteredWeightCentiGrams;uint16_t weightSpreadCentiGrams,sgBaseline;uint8_t loadCellHealthyMask,tareValid,weightValid,controlFlags;uint16_t hallPulses,hallCorrection;};
+static_assert(offsetof(Sample,hallPulses)==52,"Keep v9 log prefix compatible");
 struct Header {uint32_t magic;uint16_t version,count;uint8_t end,requiredLoadCells,detectedLoadCells,productMode,tareValid,weightControlArmed;int32_t tareOffset[Config::LoadCellChannelCount];int32_t tareSpread[Config::LoadCellChannelCount];int32_t tareProfile[Config::LoadCellProfileBins][Config::LoadCellChannelCount];uint8_t tareProfileSamples[Config::LoadCellProfileBins];int32_t targetWeightCentiGrams;uint16_t crc;};
 constexpr uint16_t Capacity=2048;
 constexpr char LogPath[]="/telemetry.bin";
-Sample ram[Capacity]; uint16_t count=0; uint32_t totalCount=0,started=0,last=0; bool fsReady=false;
+struct DiagnosticSample {
+ uint32_t ms,sequence,jumps,timeouts;int32_t raw[Config::LoadCellChannelCount],weight;
+ uint8_t delay,healthy,missing,jumpMask,tare,weightValid,expected,required;
+};
+Sample ram[Capacity];
+uint16_t count=0; uint32_t totalCount=0,started=0,last=0; bool fsReady=false;
+uint8_t diagnosticScreen=0;
+uint32_t diagnosticStart=0,diagnosticLast=0,diagnosticTotal=0;
+
+void diagnosticSend(const char* line){
+ const size_t n=strlen(line);
+ if(Serial&&Serial.availableForWrite()>=int(n))Serial.write(reinterpret_cast<const uint8_t*>(line),n);
+ DiagnosticsTransport::diagnosticLine(line);
+}
+void diagnosticFormat(char* line,size_t size,const DiagnosticSample& s){
+ snprintf(line,size,"LC_DATA,%lu,%lu,%u,%ld,%ld,%ld,%ld,%u,%u,%u,%u,%lu,%lu,%u,%ld,%u,%u\n",
+  (unsigned long)s.ms,(unsigned long)s.sequence,s.delay,(long)s.raw[0],(long)s.raw[1],(long)s.raw[2],(long)s.raw[3],
+  s.healthy,s.missing,s.jumpMask,s.expected,(unsigned long)s.jumps,(unsigned long)s.timeouts,s.tare,(long)s.weight,s.weightValid,s.required);
+}
+const char* diagnosticColumns="LC_COLUMNS,elapsed_ms,sequence,sample_us,FL,FR,RL,RR,healthy_mask,missing_mask,jump_mask,expected_mask,jumps_total,timeouts_total,tare_state,weight_centigrams,weight_valid,required\n";
 constexpr uint8_t WeightWindowSize=10;
 int32_t weightWindow[WeightWindowSize]{};uint8_t weightWindowCount=0,weightWindowWrite=0;
 
@@ -24,21 +45,21 @@ void fixed2(Print& output,uint16_t v){output.print(v/100);output.print('.');if(v
 void turns(Print& output,uint32_t steps){uint64_t v=uint64_t(steps)*10000ULL/Config::StepsPerHubRev;output.print(uint32_t(v/10000));output.print('.');uint16_t f=v%10000;if(f<1000)output.print('0');if(f<100)output.print('0');if(f<10)output.print('0');output.print(f);}
 void signedFixed2(Print& output,int32_t value){if(value<0){output.print('-');value=-value;}output.print(value/100);output.print('.');if(value%100<10)output.print('0');output.print(value%100);}
 void hex32(Print& output,uint32_t value){for(int shift=28;shift>=0;shift-=4)output.print((value>>shift)&0x0f,HEX);}
-bool header(File& f,Header& h){return f.read(reinterpret_cast<uint8_t*>(&h),sizeof(h))==sizeof(h)&&h.magic==Config::LogMagic&&h.version==Config::LogVersion&&h.count<=Capacity;}
+bool header(File& f,Header& h){return f.read(reinterpret_cast<uint8_t*>(&h),sizeof(h))==sizeof(h)&&h.magic==Config::LogMagic&&(h.version==Config::LogVersion||h.version==9)&&h.count<=Capacity;}
 
 void dump(Print& output){
  if(!fsReady){output.println("Telemetry storage unavailable");return;}
  File f=LittleFS.open(LogPath,"r");Header h{};if(!f||!header(f,h)){output.println("No saved telemetry");return;}
  output.print("META,required_load_cells,");output.print(h.requiredLoadCells);output.print(",detected_load_cells,");output.print(h.detectedLoadCells);output.print(",product_mode,");output.println(h.productMode==uint8_t(ProductMode::Turninator)?"Turninator":h.productMode==uint8_t(ProductMode::Fuhgeddabouditinator)?"Fuhgeddabouditinator":"load_cell_fault");
- output.print("CONTROL,stall_detection,");output.print(Config::EnableStallDetection?1:0);output.print(",stall_auto_abort,");output.print(Config::EnableAutomaticStallAbort?1:0);output.print(",weight_armed,");output.print(h.weightControlArmed);output.print(",target_weight_g,");signedFixed2(output,h.targetWeightCentiGrams);output.println();
+ output.print("CONTROL,stall_detection,");output.print(Config::EnableStallDetection?1:0);output.print(",stall_recovery,");output.print(Config::EnableStallRecovery?1:0);output.print(",weight_armed,");output.print(h.weightControlArmed);output.print(",target_weight_g,");signedFixed2(output,h.targetWeightCentiGrams);output.println();
  output.print("TARE,valid,");output.print(h.tareValid);for(uint8_t channel=0;channel<Config::LoadCellChannelCount;channel++){output.print(",lc");output.print(channel+1);output.print("_offset,");output.print(h.tareOffset[channel]);output.print(",lc");output.print(channel+1);output.print("_spread,");output.print(h.tareSpread[channel]);}output.println();
  for(uint8_t bin=0;bin<Config::LoadCellProfileBins;bin++){output.print("TARE_PROFILE,bin,");output.print(bin);output.print(",samples,");output.print(h.tareProfileSamples[bin]);for(uint8_t channel=0;channel<Config::LoadCellChannelCount;channel++){output.print(",lc");output.print(channel+1);output.print(',');output.print(h.tareProfile[bin][channel]);}output.println();}
- output.println("ms,rps,steps,turns,sg_result,diag,pause,phase,drv_status,lc1_raw,lc1_healthy,lc2_raw,lc2_healthy,lc3_raw,lc3_healthy,lc4_raw,lc4_healthy,weight_g,weight_spread_g,tare_valid,weight_valid,sg_baseline,stall_state,filtered_weight_g,weight_control_state");
+ output.println("ms,rps,steps,turns,sg_result,diag,pause,phase,drv_status,lc1_raw,lc1_healthy,lc2_raw,lc2_healthy,lc3_raw,lc3_healthy,lc4_raw,lc4_healthy,weight_g,weight_spread_g,tare_valid,weight_valid,sg_baseline,stall_state,filtered_weight_g,weight_control_state,stall_recovery,count_uncertain,hall_state,hall_pulses,hall_correction_steps");
  for(uint16_t i=0;i<h.count;i++){
-  Sample s{};if(f.read(reinterpret_cast<uint8_t*>(&s),sizeof(s))!=sizeof(s))break;
+  Sample s{};const size_t sampleSize=h.version==9?offsetof(Sample,hallPulses):sizeof(s);if(f.read(reinterpret_cast<uint8_t*>(&s),sampleSize)!=sampleSize)break;
   output.print(s.ms);output.print(',');fixed2(output,s.rps100);output.print(',');output.print(s.steps);output.print(',');turns(output,s.steps);output.print(',');output.print(s.sg);output.print(',');output.print(s.flags&1);output.print(',');output.print(s.pause);output.print(',');output.print(phaseName((s.flags>>1)&7));output.print(",0x");
   hex32(output,s.status);
-  for(uint8_t channel=0;channel<Config::LoadCellChannelCount;channel++){output.print(',');output.print(s.loadCellRaw[channel]);output.print(',');output.print((s.loadCellHealthyMask&(1u<<channel))?1:0);}output.print(',');signedFixed2(output,s.weightCentiGrams);output.print(',');fixed2(output,s.weightSpreadCentiGrams);output.print(',');output.print(s.tareValid?1:0);output.print(',');output.print(s.weightValid?1:0);output.print(',');output.print(s.sgBaseline);output.print(',');output.print(RunSupervisor::stallStateName(StallDetectionState(s.controlFlags&3)));output.print(',');signedFixed2(output,s.filteredWeightCentiGrams);output.print(',');output.println(RunSupervisor::weightStateName(WeightApproachState((s.controlFlags>>2)&7)));
+  for(uint8_t channel=0;channel<Config::LoadCellChannelCount;channel++){output.print(',');output.print(s.loadCellRaw[channel]);output.print(',');output.print((s.loadCellHealthyMask&(1u<<channel))?1:0);}output.print(',');signedFixed2(output,s.weightCentiGrams);output.print(',');fixed2(output,s.weightSpreadCentiGrams);output.print(',');output.print(s.tareValid?1:0);output.print(',');output.print(s.weightValid?1:0);output.print(',');output.print(s.sgBaseline);output.print(',');output.print(RunSupervisor::stallStateName(StallDetectionState(s.controlFlags&3)));output.print(',');signedFixed2(output,s.filteredWeightCentiGrams);output.print(',');output.print(RunSupervisor::weightStateName(WeightApproachState((s.controlFlags>>2)&7)));output.print(',');output.print(RunSupervisor::recoveryName(StallRecovery::Phase(s.controlFlags>>5)));output.print(',');output.print((s.flags&16)?1:0);output.print(',');output.print(HallSensor::stateName(HallSensor::State(s.flags>>5)));output.print(',');output.print(s.hallPulses);output.print(',');output.println(s.hallCorrection);
  }
  output.print("end,");output.print(h.end==uint8_t(RunEnd::Complete)?"complete":"abort");output.print(",samples,");output.println(h.count);
 }
@@ -46,6 +67,29 @@ void clear(Print& output){if(fsReady&&LittleFS.exists(LogPath))LittleFS.remove(L
 }
 
 void Telemetry::begin(){fsReady=LittleFS.begin();Serial.println(fsReady?"Telemetry commands: LOG DUMP, LOG CLEAR, LOG HELP, MARK <label>":"Telemetry storage mount failed");}
+void Telemetry::diagnosticPoll(uint8_t screen){
+ if(screen!=diagnosticScreen){
+  if(diagnosticScreen){
+   char line[96];snprintf(line,sizeof(line),"LC_END,rows,%lu,duration_ms,%lu\n",(unsigned long)diagnosticTotal,(unsigned long)(millis()-diagnosticStart));diagnosticSend(line);
+  }
+  diagnosticScreen=screen;
+  if(screen){diagnosticStart=millis();diagnosticLast=millis()-Config::TelemetryIntervalMs;diagnosticTotal=0;
+   char line[96];snprintf(line,sizeof(line),"LC_BEGIN,boot_ms,%lu,screen,%u\n",(unsigned long)diagnosticStart,screen);diagnosticSend(line);diagnosticSend(diagnosticColumns);
+  }
+ }
+ if(!screen||millis()-diagnosticLast<Config::TelemetryIntervalMs)return;
+ // Repeat schema/context so a terminal connected mid-session can decode it.
+ if(diagnosticTotal&&diagnosticTotal%50==0){
+  char context[96];snprintf(context,sizeof(context),"LC_CONTEXT,boot_ms,%lu,screen,%u\n",(unsigned long)diagnosticStart,screen);
+  diagnosticSend(context);diagnosticSend(diagnosticColumns);
+ }
+ diagnosticLast=millis();const auto cells=LoadCells::snapshot();DiagnosticSample s{};
+ s.ms=millis()-diagnosticStart;s.sequence=cells.sequence;s.delay=LoadCells::sampleDelayUs();memcpy(s.raw,cells.raw,sizeof(s.raw));s.healthy=cells.healthyMask;
+ s.missing=LoadCells::missingReadyMask();s.jumpMask=LoadCells::suspiciousMask();s.jumps=LoadCells::suspiciousCount();s.timeouts=LoadCells::syncTimeoutCount();s.expected=LoadCells::detectedMask();s.required=Config::RequiredLoadCells;
+ s.tare=uint8_t(LoadCells::tareStatus());const float weight=LoadCells::weightGrams(cells);s.weightValid=!isnan(weight);s.weight=s.weightValid?int32_t(lroundf(weight*100)):0;
+ ++diagnosticTotal;
+ char line[256];diagnosticFormat(line,sizeof(line),s);diagnosticSend(line);
+}
 void Telemetry::start()
 {
  count=0;totalCount=0;started=millis();last=0;weightWindowCount=0;weightWindowWrite=0;
@@ -57,7 +101,7 @@ void Telemetry::start()
   else DiagnosticsTransport::beginTelemetryStream(YARN_WEIGHTS[selectedYarnWeight].label,SKEIN_SIZES[selectedSkeinSize].label,uint16_t(selectedTurns));
  }
 }
-void Telemetry::sample(float rps,uint32_t steps,PauseState pause){uint32_t now=millis();if(now-last<Config::TelemetryIntervalMs)return;last=now;const uint8_t phase=uint8_t(currentMotionPhase());const LoadCellSnapshot loadCells=LoadCells::snapshot();const RunSupervisorSnapshot control=RunSupervisor::snapshot();Sample s{};s.ms=now-started;s.steps=steps;s.rps100=uint16_t(max(0.0f,rps)*100);s.sg=TmcDriver::sgResult();s.flags=uint8_t((digitalRead(Pins::Diag)?1:0)|(phase<<1));s.pause=uint8_t(pause);s.status=TmcDriver::drvStatus();memcpy(s.loadCellRaw,loadCells.raw,sizeof(s.loadCellRaw));s.loadCellHealthyMask=loadCells.healthyMask;s.tareValid=LoadCells::tareValid()?1:0;const float grams=LoadCells::weightGrams(loadCells);s.weightValid=isnan(grams)?0:1;s.weightCentiGrams=s.weightValid?int32_t(lroundf(grams*100.0f)):0;if(s.weightValid){weightWindow[weightWindowWrite]=s.weightCentiGrams;weightWindowWrite=uint8_t((weightWindowWrite+1)%WeightWindowSize);if(weightWindowCount<WeightWindowSize)weightWindowCount++;}int32_t minimum=0,maximum=0;if(weightWindowCount){minimum=INT32_MAX;maximum=INT32_MIN;for(uint8_t i=0;i<weightWindowCount;i++){minimum=min(minimum,weightWindow[i]);maximum=max(maximum,weightWindow[i]);}}s.weightSpreadCentiGrams=uint16_t(constrain(maximum-minimum,0L,65535L));s.sgBaseline=control.sgBaseline;s.filteredWeightCentiGrams=isnan(control.filteredWeightGrams)?0:int32_t(lroundf(control.filteredWeightGrams*100.0f));s.controlFlags=uint8_t(uint8_t(control.stallState)|(uint8_t(control.weightState)<<2));totalCount++;if(count<Capacity)ram[count++]=s;if constexpr(Config::EnableBluetoothLiveTelemetry)DiagnosticsTransport::streamTelemetry(s.ms,s.rps100,s.steps,s.sg,s.flags&1,s.pause,phase,s.status,loadCells,s.weightCentiGrams,s.weightSpreadCentiGrams,s.tareValid!=0,s.weightValid!=0,control);}
+void Telemetry::sample(float rps,uint32_t steps,PauseState pause){uint32_t now=millis();if(now-last<Config::TelemetryIntervalMs)return;last=now;const uint8_t phase=uint8_t(currentMotionPhase());const LoadCellSnapshot loadCells=LoadCells::snapshot();const RunSupervisorSnapshot control=RunSupervisor::snapshot();Sample s{};s.ms=now-started;s.steps=steps;s.rps100=uint16_t(max(0.0f,rps)*100);s.sg=TmcDriver::sgResult();s.flags=uint8_t((digitalRead(Pins::Diag)?1:0)|(phase<<1)|(control.countUncertain?16:0)|(uint8_t(HallSensor::state())<<5));s.pause=uint8_t(pause);s.status=TmcDriver::drvStatus();memcpy(s.loadCellRaw,loadCells.raw,sizeof(s.loadCellRaw));s.loadCellHealthyMask=loadCells.healthyMask;s.tareValid=LoadCells::tareValid()?1:0;const float grams=LoadCells::weightGrams(loadCells);s.weightValid=isnan(grams)?0:1;s.weightCentiGrams=s.weightValid?int32_t(lroundf(grams*100.0f)):0;if(s.weightValid){weightWindow[weightWindowWrite]=s.weightCentiGrams;weightWindowWrite=uint8_t((weightWindowWrite+1)%WeightWindowSize);if(weightWindowCount<WeightWindowSize)weightWindowCount++;}int32_t minimum=0,maximum=0;if(weightWindowCount){minimum=INT32_MAX;maximum=INT32_MIN;for(uint8_t i=0;i<weightWindowCount;i++){minimum=min(minimum,weightWindow[i]);maximum=max(maximum,weightWindow[i]);}}s.weightSpreadCentiGrams=uint16_t(constrain(maximum-minimum,0L,65535L));s.sgBaseline=control.sgBaseline;s.filteredWeightCentiGrams=isnan(control.filteredWeightGrams)?0:int32_t(lroundf(control.filteredWeightGrams*100.0f));s.controlFlags=uint8_t(uint8_t(control.stallState)|(uint8_t(control.weightState)<<2)|(uint8_t(control.recovery)<<5));s.hallPulses=uint16_t(min<uint32_t>(65535,HallSensor::pulseCount()));s.hallCorrection=uint16_t(HallSensor::correctionSteps());totalCount++;if(count<Capacity)ram[count++]=s;if constexpr(Config::EnableBluetoothLiveTelemetry)DiagnosticsTransport::streamTelemetry(s.ms,s.rps100,s.steps,s.sg,s.flags&1,s.pause,phase,s.status,loadCells,s.weightCentiGrams,s.weightSpreadCentiGrams,s.tareValid!=0,s.weightValid!=0,control);}
 void Telemetry::finish(RunEnd end){
  if(fsReady){File f=LittleFS.open(LogPath,"w");const LoadCellTareResult tare=LoadCells::tareResult();const LoadCellProfileTareResult profile=LoadCells::profileTareResult();Header h{};h.magic=Config::LogMagic;h.version=Config::LogVersion;h.count=count;h.end=uint8_t(end);h.requiredLoadCells=Config::RequiredLoadCells;h.detectedLoadCells=detectedLoadCellCount;h.productMode=uint8_t(productMode);h.tareValid=LoadCells::tareValid()?1:0;h.weightControlArmed=RunSupervisor::weightTargetArmed()?1:0;h.targetWeightCentiGrams=RunSupervisor::weightTargetArmed()?int32_t(lroundf(RunSupervisor::weightTargetGrams()*100.0f)):0;memcpy(h.tareOffset,tare.offset,sizeof(h.tareOffset));memcpy(h.tareSpread,tare.spread,sizeof(h.tareSpread));memcpy(h.tareProfile,profile.raw,sizeof(h.tareProfile));memcpy(h.tareProfileSamples,profile.samples,sizeof(h.tareProfileSamples));h.crc=crc(reinterpret_cast<uint8_t*>(ram),count*sizeof(Sample));if(f){f.write(reinterpret_cast<const uint8_t*>(&h),sizeof(h));f.write(reinterpret_cast<const uint8_t*>(ram),count*sizeof(Sample));f.close();}}
  if constexpr(Config::EnableBluetoothLiveTelemetry)DiagnosticsTransport::endTelemetryStream(end==RunEnd::Complete?"complete":"abort",millis()-started,totalCount,count);
@@ -66,7 +110,12 @@ void Telemetry::finish(RunEnd end){
 void Telemetry::event(const char* label){Serial.print("EVENT,");Serial.print(millis()-started);Serial.print(',');Serial.println(label);DiagnosticsTransport::streamEvent(millis()-started,label);}
 void Telemetry::executeCommand(const char* command,Print& output,bool logAccessAllowed){
  String c(command);c.trim();c.toUpperCase();
- if(c=="LOG HELP"){output.println("LOG DUMP | LOG CLEAR | LOG HELP | LOAD CELLS | MARK <label> | WEIGHT TARGET <grams> | WEIGHT OFF | CONTROL STATUS");return;}
+ if(c=="HALL STATUS") {
+  output.print("HALL,enabled,");output.print(settings.hallEnabled);output.print(",state,");output.print(HallSensor::stateName());
+  output.print(",active,");output.print(HallSensor::activeLevel()?1:0);output.print(",pulses,");output.print(HallSensor::pulseCount());
+  output.print(",correction_steps,");output.println(HallSensor::correctionSteps());return;
+ }
+ if(c=="LOG HELP"){output.println("LOG DUMP | LOG CLEAR | LOG HELP | LOAD CELLS | HALL STATUS | MARK <label> | WEIGHT TARGET <grams> | WEIGHT OFF | CONTROL STATUS");return;}
  if(c=="CONTROL STATUS"){
   const RunSupervisorSnapshot control=RunSupervisor::snapshot();
   output.print("CONTROL,stall,");output.print(RunSupervisor::stallStateName(control.stallState));output.print(",sg,");output.print(control.sgResult);output.print(",sg_baseline,");output.print(control.sgBaseline);
@@ -87,7 +136,16 @@ void Telemetry::executeCommand(const char* command,Print& output,bool logAccessA
  if(c=="LOAD CELLS"){
   const LoadCellSnapshot loadCells=LoadCells::snapshot();
   output.print("LOAD_CELLS,required,");output.print(Config::RequiredLoadCells);output.print(",detected,");output.print(detectedLoadCellCount);output.print(",product_mode,");output.println(Product::name());
+  output.print("LC_SYNC_v1,expected_mask,");output.print(LoadCells::detectedMask());
+  output.print(",missing_mask,");output.print(LoadCells::missingReadyMask());
+  output.print(",timeouts,");output.print(LoadCells::syncTimeoutCount());
+  output.print(",jump_mask,");output.print(LoadCells::suspiciousMask());
+  output.print(",jumps,");output.println(LoadCells::suspiciousCount());
   output.println("channel,raw,healthy");
+  output.print("LC_TIMING,sample_us,");output.print(LoadCells::sampleDelayUs());
+  output.print(",elapsed_ms,");output.print(LoadCells::timingElapsedMs());
+  output.print(",jumps,");output.print(LoadCells::timingJumps());
+  output.print(",timeouts,");output.println(LoadCells::timingTimeouts());
   const LoadCellTareResult tare=LoadCells::tareResult();
   for(uint8_t channel=0;channel<Config::LoadCellChannelCount;channel++){output.print(channel+1);output.print(',');output.print(loadCells.raw[channel]);output.print(',');output.print((loadCells.healthyMask&(1u<<channel))?1:0);output.print(",tare,");output.print(tare.offset[channel]);output.print(",spread,");output.println(tare.spread[channel]);}
   output.print("weight_g,");output.print(LoadCells::weightGrams(loadCells),2);output.print(",tare_status,");output.print(LoadCells::tareStatusName(tare.status));output.print(",profile_tare,");output.println(LoadCells::profileTareValid()?1:0);return;

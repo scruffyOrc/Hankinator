@@ -4,8 +4,22 @@
 #include "firmware_update.h"
 #include "load_cells.h"
 #include "run_supervisor.h"
+#include "telemetry.h"
+#include "hall_sensor.h"
+#include "machine_interface.h"
+#if defined(HANKWINDER_TOUCH_DIAGNOSTICS)
+#include "touch_diagnostics_ui.h"
+#endif
 
 namespace {
+int connectivityTopIndex(){return weightCapabilityEnabled?1:0;}
+int machineSettingsTopIndex(){return weightCapabilityEnabled?2:1;}
+int diagnosticsTopIndex(){return weightCapabilityEnabled?3:2;}
+void returnToConfigurationMenu(int selection)
+{
+    configMenuSelection=selection;uiState=UiState::CONFIG_MENU;drawCurrentScreen();
+}
+
 void finishConfiguration()
 {
     if(FirmwareUpdate::active())FirmwareUpdate::end();
@@ -22,21 +36,6 @@ void finishConfiguration()
     if(!weightCapabilityEnabled){autoCountMode=true;selectedTurns=settings.autoTurns;}
 }
 
-void startFuhProgram()
-{
-    if(autoCountMode)
-    {
-        selectedTurns=settings.autoTurns;
-        selectedCruiseMotorRPS=Config::FuhCruiseMotorRps;
-        RunSupervisor::disarmWeightTarget();
-        requestWindingStart();
-        return;
-    }
-    activeFuhProgram=selectedFuhProgram;selectedTurns=Config::FuhSafetyTurnCeiling;selectedCruiseMotorRPS=Config::FuhCruiseMotorRps;
-    for(uint8_t i=0;i<Config::CruiseSpeedOptionCount;i++)if(Config::CruiseSpeedOptions[i]==Config::FuhCruiseMotorRps)selectedCruiseSpeedIndex=i;
-    RunSupervisor::armWeightTarget(settings.weightTargetsCentiGrams[uint8_t(activeFuhProgram)]/100.0f);
-    requestWindingStart();
-}
 }
 
 int getTurnIncrement()
@@ -96,9 +95,28 @@ void updateEncoder()
         if(uiState==UiState::CONFIG_MENU)
         {
             configMenuSelection+=clockwise?1:-1;
-            const int maximum=weightCapabilityEnabled?6:5;
+            const int maximum=weightCapabilityEnabled?4:3;
             if(configMenuSelection>maximum)configMenuSelection=0;
             if(configMenuSelection<0)configMenuSelection=maximum;
+            drawCurrentScreen();
+        }
+        else if(uiState==UiState::CONFIG_CONNECTIVITY_MENU||uiState==UiState::CONFIG_MACHINE_SETTINGS_MENU||uiState==UiState::CONFIG_DIAGNOSTICS_MENU)
+        {
+            const int maximum=uiState==UiState::CONFIG_CONNECTIVITY_MENU?2:
+                (uiState==UiState::CONFIG_MACHINE_SETTINGS_MENU?(weightCapabilityEnabled?2:1):(weightCapabilityEnabled?2:1));
+            configSubMenuSelection+=clockwise?1:-1;
+            if(configSubMenuSelection>maximum)configSubMenuSelection=0;
+            if(configSubMenuSelection<0)configSubMenuSelection=maximum;
+            drawCurrentScreen();
+        }
+        else if(uiState==UiState::CONFIG_LOAD_CELL_TIMING)
+        {
+            LoadCells::selectTimingDelay(clockwise);drawCurrentScreen();
+        }
+        else if(uiState==UiState::CONFIG_COMMISSIONING)
+        {
+            // Reference and collar masses are fixed, measured fixtures.  Do
+            // not let ordinary menu rotation silently alter calibration data.
             drawCurrentScreen();
         }
         else if(uiState==UiState::CONFIG_MOTOR_MENU)
@@ -111,19 +129,16 @@ void updateEncoder()
         else if(uiState==UiState::CONFIG_RUN_CURRENT)
         {
             int value=int(settings.runCurrentMa)+(clockwise?Config::CurrentStepMa:-Config::CurrentStepMa);
-            settings.runCurrentMa=constrain(value,int(Config::MinRunCurrentMa),int(Config::MaxRunCurrentMa));
-            if(settings.holdCurrentMa>settings.runCurrentMa)settings.holdCurrentMa=settings.runCurrentMa;
-            TmcDriver::applyCurrent(settings.runCurrentMa,settings.holdCurrentMa);drawCurrentScreen();
+            Machine::setRunCurrentMa(uint16_t(constrain(value,int(Config::MinRunCurrentMa),int(Config::MaxRunCurrentMa))));drawCurrentScreen();
         }
         else if(uiState==UiState::CONFIG_HOLD_CURRENT)
         {
             int value=int(settings.holdCurrentMa)+(clockwise?Config::CurrentStepMa:-Config::CurrentStepMa);
-            settings.holdCurrentMa=constrain(value,int(Config::MinHoldCurrentMa),min(int(Config::MaxHoldCurrentMa),int(settings.runCurrentMa)));
-            TmcDriver::applyCurrent(settings.runCurrentMa,settings.holdCurrentMa);drawCurrentScreen();
+            Machine::setHoldCurrentMa(uint16_t(constrain(value,int(Config::MinHoldCurrentMa),min(int(Config::MaxHoldCurrentMa),int(settings.runCurrentMa)))));drawCurrentScreen();
         }
         else if(uiState==UiState::CONFIG_DIRECTION)
         {
-            settings.clockwise=clockwise?1:0;
+            Machine::setClockwise(clockwise);
             drawCurrentScreen();
         }
         else if(uiState==UiState::CONFIG_WEIGHT_MENU)
@@ -135,8 +150,8 @@ void updateEncoder()
         }
         else if(uiState==UiState::CONFIG_WEIGHT_VALUE)
         {
-            int32_t value=int32_t(settings.weightTargetsCentiGrams[weightTargetMenuSelection])+(clockwise?Config::WeightTargetStepCentiGrams:-int(Config::WeightTargetStepCentiGrams));
-            settings.weightTargetsCentiGrams[weightTargetMenuSelection]=constrain(value,int32_t(Config::MinWeightTargetCentiGrams),int32_t(Config::MaxWeightTargetCentiGrams));
+            const float current=Machine::weightTargets().grams[weightTargetMenuSelection];
+            Machine::setWeightTargetGrams(weightTargetMenuSelection,current+(clockwise?0.1f:-0.1f));
             drawCurrentScreen();
         }
         else if (
@@ -280,6 +295,10 @@ void updateButton()
         click == LOW
     )
     {
+        if(uiState==UiState::WINDING&&RunSupervisor::waitingForClearance()) {
+            Machine::confirmSafetyClearance();
+            drawWindingScreen();lastClick=click;return;
+        }
         // ------------------------------------------
         // WINDING PAUSE / RESUME
         // ------------------------------------------
@@ -294,14 +313,14 @@ void updateButton()
                 PauseState::RUNNING
             )
             {
-                requestPause();
+                Machine::togglePauseResume();
             }
             else if (
                 pauseState ==
                 PauseState::PAUSED
             )
             {
-                requestResume();
+                Machine::togglePauseResume();
             }
 
             // During RAMPING_DOWN or RAMPING_UP,
@@ -322,13 +341,33 @@ void updateButton()
         switch (uiState)
         {
             case UiState::CONFIG_MENU:
-                if(configMenuSelection==0){settings.bluetoothEnabled=!settings.bluetoothEnabled;DiagnosticsTransport::setEnabled(settings.bluetoothEnabled);saveSettings();}
-                else if(configMenuSelection==1){if(settings.bluetoothEnabled){DiagnosticsTransport::openPairingWindow();uiState=UiState::CONFIG_PAIRING;}else beep(120);}
-                else if(configMenuSelection==2){motorMenuSelection=0;uiState=UiState::CONFIG_MOTOR_MENU;}
-                else if(weightCapabilityEnabled&&configMenuSelection==3){weightTargetMenuSelection=0;uiState=UiState::CONFIG_WEIGHT_MENU;}
-                else if(configMenuSelection==(weightCapabilityEnabled?4:3))uiState=UiState::CONFIG_LOAD_CELL_DIAGNOSTICS;
-                else if(configMenuSelection==(weightCapabilityEnabled?5:4)){disableMotor();DiagnosticsTransport::closePairingWindow();DiagnosticsTransport::setEnabled(false);FirmwareUpdate::begin();uiState=UiState::CONFIG_FIRMWARE_UPDATE;}
+                if(weightCapabilityEnabled&&configMenuSelection==0){weightTargetMenuSelection=0;uiState=UiState::CONFIG_WEIGHT_MENU;}
+                else if(configMenuSelection==connectivityTopIndex()){configSubMenuSelection=0;uiState=UiState::CONFIG_CONNECTIVITY_MENU;}
+                else if(configMenuSelection==machineSettingsTopIndex()){configSubMenuSelection=0;uiState=UiState::CONFIG_MACHINE_SETTINGS_MENU;}
+                else if(configMenuSelection==diagnosticsTopIndex()){configSubMenuSelection=0;uiState=UiState::CONFIG_DIAGNOSTICS_MENU;}
                 else finishConfiguration();
+                break;
+
+            case UiState::CONFIG_CONNECTIVITY_MENU:
+                if(configSubMenuSelection==0){Machine::toggleBluetoothEnabled();}
+                else if(configSubMenuSelection==1){if(Machine::openPairingWindow())uiState=UiState::CONFIG_PAIRING;else beep(120);}
+                else {disableMotor();DiagnosticsTransport::closePairingWindow();DiagnosticsTransport::setEnabled(false);FirmwareUpdate::begin();uiState=UiState::CONFIG_FIRMWARE_UPDATE;}
+                break;
+
+            case UiState::CONFIG_MACHINE_SETTINGS_MENU:
+                if(configSubMenuSelection==0){motorMenuSelection=0;uiState=UiState::CONFIG_MOTOR_MENU;}
+                else if(configSubMenuSelection==1){Machine::toggleHallFeedback();}
+                else if(weightCapabilityEnabled){Machine::openCommissioning();}
+                break;
+
+            case UiState::CONFIG_DIAGNOSTICS_MENU:
+                if(weightCapabilityEnabled&&configSubMenuSelection==0)
+                {
+                    if(Machine::startSystemCheck())uiState=UiState::CONFIG_LOAD_CELL_DIAGNOSTICS;
+                    else beep(120);
+                }
+                else if(configSubMenuSelection==(weightCapabilityEnabled?1:0)){Machine::startWeightDiagnosticsTare();}
+                else {disableMotor();LoadCells::beginTimingTest();uiState=UiState::CONFIG_LOAD_CELL_TIMING;}
                 break;
 
             case UiState::CONFIG_MOTOR_MENU:
@@ -349,18 +388,40 @@ void updateButton()
                 break;
 
             case UiState::CONFIG_WEIGHT_VALUE:
-                saveSettings();uiState=UiState::CONFIG_WEIGHT_MENU;
+                Machine::saveWeightTargets();uiState=UiState::CONFIG_WEIGHT_MENU;
                 break;
 
             case UiState::CONFIG_PAIRING:
-                DiagnosticsTransport::closePairingWindow();
-                uiState=UiState::CONFIG_MENU;
+                Machine::closePairingWindow();
+                uiState=UiState::CONFIG_CONNECTIVITY_MENU;
                 break;
 
             case UiState::CONFIG_LOAD_CELL_DIAGNOSTICS:
                 break;
+            case UiState::CONFIG_WEIGHT_DIAGNOSTICS:
+                Machine::startWeightDiagnosticsTare();
+                break;
+            case UiState::CONFIG_LOAD_CELL_TIMING:
+                LoadCells::applyTimingDelay();
+                break;
+            case UiState::CONFIG_COMMISSIONING:
+                if(Machine::commissioning().state==Machine::CommissioningState::Complete||Machine::commissioning().state==Machine::CommissioningState::Failed)
+                {
+                    Machine::cancelCommissioning();
+                }
+                else Machine::confirmCommissioning();
+                break;
 
             case UiState::CONFIG_FIRMWARE_UPDATE:
+                // Wi-Fi credentials are intentionally provisioned over the
+                // Bluetooth terminal (WIFI SETUP), not through the encoder.
+                break;
+
+            case UiState::HALL_FAILED:
+                Machine::retryWindingPreparation();
+                break;
+
+            case UiState::HALL_SEEK:
                 break;
 
             case UiState::AUTO_MODE_SELECT:
@@ -370,20 +431,15 @@ void updateButton()
 
             case UiState::TURN_SELECT:
                 autoCountMode=true;
-                if(settings.autoTurns!=selectedTurns){settings.autoTurns=selectedTurns;saveSettings();}
-                startFuhProgram();
+                Machine::prepareCountWinding(uint16_t(selectedTurns));
                 break;
 
             case UiState::FUH_PROGRAM_SELECT:
-
-                startFuhProgram();
-
+                Machine::prepareWeightWinding(uint8_t(selectedFuhProgram));
                 break;
 
             case UiState::TARE_FAILED:
-
-                requestWindingStart();
-
+                Machine::retryWindingPreparation();
                 break;
 
             case UiState::TARING:
@@ -391,9 +447,7 @@ void updateButton()
                 break;
 
             case UiState::LOAD_YARN:
-
-                beginWinding();
-
+                Machine::confirmYarnLoaded();
                 break;
 
             case UiState::WINDING:
@@ -412,7 +466,7 @@ void updateButton()
                 break;
 
             case UiState::REPEAT_PROMPT:
-                if(repeatYes)startFuhProgram();
+                if(repeatYes){if(autoCountMode)Machine::prepareCountWinding(uint16_t(settings.autoTurns));else Machine::prepareWeightWinding(uint8_t(selectedFuhProgram));}
                 else uiState=autoCountMode?UiState::TURN_SELECT:UiState::FUH_PROGRAM_SELECT;
                 break;
         }
@@ -438,6 +492,37 @@ void updateStopButton()
         stop == LOW
     )
     {
+        // One concise edge marker makes it possible to distinguish a GPIO
+        // input problem from a higher-level STOP/state-machine problem while
+        // validating the physical button over USB or Bluetooth diagnostics.
+        Telemetry::event("PHYSICAL_STOP_EDGE");
+        // The last System Check stage deliberately verifies the same physical
+        // GP6 input that is used for an emergency stop.  Consume that press
+        // here so it confirms the check instead of navigating away from it.
+        if(uiState==UiState::CONFIG_LOAD_CELL_DIAGNOSTICS&&Machine::confirmSystemCheckStopButton())
+        {
+            lastStop=stop;
+            return;
+        }
+#if defined(HANKWINDER_TOUCH_DIAGNOSTICS)
+        // The dedicated physical STOP is never a navigation control in the
+        // touch product.  While a winding workflow is preparing or active it
+        // immediately cancels STEP generation and disables the TMC2209; the
+        // UI is then returned to home on its own normal LVGL pass.
+        if(uiState==UiState::HALL_SEEK||uiState==UiState::HALL_FAILED||
+           uiState==UiState::TARING||uiState==UiState::TARE_FAILED||
+           uiState==UiState::LOAD_YARN||uiState==UiState::WINDING)
+        {
+            resetToYarnWeightSelection();
+            TouchDiagnosticsUi::requestEmergencyStopView();
+        }
+        lastStop=stop;
+        return;
+#endif
+        if(uiState==UiState::HALL_SEEK||uiState==UiState::HALL_FAILED)
+        {
+            cancelAuxiliaryMotion();HallSensor::cancel();resetToYarnWeightSelection();lastStop=stop;return;
+        }
         if(uiState==UiState::TARING||uiState==UiState::TARE_FAILED)
         {
             LoadCells::cancelTare();
@@ -452,9 +537,21 @@ void updateStopButton()
             finishConfiguration();
             drawCurrentScreen();delay(120);lastStop=stop;return;
         }
+        if(uiState==UiState::CONFIG_CONNECTIVITY_MENU)
+        {
+            returnToConfigurationMenu(connectivityTopIndex());delay(120);lastStop=stop;return;
+        }
+        if(uiState==UiState::CONFIG_MACHINE_SETTINGS_MENU)
+        {
+            returnToConfigurationMenu(machineSettingsTopIndex());delay(120);lastStop=stop;return;
+        }
+        if(uiState==UiState::CONFIG_DIAGNOSTICS_MENU)
+        {
+            returnToConfigurationMenu(diagnosticsTopIndex());delay(120);lastStop=stop;return;
+        }
         if(uiState==UiState::CONFIG_MOTOR_MENU)
         {
-            uiState=UiState::CONFIG_MENU;
+            uiState=UiState::CONFIG_MACHINE_SETTINGS_MENU;
             drawCurrentScreen();delay(120);lastStop=stop;return;
         }
         if(uiState==UiState::CONFIG_RUN_CURRENT||uiState==UiState::CONFIG_HOLD_CURRENT||uiState==UiState::CONFIG_DIRECTION)
@@ -464,7 +561,7 @@ void updateStopButton()
         }
         if(uiState==UiState::CONFIG_WEIGHT_MENU)
         {
-            uiState=UiState::CONFIG_MENU;drawCurrentScreen();delay(120);lastStop=stop;return;
+            returnToConfigurationMenu(0);delay(120);lastStop=stop;return;
         }
         if(uiState==UiState::CONFIG_WEIGHT_VALUE)
         {
@@ -472,13 +569,16 @@ void updateStopButton()
         }
         if(uiState==UiState::CONFIG_PAIRING)
         {
-            DiagnosticsTransport::closePairingWindow();
-            uiState=UiState::CONFIG_MENU;
+            Machine::closePairingWindow();
+            uiState=UiState::CONFIG_CONNECTIVITY_MENU;
             drawCurrentScreen();delay(120);lastStop=stop;return;
         }
-        if(uiState==UiState::CONFIG_LOAD_CELL_DIAGNOSTICS)
+        if(uiState==UiState::CONFIG_LOAD_CELL_DIAGNOSTICS||uiState==UiState::CONFIG_WEIGHT_DIAGNOSTICS||uiState==UiState::CONFIG_LOAD_CELL_TIMING||uiState==UiState::CONFIG_COMMISSIONING)
         {
-            uiState=UiState::CONFIG_MENU;
+            if(uiState==UiState::CONFIG_LOAD_CELL_DIAGNOSTICS)Machine::cancelSystemCheck();
+            if(uiState==UiState::CONFIG_WEIGHT_DIAGNOSTICS)Machine::closeWeightDiagnostics();
+            if(uiState==UiState::CONFIG_COMMISSIONING)Machine::cancelCommissioning();
+            uiState=uiState==UiState::CONFIG_COMMISSIONING?UiState::CONFIG_MACHINE_SETTINGS_MENU:UiState::CONFIG_DIAGNOSTICS_MENU;
             drawCurrentScreen();delay(120);lastStop=stop;return;
         }
         if(uiState==UiState::CONFIG_FIRMWARE_UPDATE)
@@ -486,13 +586,45 @@ void updateStopButton()
             if(FirmwareUpdate::uploading()||FirmwareUpdate::status()==FirmwareUpdateStatus::Success){beep(120);lastStop=stop;return;}
             FirmwareUpdate::end();
             if(settings.bluetoothEnabled)DiagnosticsTransport::setEnabled(true);
-            uiState=UiState::CONFIG_MENU;
+            uiState=UiState::CONFIG_CONNECTIVITY_MENU;
             drawCurrentScreen();delay(120);lastStop=stop;return;
         }
         if(weightCapabilityEnabled&&(uiState==UiState::TURN_SELECT||uiState==UiState::FUH_PROGRAM_SELECT))
         {
             uiState=UiState::AUTO_MODE_SELECT;
             drawCurrentScreen();lastStop=stop;return;
+        }
+        if(uiState==UiState::WINDING&&autoCountMode&&pauseState==PauseState::PAUSED)
+        {
+            // A deliberate stop from rest is a completed partial count run,
+            // not an abort. The supervisor releases tension, waits for a
+            // quiet load-cell window, and then hands the final count/weight
+            // to the normal COMPLETE screen.
+            if(weightCapabilityEnabled&&RunSupervisor::requestFinalMeasurement())
+            {
+                Telemetry::event("COUNT_STOP_PAUSED_FINAL_MEASURE");
+                drawWindingScreen();lastStop=stop;return;
+            }
+            // Measurement is already in progress or has just completed.
+            // Ignore a second STOP rather than turning a successful finish
+            // into an abort.
+            if(RunSupervisor::snapshot().settlingFinalWeight||RunSupervisor::snapshot().finalWeightMeasured)
+            {
+                lastStop=stop;return;
+            }
+        }
+        if(uiState==UiState::WINDING&&autoCountMode)
+        {
+            // A STOP while moving is a true emergency coast stop. No ramp,
+            // reverse, or commanded deceleration is requested; disabling the
+            // driver lets a free hub coast and a bound hub stop immediately.
+            Telemetry::event("COUNT_STOP_RUNNING_COAST_ABORT");
+        }
+        if(uiState==UiState::WINDING&&!autoCountMode&&pauseState==PauseState::RUNNING)
+        {
+            // Weight-mode STOP while running is the same immediate coast
+            // abort as count mode.  Keep the paused path unchanged.
+            Telemetry::event("WEIGHT_STOP_RUNNING_COAST_ABORT");
         }
         // RESET remains a genuine immediate abort.
         // Unlike Pause, it intentionally does NOT ramp.

@@ -26,6 +26,20 @@ struct LoadCellTareResult {
 };
 
 namespace LoadCells {
+// Diagnostic timing only; choices are bounded to keep clock-high safely short.
+void beginTimingTest();
+void selectTimingDelay(bool forward);
+void applyTimingDelay();
+uint8_t selectedTimingDelay();
+uint8_t sampleDelayUs();
+uint32_t timingElapsedMs();
+uint32_t timingJumps();
+uint32_t timingTimeouts();
+uint8_t detectedMask();
+uint8_t missingReadyMask();
+uint8_t suspiciousMask();
+uint32_t syncTimeoutCount();
+uint32_t suspiciousCount();
 void begin();
 void service();
 uint8_t detectAtStartup();
@@ -52,4 +66,6 @@ float weightGrams();
 // reference for weight decisions made while the hub is stopped.
 float stoppedWeightGrams(const LoadCellSnapshot& snapshot);
 float profileWeightGrams(const LoadCellSnapshot& snapshot,uint32_t hubStep);
+void setCalibration(const float coefficients[Config::LoadCellChannelCount]);
+void calibration(float coefficients[Config::LoadCellChannelCount]);
 }

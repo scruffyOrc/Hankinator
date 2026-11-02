@@ -8,11 +8,16 @@
 #include "product_mode.h"
 #include "firmware_update.h"
 #include "run_supervisor.h"
+#include "hall_sensor.h"
+#include "commissioning.h"
+#include "machine_interface.h"
+#include "touch_diagnostics_ui.h"
 
 namespace {
 bool configurationInputReleaseRequired=false;
 bool tareSettling=false;
 uint32_t tareSettleStartedMs=0;
+uint32_t diagnosticsTareStarted=0;
 
 void printTareResult(const char* context)
 {
@@ -53,10 +58,10 @@ bool updateConfigurationShortcut()
 
     // Tare owns STOP as an immediate cancel and must never be replaced by the
     // configuration shortcut while the motor is energized.
-    if(uiState==UiState::TARING||uiState==UiState::TARE_FAILED||uiState==UiState::LOAD_YARN)return false;
+    if(uiState==UiState::TARING||uiState==UiState::TARE_FAILED||uiState==UiState::LOAD_YARN||uiState==UiState::HALL_SEEK||uiState==UiState::HALL_FAILED)return false;
 
-    const bool alreadyInConfiguration=uiState==UiState::CONFIG_MENU||uiState==UiState::CONFIG_MOTOR_MENU||uiState==UiState::CONFIG_RUN_CURRENT||uiState==UiState::CONFIG_HOLD_CURRENT||uiState==UiState::CONFIG_DIRECTION||uiState==UiState::CONFIG_WEIGHT_MENU||uiState==UiState::CONFIG_WEIGHT_VALUE||uiState==UiState::CONFIG_PAIRING||uiState==UiState::CONFIG_LOAD_CELL_DIAGNOSTICS||uiState==UiState::CONFIG_FIRMWARE_UPDATE;
-    if(alreadyInConfiguration)
+    const bool alreadyInConfiguration=uiState==UiState::CONFIG_MENU||uiState==UiState::CONFIG_CONNECTIVITY_MENU||uiState==UiState::CONFIG_MACHINE_SETTINGS_MENU||uiState==UiState::CONFIG_DIAGNOSTICS_MENU||uiState==UiState::CONFIG_MOTOR_MENU||uiState==UiState::CONFIG_RUN_CURRENT||uiState==UiState::CONFIG_HOLD_CURRENT||uiState==UiState::CONFIG_DIRECTION||uiState==UiState::CONFIG_WEIGHT_MENU||uiState==UiState::CONFIG_WEIGHT_VALUE||uiState==UiState::CONFIG_PAIRING||uiState==UiState::CONFIG_LOAD_CELL_DIAGNOSTICS||uiState==UiState::CONFIG_FIRMWARE_UPDATE||uiState==UiState::CONFIG_WEIGHT_DIAGNOSTICS||uiState==UiState::CONFIG_COMMISSIONING;
+    if(alreadyInConfiguration||uiState==UiState::CONFIG_LOAD_CELL_TIMING)
     {
         if(configurationInputReleaseRequired)
         {
@@ -104,8 +109,7 @@ void resetToYarnWeightSelection()
 {
     signalStoppedLights();
     if(uiState==UiState::TARING)LoadCells::cancelTare();
-    if (uiState == UiState::WINDING)
-        Telemetry::finish(RunEnd::Abort);
+    const bool abortedRun=uiState==UiState::WINDING;
     cancelAuxiliaryMotion();
     motionActive = false;
 
@@ -115,6 +119,10 @@ void resetToYarnWeightSelection()
     requestedStepRateHz = 0;
 
     disableMotor();
+    HallSensor::cancel();
+
+    // Stop STEP generation and disable the driver before flash/log work.
+    if(abortedRun)Telemetry::finish(RunEnd::Abort);
 
     totalPausedTime  = 0;
     pauseStartedTime = 0;
@@ -136,7 +144,9 @@ void resetToYarnWeightSelection()
 
     beep(100);
 
+#if !defined(HANKWINDER_TOUCH_DIAGNOSTICS)
     drawCurrentScreen();
+#endif
 
     Serial.println(
         "STOP - TMC2209 disabled"
@@ -145,8 +155,25 @@ void resetToYarnWeightSelection()
 
 void requestWindingStart()
 {
+    if(settings.hallEnabled)
+    {
+        motionActive=false;requestedStepRateHz=0;
+        uiState=UiState::HALL_SEEK;HallSensor::startSeek();
+#if !defined(HANKWINDER_TOUCH_DIAGNOSTICS)
+        drawCurrentScreen();
+#endif
+        return;
+    }
+    startTareAfterHall();
+}
+
+void startTareAfterHall()
+{
     if(!weightCapabilityEnabled)
     {
+        // Yarn was explicitly loaded before this preparation sequence began.
+        // Turninator still indexes the hub when Hall feedback is enabled, but
+        // has no load-cell tare to perform before starting.
         beginWinding();
         return;
     }
@@ -156,7 +183,9 @@ void requestWindingStart()
     tareSettling=true;
     tareSettleStartedMs=millis();
     uiState=UiState::TARING;
+#if !defined(HANKWINDER_TOUCH_DIAGNOSTICS)
     drawTareScreen();
+#endif
     Serial.println("TARE_START,context,pre_winding,mode,stationary,motor,energized");
 }
 
@@ -172,14 +201,15 @@ void updateTareProcess()
         Serial.println("TARE_STATIONARY_START,context,pre_winding,motor,energized");
     }
     const LoadCellTareStatus status=LoadCells::updateTare();
+#if !defined(HANKWINDER_TOUCH_DIAGNOSTICS)
     static uint32_t lastDraw=0;
     if(millis()-lastDraw>=100){lastDraw=millis();drawTareScreen();}
+#endif
     if(status==LoadCellTareStatus::Complete)
     {
         printTareResult("pre_winding");
-        uiState=UiState::LOAD_YARN;
-        Serial.println("TARE_STATIONARY_COMPLETE,load_yarn_then_click");
-        drawLoadYarnScreen();
+        Serial.println("TARE_STATIONARY_COMPLETE,winding_starts");
+        beginWinding();
     }
     else if(status==LoadCellTareStatus::Failed)
     {
@@ -187,12 +217,22 @@ void updateTareProcess()
         disableMotor();
         uiState=UiState::TARE_FAILED;
         beep(150);
+#if !defined(HANKWINDER_TOUCH_DIAGNOSTICS)
         drawTareScreen();
+#endif
     }
 }
 
 void beginWinding()
 {
+    // The Wi-Fi update portal and its radio activity are intentionally not
+    // allowed to coexist with timing-critical STEP generation. Entering a
+    // winding run always returns wireless to its ordinary idle state.
+    if(FirmwareUpdate::active())
+    {
+        FirmwareUpdate::end();
+        Telemetry::event("WIFI_UPDATE_STOPPED_FOR_WINDING");
+    }
     finalRunStepCount=0;finalRunWeightGrams=NAN;finalRunWeightValid=false;finalRunAborted=false;
     Telemetry::start();
     uint32_t steps =
@@ -225,6 +265,7 @@ void beginWinding()
     currentStepCount = 0;
     targetStepCount  = steps;
     motionSegmentStopStep=UINT32_MAX;
+    HallSensor::beginRun();
 
     RunSupervisor::beginRun();
 
@@ -235,13 +276,16 @@ void beginWinding()
 
     enableMotor();
 
-    motionActive = true;
-    requestStepGeneratorWake();
+    motionActive = !RunSupervisor::waitingForClearance();
+    if(motionActive)requestStepGeneratorWake();
+    else {requestedStepRateHz=0;currentMotorRPS=0;}
 
     uiState =
         UiState::WINDING;
 
+#if !defined(HANKWINDER_TOUCH_DIAGNOSTICS)
     drawWindingScreen();
+#endif
 
     Serial.println();
 
@@ -323,7 +367,9 @@ void updatePauseState()
             "Winding paused"
         );
 
+#if !defined(HANKWINDER_TOUCH_DIAGNOSTICS)
         drawWindingScreen();
+#endif
     }
 }
 
@@ -378,7 +424,9 @@ void updateMotor()
         lastDisplayUpdate =
             millis();
 
+#if !defined(HANKWINDER_TOUCH_DIAGNOSTICS)
         drawWindingScreen();
+#endif
     }
 
     // A requested pause that happens to reach the
@@ -391,10 +439,12 @@ void updateMotor()
     {
         if(weightCapabilityEnabled&&autoCountMode&&RunSupervisor::requestFinalMeasurement())return;
         finalRunStepCount=safeCurrentStepCount();
+        if(autoCountMode)finalRunStepCount-=min(finalRunStepCount,HallSensor::correctionSteps());
         const RunSupervisorSnapshot finalControl=RunSupervisor::snapshot();
         finalRunWeightValid=finalControl.finalWeightMeasured&&!isnan(finalControl.filteredWeightGrams);
         finalRunWeightGrams=finalRunWeightValid?finalControl.filteredWeightGrams:NAN;
         finalRunAborted=RunSupervisor::completionIsAbort();
+        HallSensor::endRun();
         Telemetry::finish(finalRunAborted?RunEnd::Abort:RunEnd::Complete);
         pauseState =
             PauseState::RUNNING;
@@ -408,7 +458,9 @@ void updateMotor()
         delay(75);
         beep(200);
 
+#if !defined(HANKWINDER_TOUCH_DIAGNOSTICS)
         drawCompleteScreen();
+#endif
 
         Serial.println(
             "Winding complete"
@@ -427,6 +479,21 @@ void App::setup()
         115200
     );
 
+    // GP6 is the dedicated physical STOP input for both display targets.  It
+    // is deliberately independent of the legacy Mini12864 input harness.
+    pinMode(
+        STOP_BUTTON,
+        INPUT_PULLUP
+    );
+
+    lastStop =
+        digitalRead(
+            STOP_BUTTON
+        );
+
+    // The touch diagnostics target shares these pins with its touch transport,
+    // so it deliberately does not initialize the legacy encoder/button path.
+#if !defined(HANKWINDER_TOUCH_DIAGNOSTICS)
     // Encoder
     pinMode(
         ENC_A,
@@ -443,12 +510,6 @@ void App::setup()
         INPUT_PULLUP
     );
 
-    // STOP
-    pinMode(
-        STOP_BUTTON,
-        INPUT_PULLUP
-    );
-
     lastA =
         digitalRead(
             ENC_A
@@ -457,11 +518,6 @@ void App::setup()
     lastClick =
         digitalRead(
             ENC_CLICK
-        );
-
-    lastStop =
-        digitalRead(
-            STOP_BUTTON
         );
 
     // Beeper
@@ -474,6 +530,7 @@ void App::setup()
         BEEPER,
         LOW
     );
+#endif
 
     // TMC2209
     pinMode(
@@ -507,9 +564,13 @@ void App::setup()
 
     // Persistent settings
     loadSettings();
+    LoadCells::setCalibration(settings.loadCellGramsPerCount);
+    HallSensor::begin();
 
     selectedTurns=settings.autoTurns;
 
+    // RGB shares the touch interrupt pin in the diagnostic wiring profile.
+#if !defined(HANKWINDER_TOUCH_DIAGNOSTICS)
     // RGB
     pixels.begin();
 
@@ -527,15 +588,24 @@ void App::setup()
     display.setContrast(
         255
     );
+#endif
 
     // Capture the deliberate two-button setup gesture before load-cell detection.
+#if !defined(HANKWINDER_TOUCH_DIAGNOSTICS)
     const bool configurationRequested=configurationButtonsHeld();
     Serial.print("STOP+encoder configuration request: ");Serial.println(configurationRequested?1:0);
 
     display.clearBuffer();display.setFont(u8g2_font_6x10_tf);display.drawStr(11,31,"Checking hardware");display.sendBuffer();
+#else
+    const bool configurationRequested=false;
+    // Draw once before sensor discovery.  Do not service or animate this
+    // display while HX711 detection owns the shared-clock timing.
+    TouchDiagnosticsUi::showBootSplash();
+#endif
     LoadCells::begin();
     Product::resolve(LoadCells::detectAtStartup());
     if(LoadCells::startupFault()){productMode=ProductMode::LoadCellFault;weightCapabilityEnabled=false;}
+    Machine::begin();
 
     Serial.print("Load cells: required=");Serial.print(Config::RequiredLoadCells);
     Serial.print(" detected=");Serial.print(detectedLoadCellCount);
@@ -556,11 +626,15 @@ void App::setup()
     else if(productMode==ProductMode::LoadCellFault)
     {
         uiState=UiState::LOAD_CELL_FAULT;
+#if !defined(HANKWINDER_TOUCH_DIAGNOSTICS)
         drawLoadCellFaultScreen();
+#endif
     }
     else
     {
+#if !defined(HANKWINDER_TOUCH_DIAGNOSTICS)
         runStartupSplash();
+#endif
     }
 
     // UART diagnostics are nonessential. Initialize them only after the
@@ -582,12 +656,28 @@ void App::setup()
         );
 
     if(productMode==ProductMode::Turninator)autoCountMode=true;
+#if defined(HANKWINDER_TOUCH_DIAGNOSTICS)
+    // Touch now uses the same controller workflow as Mini12864.  The renderer
+    // only observes and commands it through Machine; it does not own motion.
+    if(productMode==ProductMode::Fuhgeddabouditinator)uiState=UiState::AUTO_MODE_SELECT;
+    else if(productMode==ProductMode::Turninator){autoCountMode=true;uiState=UiState::TURN_SELECT;}
+#else
     if(!configurationRequested)
     {
-        if(productMode==ProductMode::Fuhgeddabouditinator)uiState=UiState::AUTO_MODE_SELECT;
+        if(productMode==ProductMode::Fuhgeddabouditinator&&!settings.loadCellCalibrationValid)
+        {
+            // A connected four-cell machine without a saved, machine-specific
+            // fit is not ready for weight winding. Enter the ready screen only;
+            // the operator still explicitly starts the held-hub procedure.
+            Commissioning::cancel();
+            uiState=UiState::CONFIG_COMMISSIONING;
+            Serial.println("LOAD_CELL_COMMISSIONING_REQUIRED");
+        }
+        else if(productMode==ProductMode::Fuhgeddabouditinator)uiState=UiState::AUTO_MODE_SELECT;
         else if(productMode==ProductMode::Turninator){selectedTurns=settings.autoTurns;uiState=UiState::TURN_SELECT;}
     }
     drawCurrentScreen();
+#endif
 
     // Debug
     Serial.println();
@@ -611,14 +701,72 @@ void App::setup()
     );
 
     Telemetry::begin();
+
+#if defined(HANKWINDER_TOUCH_DIAGNOSTICS)
+    // Hardware discovery and the remaining controller startup are now
+    // complete, so the display may perform its brief ready transition.
+    TouchDiagnosticsUi::finishBootSplash();
+    TouchDiagnosticsUi::begin();
+#endif
+}
+
+void startWeightDiagnosticsTare()
+{
+    enableMotor(); // Hold the hub stationary; never generate steps in this screen.
+    diagnosticsTareStarted=millis();LoadCells::startTare();
+}
+bool weightDiagnosticsSettling()
+{
+    return uiState==UiState::CONFIG_WEIGHT_DIAGNOSTICS && millis()-diagnosticsTareStarted<Config::LoadCellTareMotorSettleMs;
 }
 
 void App::loop()
 {
+    TmcDriver::poll();
+    HallSensor::service();
+    if(uiState==UiState::CONFIG_COMMISSIONING)Commissioning::service();
+    if(uiState==UiState::HALL_SEEK&&HallSensor::seekFinished())
+    {
+        if(HallSensor::seekFailed()){uiState=UiState::HALL_FAILED;
+#if !defined(HANKWINDER_TOUCH_DIAGNOSTICS)
+            drawCurrentScreen();
+#endif
+        }
+        else startTareAfterHall();
+    }
     LoadCells::service();
+    static uint32_t lastQualityReport=0,reportedTimeouts=0,reportedJumps=0;
+    if(millis()-lastQualityReport>=1000) {
+        lastQualityReport=millis();
+        if(reportedTimeouts!=LoadCells::syncTimeoutCount()||reportedJumps!=LoadCells::suspiciousCount()) {
+            reportedTimeouts=LoadCells::syncTimeoutCount();reportedJumps=LoadCells::suspiciousCount();
+            char message[120];snprintf(message,sizeof(message),"LC_SYNC_v1_expected_%02X_missing_%02X_timeouts_%lu_jumpmask_%02X_jumps_%lu",
+                LoadCells::detectedMask(),LoadCells::missingReadyMask(),(unsigned long)reportedTimeouts,
+                LoadCells::suspiciousMask(),(unsigned long)reportedJumps);
+            Telemetry::event(message);
+        }
+    }
+    if(uiState==UiState::CONFIG_WEIGHT_DIAGNOSTICS&&!weightDiagnosticsSettling())LoadCells::updateTare();
     updateTareProcess();
+#if defined(HANKWINDER_TOUCH_DIAGNOSTICS)
+    updateMotor();
+#endif
+    // Publish a coherent view only after this loop's load-cell/tare work has
+    // completed, so every display sees the newest status and measurement.
+    Machine::service();
+#if defined(HANKWINDER_TOUCH_DIAGNOSTICS)
+    // GP6 remains a real, independent emergency-stop input on the touch
+    // product.  It must be sampled here rather than inside LVGL so it can
+    // both stop winding and complete the final System Check button test.
+    updateStopButton();
+    TouchDiagnosticsUi::service();
+#endif
     FirmwareUpdate::poll();
     DiagnosticsTransport::poll();
+    Telemetry::diagnosticPoll(uiState==UiState::CONFIG_LOAD_CELL_DIAGNOSTICS?1:
+        uiState==UiState::CONFIG_WEIGHT_DIAGNOSTICS?2:
+        uiState==UiState::CONFIG_LOAD_CELL_TIMING?3:0);
+ #if !defined(HANKWINDER_TOUCH_DIAGNOSTICS)
     if(updateConfigurationShortcut())
     {
         updateHeartbeat();
@@ -632,16 +780,16 @@ void App::loop()
     if(uiState==UiState::CONFIG_PAIRING)
     {
         static uint32_t lastPairingDraw=0;
-        if(!DiagnosticsTransport::pairingOpen()){uiState=UiState::CONFIG_MENU;drawCurrentScreen();}
+        if(!DiagnosticsTransport::pairingOpen()){uiState=UiState::CONFIG_CONNECTIVITY_MENU;drawCurrentScreen();}
         else if(millis()-lastPairingDraw>=1000){lastPairingDraw=millis();drawCurrentScreen();}
     }
-    if(uiState==UiState::CONFIG_LOAD_CELL_DIAGNOSTICS)
+    if(uiState==UiState::CONFIG_LOAD_CELL_DIAGNOSTICS||uiState==UiState::CONFIG_WEIGHT_DIAGNOSTICS||uiState==UiState::CONFIG_LOAD_CELL_TIMING||uiState==UiState::CONFIG_COMMISSIONING)
     {
         static uint32_t lastLoadCellDiagnosticsDraw=0;
         if(millis()-lastLoadCellDiagnosticsDraw>=Config::LoadCellDiagnosticsRefreshMs)
         {
             lastLoadCellDiagnosticsDraw=millis();
-            drawLoadCellDiagnosticsScreen();
+            drawCurrentScreen();
         }
     }
     if(uiState==UiState::CONFIG_FIRMWARE_UPDATE)
@@ -650,7 +798,7 @@ void App::loop()
         if(millis()-lastFirmwareUpdateDraw>=Config::FirmwareUpdateDisplayRefreshMs)
         {
             lastFirmwareUpdateDraw=millis();
-            drawFirmwareUpdateScreen();
+            drawCurrentScreen();
         }
     }
     updateHeartbeat();
@@ -663,4 +811,5 @@ void App::loop()
     updateEncoder();
 
     updateButton();
+#endif
 }

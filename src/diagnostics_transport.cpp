@@ -5,9 +5,12 @@
 #include "runtime.h"
 #include "telemetry.h"
 #include "product_mode.h"
+#include "hall_sensor.h"
+#include "app_api.h"
+#include "firmware_update.h"
 
 namespace {
-constexpr size_t CommandCapacity=48;
+constexpr size_t CommandCapacity=96;
 
 struct CommandBuffer {
     char data[CommandCapacity]{};
@@ -24,6 +27,12 @@ bool telemetryRunActive=false;
 const char* telemetryYarnWeight="";
 const char* telemetrySkeinSize="";
 uint16_t telemetryTargetTurns=0;
+
+enum class WifiSetupStage:uint8_t {Idle,Scanning,Selecting,Password,Connecting};
+WifiSetupStage wifiSetupStage=WifiSetupStage::Idle;
+Print* wifiSetupOutput=nullptr;
+bool wifiSetupOverBluetooth=false;
+Print* wifiUpdateOutput=nullptr;
 
 enum class BluetoothEvent:uint8_t {
     StackState,
@@ -120,7 +129,7 @@ void printRunStart()
     SerialBT.print(",launch_rps,");SerialBT.print(Config::LaunchMotorRps,2);
     SerialBT.print(",launch_turns,");SerialBT.print(Config::LaunchRampTurns,2);
     SerialBT.print(",stall_detection,");SerialBT.print(Config::EnableStallDetection?1:0);
-    SerialBT.print(",stall_auto_abort,");SerialBT.print(Config::EnableAutomaticStallAbort?1:0);
+    SerialBT.print(",stall_recovery,");SerialBT.print(Config::EnableStallRecovery?1:0);
     SerialBT.print(",weight_control_armed,");SerialBT.print(RunSupervisor::weightTargetArmed()?1:0);
     SerialBT.print(",weight_target_g,");SerialBT.print(RunSupervisor::weightTargetGrams(),2);
     const LoadCellTareResult tare=LoadCells::tareResult();
@@ -168,6 +177,183 @@ void startBluetooth()
     Serial.println("Bluetooth diagnostics enabled; connectable, pairing closed");
 }
 
+void endWifiSetup()
+{
+    FirmwareUpdate::end();wifiSetupStage=WifiSetupStage::Idle;
+    wifiSetupOutput=nullptr;wifiSetupOverBluetooth=false;
+}
+
+bool parseWifiSelection(const char* text,int& selection)
+{
+    String value(text);value.trim();
+    char* end=nullptr;
+    const long parsed=strtol(value.c_str(),&end,10);
+    while(end&&*end==' ')end++;
+    if(!value.length()||!end||*end||parsed<0||parsed>Config::WifiMaxNetworks)return false;
+    selection=int(parsed);return true;
+}
+
+void printWifiNetworks(Print& output)
+{
+    output.println("WIFI_NETWORKS");
+    output.println("0,AP mode,remove saved Wi-Fi credentials");
+    for(uint8_t index=0;index<FirmwareUpdate::networkCount();index++)
+    {
+        output.print(index+1);output.print(',');output.print(FirmwareUpdate::ssid(index));
+        output.println(FirmwareUpdate::secured(index)?",password required":",open");
+    }
+    output.print("WIFI_SELECT,enter 0-");output.println(FirmwareUpdate::networkCount());
+}
+
+void serviceWifiSetup()
+{
+    if(wifiSetupStage==WifiSetupStage::Idle||!wifiSetupOutput)return;
+    if(wifiSetupOverBluetooth&&!bluetoothConnected){endWifiSetup();return;}
+    if(wifiSetupStage==WifiSetupStage::Scanning&&!FirmwareUpdate::scanning())
+    {
+        if(!FirmwareUpdate::networkCount())
+        {
+            wifiSetupOutput->print("WIFI_SETUP_FAILED,");wifiSetupOutput->println(FirmwareUpdate::networkMessage());
+            endWifiSetup();return;
+        }
+        printWifiNetworks(*wifiSetupOutput);wifiSetupStage=WifiSetupStage::Selecting;
+    }
+    else if(wifiSetupStage==WifiSetupStage::Connecting)
+    {
+        if(FirmwareUpdate::status()==FirmwareUpdateStatus::Ready)
+        {
+            wifiSetupOutput->print("WIFI_CONNECTED,ssid,");wifiSetupOutput->print(FirmwareUpdate::networkName());
+            wifiSetupOutput->print(",ip,");wifiSetupOutput->println(FirmwareUpdate::ipAddress());
+            wifiSetupOutput->println("WIFI_SAVED,Wi-Fi disabled until Wi-Fi Update is opened");
+            endWifiSetup();
+        }
+        else if(FirmwareUpdate::status()==FirmwareUpdateStatus::Error)
+        {
+            wifiSetupOutput->print("WIFI_SETUP_FAILED,");wifiSetupOutput->println(FirmwareUpdate::networkMessage());
+            endWifiSetup();
+        }
+    }
+}
+
+void printWifiUpdateReady(Print& output)
+{
+    output.print("WIFI_UPDATE_READY,mode,");
+    if(FirmwareUpdate::stationMode())
+    {
+        output.print("LAN,ssid,");output.print(FirmwareUpdate::networkName());
+        output.print(",ip,");output.print(FirmwareUpdate::ipAddress());
+        output.print(",login,admin/");output.println(FirmwareUpdate::accessCode());
+    }
+    else
+    {
+        output.print("AP,ssid,");output.print(FirmwareUpdate::networkName());
+        output.print(",password,");output.print(Config::FirmwareUpdatePassword);
+        output.print(",ip,");output.println(FirmwareUpdate::ipAddress());
+    }
+    output.println("WIFI_UPDATE_PORTAL_RUNNING,open the address above to upload firmware");
+}
+
+void serviceWifiUpdate()
+{
+    if(!wifiUpdateOutput)return;
+    if(FirmwareUpdate::status()==FirmwareUpdateStatus::Ready)
+    {
+        printWifiUpdateReady(*wifiUpdateOutput);wifiUpdateOutput=nullptr;
+    }
+    else if(FirmwareUpdate::status()==FirmwareUpdateStatus::Error)
+    {
+        wifiUpdateOutput->print("WIFI_UPDATE_FAILED,");wifiUpdateOutput->println(FirmwareUpdate::networkMessage());
+        wifiUpdateOutput=nullptr;
+    }
+}
+
+bool handleWifiSetupCommand(const char* command,Print& output,bool overBluetooth,bool allowed)
+{
+    String normalized(command);normalized.trim();normalized.toUpperCase();
+    if(normalized=="WIFI UPDATE STOP"||normalized=="WIFI UPDATE CLOSE")
+    {
+        if(FirmwareUpdate::uploading()||FirmwareUpdate::status()==FirmwareUpdateStatus::Success)
+        {
+            output.println("WIFI_UPDATE_BUSY,update cannot be stopped now");return true;
+        }
+        FirmwareUpdate::end();wifiUpdateOutput=nullptr;
+        output.println("WIFI_UPDATE_STOPPED,Wi-Fi and upload portal are off");return true;
+    }
+    if(normalized=="WIFI UPDATE")
+    {
+        if(!allowed){output.println("BUSY: Wi-Fi Update is available while idle");return true;}
+        if(wifiSetupStage!=WifiSetupStage::Idle){output.println("WIFI_SETUP_ACTIVE,type WIFI CANCEL before starting Wi-Fi Update");return true;}
+        if(FirmwareUpdate::uploading()){output.println("WIFI_UPDATE_BUSY,upload already in progress");return true;}
+        if(FirmwareUpdate::status()==FirmwareUpdateStatus::Error)FirmwareUpdate::end();
+        if(!FirmwareUpdate::active()&&!FirmwareUpdate::begin())
+        {
+            output.println("WIFI_UPDATE_FAILED,unable to start");return true;
+        }
+        wifiUpdateOutput=&output;
+        if(FirmwareUpdate::status()==FirmwareUpdateStatus::Connecting)output.println("WIFI_UPDATE_CONNECTING,waiting for DHCP");
+        else if(FirmwareUpdate::status()==FirmwareUpdateStatus::Starting)output.println("WIFI_UPDATE_STARTING");
+        return true;
+    }
+    if(normalized=="WIFI SETUP")
+    {
+        if(!allowed){output.println("BUSY: Wi-Fi setup is available while idle");return true;}
+        if(wifiSetupStage!=WifiSetupStage::Idle){output.println("WIFI_SETUP_ACTIVE,type WIFI CANCEL to stop");return true;}
+        if(!FirmwareUpdate::beginBluetoothProvisioning()){output.println("WIFI_SETUP_FAILED,unable to start scan");return true;}
+        wifiSetupStage=WifiSetupStage::Scanning;wifiSetupOutput=&output;wifiSetupOverBluetooth=overBluetooth;
+        output.println("WIFI_SCANNING,please wait");return true;
+    }
+    if(wifiSetupStage==WifiSetupStage::Idle)return false;
+    if(normalized=="WIFI CANCEL")
+    {
+        output.println("WIFI_SETUP_CANCELLED");endWifiSetup();return true;
+    }
+    if(wifiSetupStage==WifiSetupStage::Selecting)
+    {
+        int selection=-1;
+        String selectionText(command);
+        if(normalized.startsWith("WIFI SELECT "))selectionText=String(command).substring(12);
+        if(!parseWifiSelection(selectionText.c_str(),selection)||selection>FirmwareUpdate::networkCount())
+        {
+            output.print("WIFI_SELECT,enter 0-");output.println(FirmwareUpdate::networkCount());return true;
+        }
+        if(selection==0)
+        {
+            FirmwareUpdate::clearSavedNetwork();
+            output.print("WIFI_AP_MODE,ssid,");output.print(Config::FirmwareUpdateSsid);
+            output.print(",password,");output.print(Config::FirmwareUpdatePassword);
+            output.println(",ip,192.168.4.1");
+            output.println("WIFI_SAVED,AP mode will start when Wi-Fi Update is opened");
+            endWifiSetup();return true;
+        }
+        const uint8_t index=uint8_t(selection-1);
+        const bool requiresPassword=FirmwareUpdate::selectBluetoothNetwork(index);
+        if(requiresPassword)
+        {
+            wifiSetupStage=WifiSetupStage::Password;
+            output.print("WIFI_PASSWORD,ssid,");output.print(FirmwareUpdate::ssid(index));
+            output.println(",enter password on the next line; WIFI CANCEL to stop");
+        }
+        else
+        {
+            wifiSetupStage=WifiSetupStage::Connecting;
+            output.print("WIFI_CONNECTING,ssid,");output.println(FirmwareUpdate::ssid(index));
+        }
+        return true;
+    }
+    if(wifiSetupStage==WifiSetupStage::Password)
+    {
+        const char* password=command;
+        if(normalized.startsWith("WIFI PASSWORD "))password=command+14;
+        if(!FirmwareUpdate::submitBluetoothPassword(password))
+        {
+            output.println("WIFI_PASSWORD_INVALID,use 8-63 characters");return true;
+        }
+        wifiSetupStage=WifiSetupStage::Connecting;
+        output.println("WIFI_CONNECTING");return true;
+    }
+    output.println("WIFI_CONNECTING,please wait");return true;
+}
+
 void consume(Stream& input,Print& output,CommandBuffer& command)
 {
     while(input.available()) {
@@ -175,8 +361,8 @@ void consume(Stream& input,Print& output,CommandBuffer& command)
         if(c=='\r'||c=='\n') {
             if(command.length) {
                 command.data[command.length]='\0';
-                const bool logAccessAllowed=uiState!=UiState::WINDING;
-                Telemetry::executeCommand(command.data,output,logAccessAllowed);
+                const bool logAccessAllowed=uiState!=UiState::WINDING&&uiState!=UiState::HALL_SEEK&&!motionActive&&!auxiliaryMotionActive();
+                if(!handleWifiSetupCommand(command.data,output,&output==&SerialBT,logAccessAllowed))Telemetry::executeCommand(command.data,output,logAccessAllowed);
                 command.length=0;
             }
             continue;
@@ -202,7 +388,7 @@ void DiagnosticsTransport::poll()
     if(connected&&!bluetoothConnected) {
         Serial.println("Bluetooth diagnostics client connected");
         SerialBT.println("HankWinder diagnostics connected");
-        SerialBT.println("LOG DUMP | LOG CLEAR | LOG HELP | LOAD CELLS | MARK <label>");
+        SerialBT.println("LOG DUMP | LOG CLEAR | LOG HELP | LOAD CELLS | MARK <label> | WIFI SETUP | WIFI UPDATE");
     }
     if(!connected&&bluetoothConnected) {
         Serial.println("Bluetooth diagnostics client disconnected");
@@ -210,6 +396,8 @@ void DiagnosticsTransport::poll()
     }
     bluetoothConnected=connected;
     if(connected) consume(SerialBT,SerialBT,bluetoothCommand);
+    serviceWifiSetup();
+    serviceWifiUpdate();
 }
 
 void DiagnosticsTransport::setEnabled(bool enabled)
@@ -249,7 +437,7 @@ void DiagnosticsTransport::streamTelemetry(uint32_t ms,uint16_t rps100,uint32_t 
     if(SerialBT.availableForWrite()<=0) return;
     if(!telemetryHeaderSent) {
         printRunStart();
-        SerialBT.println("ms,rps,steps,turns,sg_result,diag,pause,phase,drv_status,lc1_raw,lc1_healthy,lc2_raw,lc2_healthy,lc3_raw,lc3_healthy,lc4_raw,lc4_healthy,weight_g,weight_spread_g,tare_valid,weight_valid,sg_baseline,stall_state,filtered_weight_g,weight_control_state");
+        SerialBT.println("ms,rps,steps,turns,sg_result,diag,pause,phase,drv_status,lc1_raw,lc1_healthy,lc2_raw,lc2_healthy,lc3_raw,lc3_healthy,lc4_raw,lc4_healthy,weight_g,weight_spread_g,tare_valid,weight_valid,sg_baseline,stall_state,filtered_weight_g,weight_control_state,stall_recovery,count_uncertain,hall_state,hall_pulses,hall_correction_steps");
         telemetryHeaderSent=true;
     }
 
@@ -274,6 +462,11 @@ void DiagnosticsTransport::streamTelemetry(uint32_t ms,uint16_t rps100,uint32_t 
     SerialBT.print(',');SerialBT.print(RunSupervisor::stallStateName(control.stallState));
     SerialBT.print(',');SerialBT.print(control.filteredWeightGrams,2);
     SerialBT.print(',');SerialBT.print(RunSupervisor::weightStateName(control.weightState));
+    SerialBT.print(',');SerialBT.print(RunSupervisor::recoveryName(control.recovery));
+    SerialBT.print(',');SerialBT.print(control.countUncertain?1:0);
+    SerialBT.print(',');SerialBT.print(HallSensor::stateName());
+    SerialBT.print(',');SerialBT.print(HallSensor::pulseCount());
+    SerialBT.print(',');SerialBT.print(HallSensor::correctionSteps());
     SerialBT.println();
 }
 
@@ -294,4 +487,13 @@ void DiagnosticsTransport::streamEvent(uint32_t ms,const char* label)
 {
     if(!telemetryRunActive||!bluetoothConnected)return;
     SerialBT.print("EVENT,ms,");SerialBT.print(ms);SerialBT.print(",label,");SerialBT.println(label);
+}
+
+void DiagnosticsTransport::diagnosticLine(const char* line)
+{
+    const size_t length=strlen(line);
+    // Arduino-Pico SerialBT returns a connection flag (0/1), NOT free bytes.
+    // Its write is blocking. This path is only used by stopped diagnostic UI.
+    if(bluetoothConnected&&SerialBT.availableForWrite()>0)
+        SerialBT.write(reinterpret_cast<const uint8_t*>(line),length);
 }

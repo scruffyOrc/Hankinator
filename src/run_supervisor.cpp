@@ -10,20 +10,47 @@ namespace {
 RunSupervisorSnapshot state{};
 bool finalMeasurementAttempted=false;
 bool armed=false,abortCompletion=false,measurementPending=false,measurementOnly=false;
-enum class TensionReliefPhase:uint8_t {Idle,BackingOff,Measuring,Recovering};
+enum class TensionReliefPhase:uint8_t {Idle,WaitingBeforeReverse,BackingOff,Measuring,Recovering};
 TensionReliefPhase tensionReliefPhase=TensionReliefPhase::Idle;
 float recoveredMeasurementGrams=NAN;
 float configuredTarget=NAN;
-uint32_t lastServiceMs=0,lastStallEventMs=0,lastWeightSequence=0;
+uint32_t lastServiceMs=0,lastWeightSequence=0;
 uint32_t stageStartStep=0,lastMeasurementStep=0;
 float lastMeasurementWeight=0.0f;
-uint8_t lowSgSamples=0;
 float settleWindow[Config::WeightFinalSettleSamples]{};
 uint8_t settleCount=0,settleWrite=0;
 uint32_t settleStartedMs=0;
-constexpr uint8_t SgBaselineSamples=16;
-uint16_t sgWindow[SgBaselineSamples]{};
-uint8_t sgCount=0,sgWrite=0;
+uint32_t tensionReliefWaitStartedMs=0;
+StallRecovery::Controller recovery({
+    Config::StallReducedMotorRps,Config::StallSlowdownRate,Config::StallRecoveryRampRate,Config::StallRecoveryMinimumRps,
+    Config::StallConfirmMs,Config::StallSevereMs,Config::StallPersistentMs,Config::StallInvalidMs,Config::StallStableMs,
+    Config::StallProofTimeoutMs,Config::StepsPerHubRev,
+    {Config::StallSpeedFloors[0],Config::StallSpeedFloors[1],Config::StallSpeedFloors[2]},Config::StallSevereSg,Config::StallHealthyHysteresis,Config::StallMaxHolds});
+uint32_t lastStallPoll=0;
+uint32_t lastSgSequence=0;
+bool discardWeightSegment=false;
+bool sgUnavailableAnnounced=false;
+bool staleStatusCacheAnnounced=false;
+
+float limitBatchStopSpeed(float stageSpeed)
+{
+    if(!state.weightArmed||motionSegmentStopStep==UINT32_MAX)return stageSpeed;
+    const uint32_t current=safeCurrentStepCount();
+    if(current>=motionSegmentStopStep)return stageSpeed;
+    const uint32_t decelSteps=uint32_t(Config::WeightBatchDecelTurns*Config::StepsPerHubRev);
+    if(!decelSteps)return stageSpeed;
+    const uint32_t remaining=motionSegmentStopStep-current;
+    if(remaining>=decelSteps)return stageSpeed;
+    // A short batch may still be in its launch profile. Do not raise that
+    // deliberately gentle speed solely because the batch is about to stop.
+    const float endSpeed=min(stageSpeed,Config::WeightBatchEndMotorRps);
+    const float progress=remaining/float(decelSteps);
+    return min(stageSpeed,endSpeed+(stageSpeed-endSpeed)*progress);
+}
+void syncRecovery() {
+    state.recovery=recovery.phase;state.countUncertain=recovery.uncertain;
+    state.stallIncidents=recovery.incidents;state.sgBaseline=recovery.baseline;
+}
 
 template<typename T,size_t N> T median(const T (&values)[N],uint8_t count)
 {
@@ -92,9 +119,24 @@ void startBatch(WeightApproachState nextState,uint16_t turns,const char* event)
 void beginStoppedMeasurement()
 {
     if(measurementPending)return;
-    if(pauseState==PauseState::RAMPING_UP)pauseState=PauseState::RUNNING;
+    // Auxiliary tension relief uses the same hardware STEP alarm as winding.
+    // A PAUSED state deliberately suppresses every alarm pulse, so leave that
+    // gate before beginning the small measurement-only reverse move. This
+    // does not resume the job: motionActive stays false until the auxiliary
+    // move is explicitly started below.
+    if(pauseState==PauseState::PAUSED||pauseState==PauseState::RAMPING_UP)pauseState=PauseState::RUNNING;
     measurementPending=true;state.settlingFinalWeight=true;
     motionActive=false;motionSegmentStopStep=UINT32_MAX;
+    // A complete stop before changing direction avoids loading the belt with
+    // the hub's remaining inertia. This intentionally applies to every
+    // stopped weight measurement, so probes and final completion behave alike.
+    tensionReliefWaitStartedMs=millis();
+    tensionReliefPhase=TensionReliefPhase::WaitingBeforeReverse;
+    Telemetry::event("WEIGHT_TENSION_RELIEF_WAIT");
+}
+
+void startTensionReliefReverse()
+{
     if(!startAuxiliaryHubMotion(false,Config::WeightTensionReliefSteps,Config::WeightTensionReliefMotorRps))
     {
         abortWeightRun("WEIGHT_TENSION_RELIEF_START_ABORT");return;
@@ -134,8 +176,8 @@ void updateSlope(float grams,uint32_t step)
 {
     if(state.weightState==WeightApproachState::Calibration)
     {
-        const float turns=step/float(Config::StepsPerHubRev);
-        state.gramsPerTurn=turns>0.0f?grams/turns:NAN;
+        const float turns=(step-lastMeasurementStep)/float(Config::StepsPerHubRev);
+        state.gramsPerTurn=turns>0.0f?(grams-lastMeasurementWeight)/turns:NAN;
         return;
     }
     const float turns=(step-lastMeasurementStep)/float(Config::StepsPerHubRev);
@@ -156,6 +198,15 @@ void handleStoppedWeight(float grams)
         Telemetry::event("FINAL_WEIGHT_SETTLED");return;
     }
     if(grams>=configuredTarget){finishAtWeight(grams);return;}
+    if(discardWeightSegment)
+    {
+        discardWeightSegment=false;
+        // The disturbed segment cannot teach grams per commanded turn.
+        lastMeasurementWeight=grams;lastMeasurementStep=step;
+        state.gramsPerTurn=NAN;
+        startBatch(WeightApproachState::Calibration,1,"WEIGHT_RELEARN_AFTER_STALL");
+        return;
+    }
     updateSlope(grams,step);
     if(isnan(state.gramsPerTurn)||state.gramsPerTurn<Config::WeightEstimateMinimumGramsPerTurn){abortWeightRun("WEIGHT_ESTIMATE_INVALID_SLOPE_ABORT");return;}
 
@@ -229,18 +280,59 @@ void updateStoppedMeasurement()
 
 void updateStall()
 {
-    if(!Config::EnableStallDetection||!TmcDriver::connected()||pauseState!=PauseState::RUNNING||currentMotionPhase()!=MotionPhase::CRUISE||currentMotorRPS<Config::StallDetectionMinimumRps){lowSgSamples=0;state.stallState=StallDetectionState::Monitoring;return;}
-    state.sgResult=TmcDriver::sgResult();
-    if(state.sgResult>=Config::StallCandidateSg&&state.sgResult!=0xFFFF){sgWindow[sgWrite]=state.sgResult;sgWrite=uint8_t((sgWrite+1)%SgBaselineSamples);if(sgCount<SgBaselineSamples)sgCount++;state.sgBaseline=median(sgWindow,sgCount);}
-    const uint16_t relativeThreshold=state.sgBaseline>=200?uint16_t(state.sgBaseline*35UL/100UL):Config::StallCandidateSg;
-    const bool low=state.sgResult<Config::StallCandidateSg||(state.sgBaseline>=200&&state.sgResult<relativeThreshold);
-    if(!low){lowSgSamples=0;state.stallState=StallDetectionState::Monitoring;return;}
-    if(lowSgSamples<255)lowSgSamples++;
-    if(lowSgSamples==1){state.stallState=StallDetectionState::Candidate;emitStall("STALL_CANDIDATE");}
-    if(lowSgSamples<Config::StallConfirmSamples)return;
-    state.stallState=StallDetectionState::Confirmed;
-    if(millis()-lastStallEventMs>=Config::StallEventCooldownMs||lastStallEventMs==0){lastStallEventMs=millis();emitStall(state.sgResult<=Config::StallSevereSg?"STALL_CONFIRMED_SEVERE":"STALL_CONFIRMED");}
-    if(Config::EnableAutomaticStallAbort)abortWeightRun("STALL_AUTOMATIC_ABORT");
+    if(!Config::EnableStallDetection||!Config::EnableStallRecovery)return;
+    const uint32_t now=millis();
+    if(now-lastStallPoll<Config::StallPollMs)return;
+    lastStallPoll=now;
+    const TmcDriver::Sample driver=TmcDriver::sample();
+    state.sgResult=driver.valid?driver.sg:0xFFFF;
+    // Do not classify the same cached conversion twice. Still process stale
+    // data and driver faults on every supervisory tick.
+    // The UART status request can be late while other foreground work is
+    // happening, even though the last completed DRV_STATUS was healthy. A
+    // stale reply is not an electrical fault. Startup is checked strictly;
+    // during a run retain the most recent status so Hall and DIAG can remain
+    // the active feedback paths instead of generating a false driver hold.
+    const bool cachedStatus=!driver.statusValid&&TmcDriver::hasCachedDrvStatus();
+    const uint32_t status=driver.statusValid?driver.status:TmcDriver::cachedDrvStatus();
+    const bool statusValid=driver.statusValid||cachedStatus;
+    const bool hardFault=statusValid&&(status&0x3FUL);
+    if(driver.valid&&driver.sequence==lastSgSequence&&!hardFault)return;
+    lastSgSequence=driver.sequence;
+    const bool diag=TmcDriver::consumeDiag();
+    const bool production=motionActive&&!auxiliaryMotionActive()&&!measurementPending;
+    const bool normalPause=pauseState==PauseState::RUNNING;
+    const bool sgValid=driver.valid&&(driver.status&(1UL<<30)); // StallGuard4 requires StealthChop.
+    if(production&&cachedStatus&&!staleStatusCacheAnnounced)
+    {
+        staleStatusCacheAnnounced=true;
+        Telemetry::event("STALL_STATUS_STALE_USING_CACHE");
+    }
+    if(production&&driver.statusValid&&!sgValid&&!sgUnavailableAnnounced)
+    {
+        sgUnavailableAnnounced=true;
+        Telemetry::event("STALL_SG_UNAVAILABLE_DIAG_ONLY");
+    }
+    const auto action=recovery.update({now,safeCurrentStepCount(),currentMotorRPS,driver.sg,
+        production,production&&normalPause,statusValid,sgValid,diag,hardFault});
+    state.stallState=recovery.candidate?StallDetectionState::Candidate:StallDetectionState::Monitoring;
+    if(action!=StallRecovery::Action::None)state.stallState=StallDetectionState::Confirmed;
+    syncRecovery();
+    if(action==StallRecovery::Action::Slow||action==StallRecovery::Action::Lock) {
+        discardWeightSegment=state.weightArmed;
+        emitStall(action==StallRecovery::Action::Slow?"STALL_SLOWDOWN":"STALL_SLOW_LOCK");
+    } else if(action==StallRecovery::Action::Restore)emitStall("STALL_HEALTHY_TURN_RAMP_UP");
+    else if(action==StallRecovery::Action::Hold) {
+        state.clearanceReason=sgValid?ClearanceReason::Load:(driver.valid?ClearanceReason::DriverMode:ClearanceReason::DriverData);
+        discardWeightSegment=state.weightArmed;
+        // Stop immediately without automatically reversing an unknown obstruction.
+        motionActive=false;requestedStepRateHz=0;currentMotorRPS=0;
+        pauseState=PauseState::RUNNING;
+        emitStall((sgValid||diag)?"STALL_CHECK_YARN_HOLD":"STALL_DRIVER_DATA_HOLD");
+    } else if(action==StallRecovery::Action::Abort) {
+        abortWeightRun(hardFault?"DRIVER_ELECTRICAL_FAULT_ABORT":"STALL_RETRY_LIMIT_ABORT");
+        disableMotor();
+    }
 }
 }
 
@@ -248,7 +340,9 @@ void RunSupervisor::beginRun()
 {
     state=RunSupervisorSnapshot{};state.weightArmed=armed&&weightCapabilityEnabled&&!autoCountMode&&LoadCells::tareValid();state.targetWeightGrams=configuredTarget;
     finalMeasurementAttempted=false;
-    abortCompletion=false;measurementPending=false;measurementOnly=false;tensionReliefPhase=TensionReliefPhase::Idle;recoveredMeasurementGrams=NAN;lastServiceMs=0;lastStallEventMs=0;lastWeightSequence=0;lowSgSamples=0;sgCount=0;sgWrite=0;
+    abortCompletion=false;measurementPending=false;measurementOnly=false;tensionReliefPhase=TensionReliefPhase::Idle;tensionReliefWaitStartedMs=0;recoveredMeasurementGrams=NAN;lastServiceMs=0;lastWeightSequence=0;sgUnavailableAnnounced=false;staleStatusCacheAnnounced=false;
+    recovery.reset(selectedCruiseMotorRPS,millis());lastStallPoll=millis();lastSgSequence=0;discardWeightSegment=false;
+    TmcDriver::consumeDiag();syncRecovery();
     lastMeasurementStep=0;lastMeasurementWeight=0.0f;stageStartStep=0;
     if(state.weightArmed)
     {
@@ -257,16 +351,28 @@ void RunSupervisor::beginRun()
         eventWithValues("WEIGHT_CALIBRATION_BATCH_START",0.0f,NAN,Config::WeightEstimateCalibrationTurns);
     }
     else {state.weightState=WeightApproachState::Disabled;motionSegmentStopStep=UINT32_MAX;}
+    // A TMC2209 may return a healthy DRV_STATUS while SG_RESULT is unavailable.
+    // In DIAG-only mode, startup requires that status response, not numeric SG.
+    if(Config::EnableStallRecovery&&!TmcDriver::sample().statusValid) {
+        state.clearanceReason=ClearanceReason::DriverData;
+        recovery.requireClearance();syncRecovery();
+        Telemetry::event("STALL_START_REFUSED_DRIVER_DATA");
+    }
 }
 
 void RunSupervisor::service()
 {
+    updateStall();
+    if(waitingForClearance()||abortCompletion)return;
     const uint32_t now=millis();if(now-lastServiceMs<Config::ControlSupervisorIntervalMs)return;lastServiceMs=now;
     // Load cells remain observational while the hub is moving. Weight control
     // only requires them after tension relief, while stopped; a missed HX711
     // conversion during motion must not terminate an otherwise healthy run.
-    updateStall();
-    if(tensionReliefPhase==TensionReliefPhase::BackingOff&&consumeAuxiliaryMotionComplete())startStoppedMeasurementWindow();
+    if(tensionReliefPhase==TensionReliefPhase::WaitingBeforeReverse)
+    {
+        if(now-tensionReliefWaitStartedMs>=Config::WeightTensionReliefPreReverseSettleMs)startTensionReliefReverse();
+    }
+    else if(tensionReliefPhase==TensionReliefPhase::BackingOff&&consumeAuxiliaryMotionComplete())startStoppedMeasurementWindow();
     else if(tensionReliefPhase==TensionReliefPhase::Recovering&&consumeAuxiliaryMotionComplete())
     {
         tensionReliefPhase=TensionReliefPhase::Idle;
@@ -279,22 +385,71 @@ void RunSupervisor::service()
 
 float RunSupervisor::limitMotorRps(float requestedRps)
 {
+    if(waitingForClearance()||abortCompletion)return 0.0f;
+    if(Config::EnableStallRecovery)requestedRps=min(requestedRps,recovery.cap);
     if(state.settlingFinalWeight||state.weightState==WeightApproachState::TargetReached)return 0.0f;
     if(!state.weightArmed)return requestedRps;
-    if(state.weightState==WeightApproachState::Calibration)return min(requestedRps,Config::WeightEstimateCalibrationMotorRps);
-    if(state.weightState==WeightApproachState::Approach)return min(requestedRps,Config::WeightApproachMotorRps);
-    const uint32_t step=safeCurrentStepCount();const float rampSteps=2.0f*Config::StepsPerHubRev;
-    const float started=min(1.0f,(step-stageStartStep)/rampSteps);
-    float limited=min(requestedRps,Config::WeightApproachMotorRps+(selectedCruiseMotorRPS-Config::WeightApproachMotorRps)*started);
-    if(motionSegmentStopStep!=UINT32_MAX&&motionSegmentStopStep>step)
+    float limited=requestedRps;
+    if(state.weightState==WeightApproachState::Calibration)limited=min(limited,Config::WeightEstimateCalibrationMotorRps);
+    else if(state.weightState==WeightApproachState::Approach)limited=min(limited,Config::WeightApproachMotorRps);
+    else
     {
-        const float ending=min(1.0f,(motionSegmentStopStep-step)/rampSteps);
-        limited=min(limited,Config::WeightApproachMotorRps+(selectedCruiseMotorRPS-Config::WeightApproachMotorRps)*ending);
+        const uint32_t step=safeCurrentStepCount();const float rampSteps=2.0f*Config::StepsPerHubRev;
+        const float started=min(1.0f,(step-stageStartStep)/rampSteps);
+        limited=min(limited,Config::WeightApproachMotorRps+(selectedCruiseMotorRPS-Config::WeightApproachMotorRps)*started);
     }
-    return limited;
+    return limitBatchStopSpeed(limited);
 }
 
 RunSupervisorSnapshot RunSupervisor::snapshot(){return state;}
+bool RunSupervisor::waitingForClearance(){return recovery.phase==StallRecovery::Phase::Held;}
+void RunSupervisor::holdForHallFault(const char* reason)
+{
+    if(abortCompletion||waitingForClearance())return;
+    state.clearanceReason=ClearanceReason::Hall;
+    discardWeightSegment=state.weightArmed;
+    const auto action=recovery.requireClearance();syncRecovery();
+    motionActive=false;requestedStepRateHz=0;currentMotorRPS=0;pauseState=PauseState::RUNNING;
+    if(action==StallRecovery::Action::Abort){abortWeightRun("HALL_RETRY_LIMIT_ABORT");disableMotor();}
+    Telemetry::event(reason);
+}
+bool RunSupervisor::confirmClearance()
+{
+    if(!waitingForClearance())return false;
+    const auto driver=TmcDriver::sample();
+    // A status reply can expire while the user examines a Hall fault. That
+    // expiry is not a new driver fault. Startup remains strict, but a user
+    // clear may use the last valid status from this powered-on session.
+    const bool cachedStatus=!driver.statusValid&&TmcDriver::hasCachedDrvStatus();
+    const uint32_t status=driver.statusValid?driver.status:TmcDriver::cachedDrvStatus();
+    // A numeric SG_RESULT is optional in DIAG-only operation. Resume only
+    // needs a usable status reply, the expected StealthChop mode, and no
+    // electrical driver flags.
+    if((!driver.statusValid&&!cachedStatus)||!(status&(1UL<<30))||(status&0x3FUL)) {
+        if(!driver.statusValid&&!cachedStatus)state.clearanceReason=ClearanceReason::DriverData;
+        else if(!(status&(1UL<<30)))state.clearanceReason=ClearanceReason::DriverMode;
+        Telemetry::event("STALL_CLEAR_REFUSED_DRIVER");return false;
+    }
+    if(cachedStatus)Telemetry::event("STALL_CLEAR_USING_CACHED_DRIVER_STATUS");
+    const bool hallRecovery=state.clearanceReason==ClearanceReason::Hall;
+    if(!recovery.confirm(millis(),safeCurrentStepCount(),Config::LaunchMotorRps,hallRecovery))return false;
+    state.clearanceReason=ClearanceReason::None;
+    syncRecovery();pauseState=PauseState::RUNNING;
+    if(hallRecovery)
+    {
+        Telemetry::event(recovery.phase==StallRecovery::Phase::Proving?
+            "HALL_RECOVERY_PROVING_ONE_TURN":"HALL_RECOVERY_LOCKED_REMAINDER");
+    }
+    Telemetry::event("STALL_USER_CLEAR_RESUME_SLOW");
+    if(state.weightArmed) {
+        discardWeightSegment=true;beginStoppedMeasurement();
+    } else if(safeCurrentStepCount()<targetStepCount) {
+        currentMotorRPS=Config::LaunchMotorRps;
+        requestedStepRateHz=stepsPerSecondForMotorRPS(currentMotorRPS);
+        motionActive=true;requestStepGeneratorWake();
+    }
+    return true;
+}
 bool RunSupervisor::armWeightTarget(float grams){if(grams<Config::MinimumWeightTargetGrams||grams>Config::MaximumWeightTargetGrams)return false;configuredTarget=grams;armed=true;return true;}
 void RunSupervisor::disarmWeightTarget(){armed=false;configuredTarget=NAN;}
 bool RunSupervisor::weightTargetArmed(){return armed;}
@@ -305,7 +460,7 @@ bool RunSupervisor::completionPending()
     // The hardware alarm stops exactly at a batch boundary. The main loop can
     // observe that stop before the 100 ms supervisor tick starts measurement;
     // keep ownership here so the app cannot mistake it for end-of-run.
-    return measurementPending||(state.weightArmed&&!abortCompletion&&state.weightState!=WeightApproachState::TargetReached&&!motionActive);
+    return waitingForClearance()||measurementPending||(state.weightArmed&&!abortCompletion&&state.weightState!=WeightApproachState::TargetReached&&!motionActive);
 }
 bool RunSupervisor::requestFinalMeasurement()
 {
@@ -313,6 +468,18 @@ bool RunSupervisor::requestFinalMeasurement()
     finalMeasurementAttempted=true;
     measurementOnly=true;motionActive=false;motionSegmentStopStep=UINT32_MAX;
     Telemetry::event("FINAL_WEIGHT_VERIFY_STOP");beginStoppedMeasurement();return measurementPending;
+}
+const char* RunSupervisor::recoveryName(StallRecovery::Phase phase)
+{
+    switch(phase){
+        case StallRecovery::Phase::Slowing:return "slowing";
+        case StallRecovery::Phase::Proving:return "healthy_turn";
+        case StallRecovery::Phase::Ramping:return "recovering";
+        case StallRecovery::Phase::Locked:return "slow_locked";
+        case StallRecovery::Phase::Held:return "check_yarn";
+        case StallRecovery::Phase::Aborted:return "aborted";
+        default:return "normal";
+    }
 }
 const char* RunSupervisor::stallStateName(StallDetectionState value){return value==StallDetectionState::Candidate?"candidate":value==StallDetectionState::Confirmed?"confirmed":"monitoring";}
 const char* RunSupervisor::weightStateName(WeightApproachState value)

@@ -1,6 +1,8 @@
 #include "load_cells.h"
+#include "runtime.h"
 #include "hardware/gpio.h"
 #include "pico/time.h"
+#include "load_cell_sync.h"
 
 namespace {
 int32_t rawValues[Config::LoadCellChannelCount]{};
@@ -12,6 +14,16 @@ uint32_t resultSequence[Config::LoadCellChannelCount]{};
 uint32_t snapshotSequence=0;
 bool startupValidationFault=false;
 bool startupChannelFault[Config::LoadCellChannelCount]{};
+uint8_t synchronizedMask=0,missingMask=0,jumpMask=0;
+uint32_t syncWaitStarted=0,syncTimeouts=0,jumpCount=0;
+bool discoveryComplete=false;
+constexpr uint8_t timingChoices[]={1,2,3,5,8,10};
+uint8_t timingSelection=3,activeSampleDelay=Config::LoadCellSampleDelayUs;
+uint32_t timingStarted=0,timingJumpBaseline=0,timingTimeoutBaseline=0;
+float runtimeCalibration[Config::LoadCellChannelCount]={
+    Config::LoadCellGramsPerCount[0],Config::LoadCellGramsPerCount[1],
+    Config::LoadCellGramsPerCount[2],Config::LoadCellGramsPerCount[3]
+};
 
 int32_t tareWindow[Config::LoadCellChannelCount][Config::LoadCellTareSamples]{};
 uint8_t tareWindowCount[Config::LoadCellChannelCount]{};
@@ -37,23 +49,32 @@ void readReadyChannels(uint8_t readyMask)
     {
         noInterrupts();
         gpio_put(Pins::LoadCellClock,true);
-        busy_wait_us_32(1);
+        busy_wait_us_32(activeSampleDelay);
         const uint32_t inputs=gpio_get_all();
         gpio_put(Pins::LoadCellClock,false);
+        busy_wait_us_32(activeSampleDelay);
         interrupts();
         for(uint8_t channel=0;channel<Config::LoadCellChannelCount;channel++)
             if(readyMask&(1u<<channel))values[channel]=(values[channel]<<1)|((inputs>>Pins::LoadCellData[channel])&1u);
-        delayMicroseconds(1);
     }
 
     // Pulse 25 selects channel A, gain 128 for the next conversion.
-    noInterrupts();gpio_put(Pins::LoadCellClock,true);busy_wait_us_32(1);gpio_put(Pins::LoadCellClock,false);interrupts();delayMicroseconds(1);
+    noInterrupts();
+    gpio_put(Pins::LoadCellClock,true);
+    busy_wait_us_32(activeSampleDelay);
+    gpio_put(Pins::LoadCellClock,false);
+    busy_wait_us_32(activeSampleDelay);
+    interrupts();
 
     const uint32_t now=millis();
     for(uint8_t channel=0;channel<Config::LoadCellChannelCount;channel++)
     {
         if(!(readyMask&(1u<<channel)))continue;
         const int32_t value=(values[channel]&0x00800000)?int32_t(values[channel]|0xFF000000):int32_t(values[channel]);
+        const int64_t delta=int64_t(value)-rawValues[channel];
+        if(hasResult[channel]&&(delta>Config::LoadCellSuspiciousDeltaCounts||delta<-int64_t(Config::LoadCellSuspiciousDeltaCounts))) {
+            jumpMask|=1u<<channel; ++jumpCount;
+        }
         rawValues[channel]=value;
         hasResult[channel]=true;
         lastResultMs[channel]=now;
@@ -96,6 +117,10 @@ bool evaluateTareWindow()
 void LoadCells::begin()
 {
     pinMode(Pins::LoadCellClock,OUTPUT);
+    // Use 2 mA drive and slow slew for M8 cable characterization;
+    // keep the software clock pulse timing unchanged.
+    gpio_set_drive_strength(Pins::LoadCellClock,GPIO_DRIVE_STRENGTH_2MA);
+    gpio_set_slew_rate(Pins::LoadCellClock,GPIO_SLEW_RATE_SLOW);
     digitalWrite(Pins::LoadCellClock,LOW);
     for(uint8_t channel=0;channel<Config::LoadCellChannelCount;channel++)pinMode(Pins::LoadCellData[channel],INPUT_PULLUP);
 }
@@ -105,11 +130,49 @@ void LoadCells::service()
     uint8_t readyMask=0;
     for(uint8_t channel=0;channel<Config::LoadCellChannelCount;channel++)
         if(digitalRead(Pins::LoadCellData[channel])==LOW)readyMask|=1u<<channel;
-    if(readyMask)readReadyChannels(readyMask);
+    if(!discoveryComplete)return;
+    if(LoadCellSync::canRead(synchronizedMask,readyMask)) {
+        missingMask=0;syncWaitStarted=millis();jumpMask=0;
+        readReadyChannels(synchronizedMask);
+    } else if(synchronizedMask&&millis()-syncWaitStarted>=Config::LoadCellSyncTimeoutMs) {
+        missingMask=LoadCellSync::missing(synchronizedMask,readyMask);
+        ++syncTimeouts;syncWaitStarted=millis();
+        // Keep waiting. Never silently drop a channel or clock a partial group.
+    }
 }
+
+uint8_t LoadCells::detectedMask(){return synchronizedMask;}
+uint8_t LoadCells::missingReadyMask(){return missingMask;}
+uint8_t LoadCells::suspiciousMask(){return jumpMask;}
+uint32_t LoadCells::syncTimeoutCount(){return syncTimeouts;}
+uint32_t LoadCells::suspiciousCount(){return jumpCount;}
+void LoadCells::beginTimingTest(){
+    for(uint8_t i=0;i<sizeof(timingChoices);++i)if(timingChoices[i]==activeSampleDelay)timingSelection=i;
+    applyTimingDelay();
+}
+void LoadCells::selectTimingDelay(bool forward){timingSelection=(timingSelection+(forward?1:5))%6;}
+void LoadCells::applyTimingDelay(){
+    activeSampleDelay=timingChoices[timingSelection];
+    timingStarted=millis();timingJumpBaseline=jumpCount;timingTimeoutBaseline=syncTimeouts;
+}
+uint8_t LoadCells::selectedTimingDelay(){return timingChoices[timingSelection];}
+uint8_t LoadCells::sampleDelayUs(){return activeSampleDelay;}
+uint32_t LoadCells::timingElapsedMs(){return millis()-timingStarted;}
+uint32_t LoadCells::timingJumps(){return jumpCount-timingJumpBaseline;}
+uint32_t LoadCells::timingTimeouts(){return syncTimeouts-timingTimeoutBaseline;}
 
 uint8_t LoadCells::detectAtStartup()
 {
+    // With no clocks, each connected HX711 holds DOUT low once ready. Observe
+    // a full startup window before freezing the group, including partial systems.
+    discoveryComplete=false;synchronizedMask=missingMask=jumpMask=0;
+    const uint32_t discoveryStarted=millis();
+    while(millis()-discoveryStarted<Config::LoadCellDetectionWindowMs) {
+        for(uint8_t ch=0;ch<Config::LoadCellChannelCount;ch++)
+            if(digitalRead(Pins::LoadCellData[ch])==LOW)synchronizedMask|=1u<<ch;
+        delay(1);
+    }
+    discoveryComplete=true;syncWaitStarted=millis();
     uint32_t seen[Config::LoadCellChannelCount]{};
     uint16_t samples[Config::LoadCellChannelCount]{};
     int32_t first[Config::LoadCellChannelCount]{};
@@ -143,7 +206,7 @@ uint8_t LoadCells::detectAtStartup()
         const bool passed=samples[channel]>=Config::LoadCellDetectionSamples&&changed[channel]
             &&lastResultValid[channel]&&millis()-lastResultMs[channel]<=Config::LoadCellHealthyTimeoutMs;
         if(passed)count++;
-        startupChannelFault[channel]=responded[channel]&&!passed;
+        startupChannelFault[channel]=((synchronizedMask&(1u<<channel))||responded[channel])&&!passed;
         startupValidationFault|=startupChannelFault[channel];
     }
     return count;
@@ -316,8 +379,8 @@ float LoadCells::weightGrams(const LoadCellSnapshot& value)
     if((value.healthyMask&requiredMask)!=requiredMask)return NAN;
     float grams=0.0f;
     for(uint8_t channel=0;channel<Config::LoadCellChannelCount;channel++)
-        grams+=(value.raw[channel]-currentTare.offset[channel])*Config::LoadCellGramsPerCount[channel];
-    return grams;
+        grams+=(value.raw[channel]-currentTare.offset[channel])*runtimeCalibration[channel];
+    return grams*settings.loadCellHubGain;
 }
 
 float LoadCells::weightGrams(){return weightGrams(snapshot());}
@@ -334,6 +397,16 @@ float LoadCells::profileWeightGrams(const LoadCellSnapshot& value,uint32_t hubSt
     if((value.healthyMask&requiredMask)!=requiredMask)return NAN;
     const uint8_t bin=min<uint32_t>(Config::LoadCellProfileBins-1,uint64_t(hubStep%Config::StepsPerHubRev)*Config::LoadCellProfileBins/Config::StepsPerHubRev);
     float grams=0.0f;
-    for(uint8_t channel=0;channel<Config::LoadCellChannelCount;channel++)grams+=(value.raw[channel]-profileTare.raw[bin][channel])*Config::LoadCellGramsPerCount[channel];
-    return grams;
+    for(uint8_t channel=0;channel<Config::LoadCellChannelCount;channel++)grams+=(value.raw[channel]-profileTare.raw[bin][channel])*runtimeCalibration[channel];
+    return grams*settings.loadCellHubGain;
+}
+
+void LoadCells::setCalibration(const float coefficients[Config::LoadCellChannelCount])
+{
+    for(uint8_t channel=0;channel<Config::LoadCellChannelCount;channel++)runtimeCalibration[channel]=coefficients[channel];
+}
+
+void LoadCells::calibration(float coefficients[Config::LoadCellChannelCount])
+{
+    for(uint8_t channel=0;channel<Config::LoadCellChannelCount;channel++)coefficients[channel]=runtimeCalibration[channel];
 }

@@ -4,9 +4,9 @@ PanelPixels pixels(NEOPIXEL_COUNT,NEOPIXEL_PIN,NEO_RGB+NEO_KHZ800);
 PersistentSettings settings{}; UiState uiState=UiState::TURN_SELECT;
 ProductMode productMode=ProductMode::Turninator; bool weightCapabilityEnabled=false; uint8_t detectedLoadCellCount=0;
 volatile PauseState pauseState=PauseState::RUNNING;
-volatile uint32_t pauseRampStartStep=0,pauseRampStopStep=0,resumeRampStartStep=0,resumeRampEndStep=0;
+volatile uint32_t pauseRampStartStep=0,pauseRampStopStep=0;
 float pauseRampStartRPS=Config::START_MOTOR_RPS;
-uint32_t pauseStartedTime=0,totalPausedTime=0; bool pauseTimeRecorded=false;
+uint32_t pauseStartedTime=0,totalPausedTime=0,resumeRampStartedTime=0; bool pauseTimeRecorded=false;
 int selectedYarnWeight=0,selectedSkeinSize=0,selectedTurns=63; bool repeatYes=true;
 bool autoCountMode=false;
 int selectedCruiseSpeedIndex=0;float selectedCruiseMotorRPS=Config::CruiseSpeedOptions[0];
@@ -18,5 +18,6 @@ volatile bool motionActive=false; volatile uint32_t currentStepCount=0,targetSte
 alarm_id_t stepAlarmId=0; int lastA=HIGH; bool lastClick=HIGH,lastStop=HIGH;
 uint32_t lastTurnEncoderTime=0; bool heartbeatState=false; uint32_t lastHeartbeat=0;
 int configMenuSelection=0;
+int configSubMenuSelection=0;
 int motorMenuSelection=0;
 int weightTargetMenuSelection=0;

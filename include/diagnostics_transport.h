@@ -5,6 +5,7 @@
 
 namespace DiagnosticsTransport {
 void begin();
+void diagnosticLine(const char* line);
 void poll();
 void setEnabled(bool enabled);
 bool enabled();

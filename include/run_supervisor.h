@@ -1,10 +1,16 @@
 #pragma once
 #include <Arduino.h>
+#include "stall_recovery.h"
 
 enum class StallDetectionState:uint8_t {Monitoring,Candidate,Confirmed};
+enum class ClearanceReason:uint8_t {None,Load,DriverData,DriverMode,Hall};
 enum class WeightApproachState:uint8_t {Disabled,Calibration,Bulk,Refinement,Approach,TargetReached};
 
 struct RunSupervisorSnapshot {
+    ClearanceReason clearanceReason=ClearanceReason::None;
+    StallRecovery::Phase recovery=StallRecovery::Phase::Normal;
+    bool countUncertain=false;
+    uint8_t stallIncidents=0;
     StallDetectionState stallState=StallDetectionState::Monitoring;
     WeightApproachState weightState=WeightApproachState::Disabled;
     uint16_t sgResult=0xFFFF;
@@ -22,6 +28,9 @@ struct RunSupervisorSnapshot {
 
 namespace RunSupervisor {
 void beginRun();
+bool waitingForClearance();
+bool confirmClearance();
+void holdForHallFault(const char* reason);
 void service();
 float limitMotorRps(float requestedRps);
 RunSupervisorSnapshot snapshot();
@@ -32,6 +41,7 @@ float weightTargetGrams();
 bool completionIsAbort();
 bool completionPending();
 bool requestFinalMeasurement();
+const char* recoveryName(StallRecovery::Phase phase);
 const char* stallStateName(StallDetectionState state);
 const char* weightStateName(WeightApproachState state);
 }

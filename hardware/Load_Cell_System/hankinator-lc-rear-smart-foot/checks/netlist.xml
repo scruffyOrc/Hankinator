@@ -1,0 +1,915 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<export version="E">
+  <design>
+    <source>C:\Users\crisd\Documents\Codex\2026-09-08\referenced-chatgpt-conversation-this-is-an-2\outputs\hankinator-load-cell-system\hankinator-lc-rear-smart-foot\hankinator-lc-rear-smart-foot.kicad_sch</source>
+    <date>2026-09-08T20:41:31</date>
+    <tool>Eeschema 10.0.5</tool>
+    <sheet number="1" name="/" tstamps="/">
+      <title_block>
+        <title>hankinator-lc-rear-smart-foot</title>
+        <company>Hankinator</company>
+        <rev>A0 APPROVAL</rev>
+        <date>2026-09-08</date>
+        <source>hankinator-lc-rear-smart-foot.kicad_sch</source>
+        <comment number="1" value="No manufacturing release"/>
+        <comment number="2" value=""/>
+        <comment number="3" value=""/>
+        <comment number="4" value=""/>
+        <comment number="5" value=""/>
+        <comment number="6" value=""/>
+        <comment number="7" value=""/>
+        <comment number="8" value=""/>
+        <comment number="9" value=""/>
+      </title_block>
+    </sheet>
+  </design>
+  <components>
+    <comp ref="C1">
+      <value>100n / 50V X7R</value>
+      <footprint>Capacitor_SMD:C_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN">CL10B104KB8NNNC</field>
+        <field name="LCSC">C1591</field>
+        <field name="Manufacturer">Samsung</field>
+        <field name="Footprint">Capacitor_SMD:C_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="MPN" value="CL10B104KB8NNNC"/>
+      <property name="LCSC" value="C1591"/>
+      <property name="Manufacturer" value="Samsung"/>
+      <property name="Sheetname" value="hankinator-lc-rear-smart-foot"/>
+      <property name="Sheetfile" value="hankinator-lc-rear-smart-foot.kicad_sch"/>
+      <property name="ki_keywords" value="cap capacitor"/>
+      <property name="ki_fp_filters" value="C_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>94dd6862-2450-473a-8217-281b309650e2</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C2">
+      <value>10u / 25V X5R</value>
+      <footprint>Capacitor_SMD:C_0805_2012Metric</footprint>
+      <fields>
+        <field name="MPN">CL21A106KAYNNNE</field>
+        <field name="LCSC">C15850</field>
+        <field name="Manufacturer">Samsung</field>
+        <field name="Footprint">Capacitor_SMD:C_0805_2012Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="MPN" value="CL21A106KAYNNNE"/>
+      <property name="LCSC" value="C15850"/>
+      <property name="Manufacturer" value="Samsung"/>
+      <property name="Sheetname" value="hankinator-lc-rear-smart-foot"/>
+      <property name="Sheetfile" value="hankinator-lc-rear-smart-foot.kicad_sch"/>
+      <property name="ki_keywords" value="cap capacitor"/>
+      <property name="ki_fp_filters" value="C_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>a176b50a-d99e-47f8-9c0b-4605c5d46931</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C3">
+      <value>100n / 50V X7R</value>
+      <footprint>Capacitor_SMD:C_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN">CL10B104KB8NNNC</field>
+        <field name="LCSC">C1591</field>
+        <field name="Manufacturer">Samsung</field>
+        <field name="Footprint">Capacitor_SMD:C_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="MPN" value="CL10B104KB8NNNC"/>
+      <property name="LCSC" value="C1591"/>
+      <property name="Manufacturer" value="Samsung"/>
+      <property name="Sheetname" value="hankinator-lc-rear-smart-foot"/>
+      <property name="Sheetfile" value="hankinator-lc-rear-smart-foot.kicad_sch"/>
+      <property name="ki_keywords" value="cap capacitor"/>
+      <property name="ki_fp_filters" value="C_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>45e2bb22-3406-4c7f-9ef7-b09cbb9ed523</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C4">
+      <value>10u / 25V X5R</value>
+      <footprint>Capacitor_SMD:C_0805_2012Metric</footprint>
+      <fields>
+        <field name="MPN">CL21A106KAYNNNE</field>
+        <field name="LCSC">C15850</field>
+        <field name="Manufacturer">Samsung</field>
+        <field name="Footprint">Capacitor_SMD:C_0805_2012Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="MPN" value="CL21A106KAYNNNE"/>
+      <property name="LCSC" value="C15850"/>
+      <property name="Manufacturer" value="Samsung"/>
+      <property name="Sheetname" value="hankinator-lc-rear-smart-foot"/>
+      <property name="Sheetfile" value="hankinator-lc-rear-smart-foot.kicad_sch"/>
+      <property name="ki_keywords" value="cap capacitor"/>
+      <property name="ki_fp_filters" value="C_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>5a72e3d0-e0b2-4224-af48-a256b92a879e</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="C5">
+      <value>100n differential</value>
+      <footprint>Capacitor_SMD:C_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN">CL10B104KB8NNNC</field>
+        <field name="LCSC">C1591</field>
+        <field name="Manufacturer">Samsung</field>
+        <field name="Footprint">Capacitor_SMD:C_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <property name="MPN" value="CL10B104KB8NNNC"/>
+      <property name="LCSC" value="C1591"/>
+      <property name="Manufacturer" value="Samsung"/>
+      <property name="Sheetname" value="hankinator-lc-rear-smart-foot"/>
+      <property name="Sheetfile" value="hankinator-lc-rear-smart-foot.kicad_sch"/>
+      <property name="ki_keywords" value="cap capacitor"/>
+      <property name="ki_fp_filters" value="C_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>3d62aee7-03d0-4df0-938e-3f22259b7d5e</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="H1">
+      <value>M2 / 2.2mm NPTH</value>
+      <footprint>MountingHole:MountingHole_2.2mm_M2</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="LCSC"/>
+        <field name="Manufacturer"/>
+        <field name="Footprint">MountingHole:MountingHole_2.2mm_M2</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Mechanical" part="MountingHole" description="Mounting Hole without connection"/>
+      <property name="MPN" value=""/>
+      <property name="LCSC" value=""/>
+      <property name="Manufacturer" value=""/>
+      <property name="Sheetname" value="hankinator-lc-rear-smart-foot"/>
+      <property name="Sheetfile" value="hankinator-lc-rear-smart-foot.kicad_sch"/>
+      <property name="ki_keywords" value="mounting hole"/>
+      <property name="ki_fp_filters" value="MountingHole*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>792087d7-038b-48ab-bac9-792a89d14df8</tstamps>
+      <units>
+        <unit name="A">
+          <pins/>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="H2">
+      <value>M2 / 2.2mm NPTH</value>
+      <footprint>MountingHole:MountingHole_2.2mm_M2</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="LCSC"/>
+        <field name="Manufacturer"/>
+        <field name="Footprint">MountingHole:MountingHole_2.2mm_M2</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Mechanical" part="MountingHole" description="Mounting Hole without connection"/>
+      <property name="MPN" value=""/>
+      <property name="LCSC" value=""/>
+      <property name="Manufacturer" value=""/>
+      <property name="Sheetname" value="hankinator-lc-rear-smart-foot"/>
+      <property name="Sheetfile" value="hankinator-lc-rear-smart-foot.kicad_sch"/>
+      <property name="ki_keywords" value="mounting hole"/>
+      <property name="ki_fp_filters" value="MountingHole*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>b91cf110-36c9-462c-9930-933ac93f7234</tstamps>
+      <units>
+        <unit name="A">
+          <pins/>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="J1">
+      <value>FROM BREAKOUT / 6P6C</value>
+      <footprint>HankinatorLC:WE_615006143621</footprint>
+      <fields>
+        <field name="MPN">615006143621</field>
+        <field name="LCSC"/>
+        <field name="Manufacturer">Wurth Elektronik</field>
+        <field name="Footprint">HankinatorLC:WE_615006143621</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Connector_Generic" part="Conn_01x06" description="Generic connector, single row, 01x06, script generated (kicad-library-utils/schlib/autogen/connector/)"/>
+      <property name="MPN" value="615006143621"/>
+      <property name="LCSC" value=""/>
+      <property name="Manufacturer" value="Wurth Elektronik"/>
+      <property name="Sheetname" value="hankinator-lc-rear-smart-foot"/>
+      <property name="Sheetfile" value="hankinator-lc-rear-smart-foot.kicad_sch"/>
+      <property name="ki_keywords" value="connector"/>
+      <property name="ki_fp_filters" value="Connector*:*_1x??_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>8fbf3d3f-dae3-4b0d-b700-418978e3f3c9</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="3"/>
+            <pin num="4"/>
+            <pin num="5"/>
+            <pin num="6"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="J2">
+      <value>TO FRONT / 4P4C</value>
+      <footprint>HankinatorLC:WE_615004143821</footprint>
+      <fields>
+        <field name="MPN">615004143821</field>
+        <field name="LCSC"/>
+        <field name="Manufacturer">Wurth Elektronik</field>
+        <field name="Footprint">HankinatorLC:WE_615004143821</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Connector_Generic" part="Conn_01x04" description="Generic connector, single row, 01x04, script generated (kicad-library-utils/schlib/autogen/connector/)"/>
+      <property name="MPN" value="615004143821"/>
+      <property name="LCSC" value=""/>
+      <property name="Manufacturer" value="Wurth Elektronik"/>
+      <property name="Sheetname" value="hankinator-lc-rear-smart-foot"/>
+      <property name="Sheetfile" value="hankinator-lc-rear-smart-foot.kicad_sch"/>
+      <property name="ki_keywords" value="connector"/>
+      <property name="ki_fp_filters" value="Connector*:*_1x??_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>b91e7c8f-3ae1-4f50-b33b-65472270ccb0</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="3"/>
+            <pin num="4"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="J3">
+      <value>LOAD CELL / JST-XH</value>
+      <footprint>Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical</footprint>
+      <fields>
+        <field name="MPN">B4B-XH-A(LF)(SN)</field>
+        <field name="LCSC">C144395</field>
+        <field name="Manufacturer">JST</field>
+        <field name="Footprint">Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Connector_Generic" part="Conn_01x04" description="Generic connector, single row, 01x04, script generated (kicad-library-utils/schlib/autogen/connector/)"/>
+      <property name="MPN" value="B4B-XH-A(LF)(SN)"/>
+      <property name="LCSC" value="C144395"/>
+      <property name="Manufacturer" value="JST"/>
+      <property name="Sheetname" value="hankinator-lc-rear-smart-foot"/>
+      <property name="Sheetfile" value="hankinator-lc-rear-smart-foot.kicad_sch"/>
+      <property name="ki_keywords" value="connector"/>
+      <property name="ki_fp_filters" value="Connector*:*_1x??_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>abc219ed-b217-48c1-b440-ba6628b9719b</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="3"/>
+            <pin num="4"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R1">
+      <value>10R</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN">0603WAF100JT5E</field>
+        <field name="LCSC">C22859</field>
+        <field name="Manufacturer">UNI-ROYAL</field>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="MPN" value="0603WAF100JT5E"/>
+      <property name="LCSC" value="C22859"/>
+      <property name="Manufacturer" value="UNI-ROYAL"/>
+      <property name="Sheetname" value="hankinator-lc-rear-smart-foot"/>
+      <property name="Sheetfile" value="hankinator-lc-rear-smart-foot.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>45689326-6f3c-48c0-b6e3-0a1f19e01409</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R2">
+      <value>100R / 1%</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN">0603WAF1000T5E</field>
+        <field name="LCSC">C22775</field>
+        <field name="Manufacturer">UNI-ROYAL</field>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="MPN" value="0603WAF1000T5E"/>
+      <property name="LCSC" value="C22775"/>
+      <property name="Manufacturer" value="UNI-ROYAL"/>
+      <property name="Sheetname" value="hankinator-lc-rear-smart-foot"/>
+      <property name="Sheetfile" value="hankinator-lc-rear-smart-foot.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>8f96c9a9-366c-4d35-8c57-c0740e5603b9</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R3">
+      <value>100R / 1%</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN">0603WAF1000T5E</field>
+        <field name="LCSC">C22775</field>
+        <field name="Manufacturer">UNI-ROYAL</field>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="MPN" value="0603WAF1000T5E"/>
+      <property name="LCSC" value="C22775"/>
+      <property name="Manufacturer" value="UNI-ROYAL"/>
+      <property name="Sheetname" value="hankinator-lc-rear-smart-foot"/>
+      <property name="Sheetfile" value="hankinator-lc-rear-smart-foot.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>6849f00c-bcd4-4c71-bde0-b146d4154532</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R4">
+      <value>100R / DOUT source</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN">0603WAF1000T5E</field>
+        <field name="LCSC">C22775</field>
+        <field name="Manufacturer">UNI-ROYAL</field>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="MPN" value="0603WAF1000T5E"/>
+      <property name="LCSC" value="C22775"/>
+      <property name="Manufacturer" value="UNI-ROYAL"/>
+      <property name="Sheetname" value="hankinator-lc-rear-smart-foot"/>
+      <property name="Sheetfile" value="hankinator-lc-rear-smart-foot.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>c2b722a9-0523-41d6-8854-9cdfffb23eaf</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R5">
+      <value>100R / SCK stub</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN">0603WAF1000T5E</field>
+        <field name="LCSC">C22775</field>
+        <field name="Manufacturer">UNI-ROYAL</field>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="MPN" value="0603WAF1000T5E"/>
+      <property name="LCSC" value="C22775"/>
+      <property name="Manufacturer" value="UNI-ROYAL"/>
+      <property name="Sheetname" value="hankinator-lc-rear-smart-foot"/>
+      <property name="Sheetfile" value="hankinator-lc-rear-smart-foot.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>5c390dcb-1bf9-485c-82de-3a723245e44e</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="R6">
+      <value>100k / SCK idle low</value>
+      <footprint>Resistor_SMD:R_0603_1608Metric</footprint>
+      <fields>
+        <field name="MPN">0603WAF1003T5E</field>
+        <field name="LCSC">C25803</field>
+        <field name="Manufacturer">UNI-ROYAL</field>
+        <field name="Footprint">Resistor_SMD:R_0603_1608Metric</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <property name="MPN" value="0603WAF1003T5E"/>
+      <property name="LCSC" value="C25803"/>
+      <property name="Manufacturer" value="UNI-ROYAL"/>
+      <property name="Sheetname" value="hankinator-lc-rear-smart-foot"/>
+      <property name="Sheetfile" value="hankinator-lc-rear-smart-foot.kicad_sch"/>
+      <property name="ki_keywords" value="R res resistor"/>
+      <property name="ki_fp_filters" value="R_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>d988f27b-7624-447f-8d86-ed9219ad21cb</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="TP1">
+      <value>3V3_SENSOR</value>
+      <footprint>TestPoint:TestPoint_Pad_D1.5mm</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="LCSC"/>
+        <field name="Manufacturer"/>
+        <field name="Footprint">TestPoint:TestPoint_Pad_D1.5mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Connector" part="TestPoint" description="test point"/>
+      <property name="MPN" value=""/>
+      <property name="LCSC" value=""/>
+      <property name="Manufacturer" value=""/>
+      <property name="Sheetname" value="hankinator-lc-rear-smart-foot"/>
+      <property name="Sheetfile" value="hankinator-lc-rear-smart-foot.kicad_sch"/>
+      <property name="ki_keywords" value="test point tp"/>
+      <property name="ki_fp_filters" value="Pin* Test*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>a29d3f90-0a5e-4776-865e-95c07d93eaa4</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="TP2">
+      <value>GND</value>
+      <footprint>TestPoint:TestPoint_Pad_D1.5mm</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="LCSC"/>
+        <field name="Manufacturer"/>
+        <field name="Footprint">TestPoint:TestPoint_Pad_D1.5mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Connector" part="TestPoint" description="test point"/>
+      <property name="MPN" value=""/>
+      <property name="LCSC" value=""/>
+      <property name="Manufacturer" value=""/>
+      <property name="Sheetname" value="hankinator-lc-rear-smart-foot"/>
+      <property name="Sheetfile" value="hankinator-lc-rear-smart-foot.kicad_sch"/>
+      <property name="ki_keywords" value="test point tp"/>
+      <property name="ki_fp_filters" value="Pin* Test*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>215328d4-6fff-4249-9164-62b1e6cea843</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="TP3">
+      <value>HX_SCK</value>
+      <footprint>TestPoint:TestPoint_Pad_D1.5mm</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="LCSC"/>
+        <field name="Manufacturer"/>
+        <field name="Footprint">TestPoint:TestPoint_Pad_D1.5mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Connector" part="TestPoint" description="test point"/>
+      <property name="MPN" value=""/>
+      <property name="LCSC" value=""/>
+      <property name="Manufacturer" value=""/>
+      <property name="Sheetname" value="hankinator-lc-rear-smart-foot"/>
+      <property name="Sheetfile" value="hankinator-lc-rear-smart-foot.kicad_sch"/>
+      <property name="ki_keywords" value="test point tp"/>
+      <property name="ki_fp_filters" value="Pin* Test*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>6eed551a-9ecb-47a6-ae7b-a1692a5094a7</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="TP4">
+      <value>REAR_DOUT</value>
+      <footprint>TestPoint:TestPoint_Pad_D1.5mm</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="LCSC"/>
+        <field name="Manufacturer"/>
+        <field name="Footprint">TestPoint:TestPoint_Pad_D1.5mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Connector" part="TestPoint" description="test point"/>
+      <property name="MPN" value=""/>
+      <property name="LCSC" value=""/>
+      <property name="Manufacturer" value=""/>
+      <property name="Sheetname" value="hankinator-lc-rear-smart-foot"/>
+      <property name="Sheetfile" value="hankinator-lc-rear-smart-foot.kicad_sch"/>
+      <property name="ki_keywords" value="test point tp"/>
+      <property name="ki_fp_filters" value="Pin* Test*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>b9ef8719-fd65-4d76-8d92-ef80728a1214</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="U1">
+      <value>HX711</value>
+      <footprint>Package_SO:SOIC-16_3.9x9.9mm_P1.27mm</footprint>
+      <fields>
+        <field name="MPN">HX711</field>
+        <field name="LCSC">C43656</field>
+        <field name="Manufacturer">Avia Semicon (Xiamen)</field>
+        <field name="Footprint">Package_SO:SOIC-16_3.9x9.9mm_P1.27mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Analog_ADC" part="HX711" description="24-bit Analog-to-Digital Converter (ADC) for Weight Scales, SOIC-16 (SOP-16)"/>
+      <property name="MPN" value="HX711"/>
+      <property name="LCSC" value="C43656"/>
+      <property name="Manufacturer" value="Avia Semicon (Xiamen)"/>
+      <property name="Sheetname" value="hankinator-lc-rear-smart-foot"/>
+      <property name="Sheetfile" value="hankinator-lc-rear-smart-foot.kicad_sch"/>
+      <property name="ki_keywords" value="load-cell 24-bits"/>
+      <property name="ki_fp_filters" value="*SO*3.9x9.9mm*P1.27mm*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>46ab085e-18f5-4731-a618-4bdb35b3a288</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="2"/>
+            <pin num="3"/>
+            <pin num="4"/>
+            <pin num="8"/>
+            <pin num="7"/>
+            <pin num="10"/>
+            <pin num="9"/>
+            <pin num="6"/>
+            <pin num="1"/>
+            <pin num="5"/>
+            <pin num="16"/>
+            <pin num="12"/>
+            <pin num="11"/>
+            <pin num="13"/>
+            <pin num="14"/>
+            <pin num="15"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+  </components>
+  <libparts>
+    <libpart lib="Analog_ADC" part="HX711">
+      <description>24-bit Analog-to-Digital Converter (ADC) for Weight Scales, SOIC-16 (SOP-16)</description>
+      <docs>https://web.archive.org/web/20220615044707/https://akizukidenshi.com/download/ds/avia/hx711.pdf</docs>
+      <footprints>
+        <fp>*SO*3.9x9.9mm*P1.27mm*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">U</field>
+        <field name="Value">HX711</field>
+        <field name="Footprint">Package_SO:SOIC-16_3.9x9.9mm_P1.27mm</field>
+        <field name="Datasheet">https://web.archive.org/web/20220615044707/https://akizukidenshi.com/download/ds/avia/hx711.pdf</field>
+        <field name="Description">24-bit Analog-to-Digital Converter (ADC) for Weight Scales, SOIC-16 (SOP-16)</field>
+      </fields>
+      <pins>
+        <pin num="1" name="VSUP" type="power_in"/>
+        <pin num="2" name="BASE" type="passive"/>
+        <pin num="3" name="AVDD" type="power_in"/>
+        <pin num="4" name="VFB" type="input"/>
+        <pin num="5" name="AGND" type="power_in"/>
+        <pin num="6" name="VBG" type="passive"/>
+        <pin num="7" name="INA-" type="input"/>
+        <pin num="8" name="INA+" type="input"/>
+        <pin num="9" name="INB-" type="input"/>
+        <pin num="10" name="INB+" type="input"/>
+        <pin num="11" name="PD_SCK" type="input"/>
+        <pin num="12" name="DOUT" type="output"/>
+        <pin num="13" name="XO" type="passive"/>
+        <pin num="14" name="XI" type="passive"/>
+        <pin num="15" name="RATE" type="input"/>
+        <pin num="16" name="DVDD" type="power_in"/>
+      </pins>
+    </libpart>
+    <libpart lib="Connector" part="TestPoint">
+      <description>test point</description>
+      <footprints>
+        <fp>Pin*</fp>
+        <fp>Test*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">TP</field>
+        <field name="Value">TestPoint</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description">test point</field>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="Connector_Generic" part="Conn_01x04">
+      <description>Generic connector, single row, 01x04, script generated (kicad-library-utils/schlib/autogen/connector/)</description>
+      <footprints>
+        <fp>Connector*:*_1x??_*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">J</field>
+        <field name="Value">Conn_01x04</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description">Generic connector, single row, 01x04, script generated (kicad-library-utils/schlib/autogen/connector/)</field>
+      </fields>
+      <pins>
+        <pin num="1" name="Pin_1" type="passive"/>
+        <pin num="2" name="Pin_2" type="passive"/>
+        <pin num="3" name="Pin_3" type="passive"/>
+        <pin num="4" name="Pin_4" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="Connector_Generic" part="Conn_01x06">
+      <description>Generic connector, single row, 01x06, script generated (kicad-library-utils/schlib/autogen/connector/)</description>
+      <footprints>
+        <fp>Connector*:*_1x??_*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">J</field>
+        <field name="Value">Conn_01x06</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description">Generic connector, single row, 01x06, script generated (kicad-library-utils/schlib/autogen/connector/)</field>
+      </fields>
+      <pins>
+        <pin num="1" name="Pin_1" type="passive"/>
+        <pin num="2" name="Pin_2" type="passive"/>
+        <pin num="3" name="Pin_3" type="passive"/>
+        <pin num="4" name="Pin_4" type="passive"/>
+        <pin num="5" name="Pin_5" type="passive"/>
+        <pin num="6" name="Pin_6" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="Device" part="C">
+      <description>Unpolarized capacitor</description>
+      <footprints>
+        <fp>C_*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">C</field>
+        <field name="Value">C</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description">Unpolarized capacitor</field>
+      </fields>
+      <pins>
+        <pin num="1" name="" type="passive"/>
+        <pin num="2" name="" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="Device" part="R">
+      <description>Resistor</description>
+      <footprints>
+        <fp>R_*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">R</field>
+        <field name="Value">R</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description">Resistor</field>
+      </fields>
+      <pins>
+        <pin num="1" name="" type="passive"/>
+        <pin num="2" name="" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="Mechanical" part="MountingHole">
+      <description>Mounting Hole without connection</description>
+      <footprints>
+        <fp>MountingHole*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">H</field>
+        <field name="Value">MountingHole</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description">Mounting Hole without connection</field>
+      </fields>
+    </libpart>
+  </libparts>
+  <libraries>
+    <library logical="Analog_ADC">
+      <uri>${KICAD10_SYMBOL_DIR}/Analog_ADC.kicad_sym</uri>
+    </library>
+    <library logical="Connector">
+      <uri>${KICAD10_SYMBOL_DIR}/Connector.kicad_sym</uri>
+    </library>
+    <library logical="Connector_Generic">
+      <uri>${KICAD10_SYMBOL_DIR}/Connector_Generic.kicad_sym</uri>
+    </library>
+    <library logical="Device">
+      <uri>${KICAD10_SYMBOL_DIR}/Device.kicad_sym</uri>
+    </library>
+    <library logical="Mechanical">
+      <uri>${KICAD10_SYMBOL_DIR}/Mechanical.kicad_sym</uri>
+    </library>
+  </libraries>
+  <nets>
+    <net code="1" name="/3V3_SENSOR" class="Default">
+      <node ref="C3" pin="1" pintype="passive"/>
+      <node ref="C4" pin="1" pintype="passive"/>
+      <node ref="J1" pin="3" pinfunction="Pin_3_3" pintype="passive"/>
+      <node ref="J2" pin="3" pinfunction="Pin_3_3" pintype="passive"/>
+      <node ref="R1" pin="1" pintype="passive"/>
+      <node ref="TP1" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="U1" pin="1" pinfunction="VSUP_1" pintype="power_in"/>
+      <node ref="U1" pin="16" pinfunction="DVDD_16" pintype="power_in"/>
+    </net>
+    <net code="2" name="/AIN_N" class="Default">
+      <node ref="C5" pin="2" pintype="passive"/>
+      <node ref="R3" pin="2" pintype="passive"/>
+      <node ref="U1" pin="7" pinfunction="INA-_7" pintype="input"/>
+    </net>
+    <net code="3" name="/AIN_P" class="Default">
+      <node ref="C5" pin="1" pintype="passive"/>
+      <node ref="R2" pin="2" pintype="passive"/>
+      <node ref="U1" pin="8" pinfunction="INA+_8" pintype="input"/>
+    </net>
+    <net code="4" name="/AVDD" class="Default">
+      <node ref="C1" pin="1" pintype="passive"/>
+      <node ref="C2" pin="1" pintype="passive"/>
+      <node ref="J3" pin="1" pinfunction="Pin_1_1" pintype="passive"/>
+      <node ref="R1" pin="2" pintype="passive"/>
+      <node ref="U1" pin="3" pinfunction="AVDD_3" pintype="power_in"/>
+    </net>
+    <net code="5" name="/BRIDGE_A_N" class="Default">
+      <node ref="J3" pin="4" pinfunction="Pin_4_4" pintype="passive"/>
+      <node ref="R3" pin="1" pintype="passive"/>
+    </net>
+    <net code="6" name="/BRIDGE_A_P" class="Default">
+      <node ref="J3" pin="3" pinfunction="Pin_3_3" pintype="passive"/>
+      <node ref="R2" pin="1" pintype="passive"/>
+    </net>
+    <net code="7" name="/DOUT_LOCAL" class="Default">
+      <node ref="R4" pin="1" pintype="passive"/>
+      <node ref="U1" pin="12" pinfunction="DOUT_12" pintype="output"/>
+    </net>
+    <net code="8" name="/FRONT_DOUT" class="Default">
+      <node ref="J1" pin="1" pinfunction="Pin_1_1" pintype="passive"/>
+      <node ref="J2" pin="1" pinfunction="Pin_1_1" pintype="passive"/>
+    </net>
+    <net code="9" name="/GND" class="Default">
+      <node ref="C1" pin="2" pintype="passive"/>
+      <node ref="C2" pin="2" pintype="passive"/>
+      <node ref="C3" pin="2" pintype="passive"/>
+      <node ref="C4" pin="2" pintype="passive"/>
+      <node ref="J1" pin="4" pinfunction="Pin_4_4" pintype="passive"/>
+      <node ref="J2" pin="4" pinfunction="Pin_4_4" pintype="passive"/>
+      <node ref="J3" pin="2" pinfunction="Pin_2_2" pintype="passive"/>
+      <node ref="R6" pin="2" pintype="passive"/>
+      <node ref="TP2" pin="1" pinfunction="1_1" pintype="passive"/>
+      <node ref="U1" pin="10" pinfunction="INB+_10" pintype="input"/>
+      <node ref="U1" pin="14" pinfunction="XI_14" pintype="passive"/>
+      <node ref="U1" pin="15" pinfunction="RATE_15" pintype="input"/>
+      <node ref="U1" pin="4" pinfunction="VFB_4" pintype="input"/>
+      <node ref="U1" pin="5" pinfunction="AGND_5" pintype="power_in"/>
+      <node ref="U1" pin="9" pinfunction="INB-_9" pintype="input"/>
+    </net>
+    <net code="10" name="/HX_SCK" class="Default">
+      <node ref="J1" pin="2" pinfunction="Pin_2_2" pintype="passive"/>
+      <node ref="J2" pin="2" pinfunction="Pin_2_2" pintype="passive"/>
+      <node ref="R5" pin="1" pintype="passive"/>
+      <node ref="TP3" pin="1" pinfunction="1_1" pintype="passive"/>
+    </net>
+    <net code="11" name="/REAR_DOUT" class="Default">
+      <node ref="J1" pin="6" pinfunction="Pin_6_6" pintype="passive"/>
+      <node ref="R4" pin="2" pintype="passive"/>
+      <node ref="TP4" pin="1" pinfunction="1_1" pintype="passive"/>
+    </net>
+    <net code="12" name="/SCK_LOCAL" class="Default">
+      <node ref="R5" pin="2" pintype="passive"/>
+      <node ref="R6" pin="1" pintype="passive"/>
+      <node ref="U1" pin="11" pinfunction="PD_SCK_11" pintype="input"/>
+    </net>
+    <net code="13" name="unconnected-(J1-Pin_5-Pad5)" class="Default">
+      <node ref="J1" pin="5" pinfunction="Pin_5_5" pintype="passive+no_connect"/>
+    </net>
+    <net code="14" name="unconnected-(U1-BASE-Pad2)" class="Default">
+      <node ref="U1" pin="2" pinfunction="BASE_2" pintype="passive+no_connect"/>
+    </net>
+    <net code="15" name="unconnected-(U1-VBG-Pad6)" class="Default">
+      <node ref="U1" pin="6" pinfunction="VBG_6" pintype="passive+no_connect"/>
+    </net>
+    <net code="16" name="unconnected-(U1-XO-Pad13)" class="Default">
+      <node ref="U1" pin="13" pinfunction="XO_13" pintype="passive+no_connect"/>
+    </net>
+  </nets>
+</export>

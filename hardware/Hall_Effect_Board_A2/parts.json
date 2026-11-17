@@ -1,0 +1,103 @@
+{
+  "HE PCB": [
+    {
+      "ref": "D1",
+      "mpn": "KT-0603R",
+      "lcsc": "C2286",
+      "fp": "LED_SMD:LED_0603_1608Metric",
+      "x": 23.0,
+      "y": 15.0,
+      "rotation": 0.0
+    },
+    {
+      "ref": "D2",
+      "mpn": "KT-0603R",
+      "lcsc": "C2286",
+      "fp": "LED_SMD:LED_0603_1608Metric",
+      "x": 24.0,
+      "y": 4.0,
+      "rotation": 0.0
+    },
+    {
+      "ref": "Q1",
+      "mpn": "AO3401A",
+      "lcsc": "C15127",
+      "fp": "Package_TO_SOT_SMD:SOT-23",
+      "x": 20.0,
+      "y": 8.0,
+      "rotation": 0.0
+    },
+    {
+      "ref": "R1",
+      "mpn": "0603WAF4701T5E",
+      "lcsc": "C23162",
+      "fp": "Resistor_SMD:R_0603_1608Metric",
+      "x": 27.0,
+      "y": 8.0,
+      "rotation": 0.0
+    },
+    {
+      "ref": "C2",
+      "mpn": "CL21A106KAYNNNE",
+      "lcsc": "C15850",
+      "fp": "Capacitor_SMD:C_0805_2012Metric",
+      "x": 12.0,
+      "y": 10.0,
+      "rotation": 90.0
+    },
+    {
+      "ref": "J1",
+      "mpn": "5501-4P4C-13MM",
+      "lcsc": "C3097719",
+      "fp": "HankinatorLC:Evercom_5501-4P4C-13MM",
+      "x": 2.5,
+      "y": 10.0,
+      "rotation": 270.0
+    },
+    {
+      "ref": "C1",
+      "mpn": "CL10B104KB8NNNC",
+      "lcsc": "C1591",
+      "fp": "Capacitor_SMD:C_0603_1608Metric",
+      "x": 30.0,
+      "y": 10.0,
+      "rotation": 90.0
+    },
+    {
+      "ref": "R4",
+      "mpn": "0603WAF1001T5E",
+      "lcsc": "C21190",
+      "fp": "Resistor_SMD:R_0603_1608Metric",
+      "x": 24.0,
+      "y": 8.0,
+      "rotation": 0.0
+    },
+    {
+      "ref": "R2",
+      "mpn": "0603WAF1000T5E",
+      "lcsc": "C22775",
+      "fp": "Resistor_SMD:R_0603_1608Metric",
+      "x": 15.0,
+      "y": 10.0,
+      "rotation": 0.0
+    },
+    {
+      "ref": "U1",
+      "mpn": "DRV5033AJQLPGM",
+      "lcsc": "C201608",
+      "fp": "HallLocal:TI_LPG0003A",
+      "x": 34.3013,
+      "y": 10.0,
+      "rotation": 270.0
+    },
+    {
+      "ref": "R3",
+      "mpn": "0603WAF1001T5E",
+      "lcsc": "C21190",
+      "fp": "Resistor_SMD:R_0603_1608Metric",
+      "x": 20.0,
+      "y": 15.0,
+      "rotation": 0.0
+    }
+  ]
+}

@@ -1,0 +1,361 @@
+<!doctype html><meta charset="utf-8"><title>Hankinator A0 approval</title><style>body{font:16px/1.6 system-ui;max-width:1120px;margin:40px auto;padding:0 24px;color:#172635}h1,h2,h3{color:#16496a}table{border-collapse:collapse;width:100%;font-size:14px}td,th{padding:8px;border:1px solid #ccd6df;text-align:left}img{max-width:100%;display:block;border:1px solid #ddd}pre{overflow:auto;background:#eef3f6;padding:16px}a{color:#07699a}</style><h1>Hankinator load-cell system — A0 approval package</h1>
+<p><strong>Approval-stage, unrouted KiCad 10 designs. No manufacturing release or Gerbers. Main V2 controller untouched.</strong></p>
+<p>Three designs serve five physical boards: one splitter, two identical rear boards and two identical front boards. Existing cells operate successfully at 3.3 V according to the user; this is the supply basis. Qualification compares the new assembly and harness against that working baseline.</p>
+<h2>Harness topology</h2><img src="topology.svg" alt="Five module harness topology">
+<pre><code class="language-text">Controller (interface must match this table; controller PCB not changed)
+  | 8P8C / CAT5e, 30 in maximum
+  v
+BREAKOUT, J1
+  +-- J2 LEFT -- 6P6C, 24 in -- REAR LEFT J1 [HX711 -&gt; rear-left cell]
+  |                              J2 -- 4P4C, 12 in -- FRONT LEFT [HX711 -&gt; front-left cell]
+  +-- J3 RIGHT - 6P6C, 24 in -- REAR RIGHT J1 [HX711 -&gt; rear-right cell]
+                                 J2 -- 4P4C, 12 in -- FRONT RIGHT [HX711 -&gt; front-right cell]
+</code></pre>
+<p>The reported “splitter to splitter” 12 in is interpreted as rear-to-front: this architecture contains one splitter. Longest controller-to-front path is 66 in (1.6764 m). This interpretation remains an input to confirm before harness fabrication.</p>
+<h2>Exact harness specification HLC-A0</h2>
+<p>Contact numbers below are electrical mating contact numbers, never inferred from a left/right sketch. All cables preserve contact n to contact n. Telephone/handset leads are often reversed: do not substitute without a continuity check. Label all cables HANKINATOR SENSOR / NOT ETHERNET / NOT PHONE and LEFT or RIGHT as appropriate.</p>
+<table>
+<thead>
+<tr>
+<th>8P8C contact</th>
+<th>T568B conductor</th>
+<th>Signal</th>
+<th>Twisted pair</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>White/orange</td>
+<td>HX_SCK</td>
+<td>Clock with ground</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Orange</td>
+<td>GND</td>
+<td>Clock with ground</td>
+</tr>
+<tr>
+<td>3</td>
+<td>White/green</td>
+<td>HX_FL</td>
+<td>Left DOUT pair</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Blue</td>
+<td>3V3_SENSOR</td>
+<td>Power / reserved pair</td>
+</tr>
+<tr>
+<td>5</td>
+<td>White/blue</td>
+<td>RESERVED, isolated NC</td>
+<td>Power / reserved pair</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Green</td>
+<td>HX_RL</td>
+<td>Left DOUT pair</td>
+</tr>
+<tr>
+<td>7</td>
+<td>White/brown</td>
+<td>HX_FR</td>
+<td>Right DOUT pair</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Brown</td>
+<td>HX_RR</td>
+<td>Right DOUT pair</td>
+</tr>
+</tbody>
+</table>
+<p>Use a normal straight-through T568B-to-T568B cable: all eight conductors may be physically installed but only seven are electrically used. With one allowed ground conductor, pairing clock with its return is preferred to pairing power with ground. Local capacitance supplies transient current; this assignment makes no Ethernet-compatibility claim.</p>
+<table>
+<thead>
+<tr>
+<th>6P6C contact</th>
+<th>LEFT breakout J2</th>
+<th>RIGHT breakout J3</th>
+<th>Rear J1 function</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>HX_FL</td>
+<td>HX_FR</td>
+<td>FRONT_DOUT passthrough</td>
+</tr>
+<tr>
+<td>2</td>
+<td>HX_SCK</td>
+<td>HX_SCK</td>
+<td>Shared clock</td>
+</tr>
+<tr>
+<td>3</td>
+<td>3V3_SENSOR</td>
+<td>3V3_SENSOR</td>
+<td>Power</td>
+</tr>
+<tr>
+<td>4</td>
+<td>GND</td>
+<td>GND</td>
+<td>Ground</td>
+</tr>
+<tr>
+<td>5</td>
+<td>NC</td>
+<td>NC</td>
+<td>Isolated reserve</td>
+</tr>
+<tr>
+<td>6</td>
+<td>HX_RL</td>
+<td>HX_RR</td>
+<td>REAR_DOUT</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>4P4C contact</th>
+<th>Rear J2 and front J1</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>FRONT_DOUT</td>
+</tr>
+<tr>
+<td>2</td>
+<td>HX_SCK</td>
+</tr>
+<tr>
+<td>3</td>
+<td>3V3_SENSOR</td>
+</tr>
+<tr>
+<td>4</td>
+<td>GND</td>
+</tr>
+</tbody>
+</table>
+<p>Specify branch conductors by numbered contact and continuity, not proprietary telephone wire colors. Use fully populated 6P6C plugs (not 6P2C/6P4C). For flat modular cable, record its stripe-to-contact relationship on the harness traveler. The rear FRONT_DOUT trace only joins J1.1 and J2.1; it has no connection to the rear HX711. Earlier proposed 6P6C pin 5 ground is superseded here by NC; do not mix harness revisions.</p>
+<h2>HX711 implementation</h2>
+<p>Both foot designs use AVIA HX711, 3.3 V VSUP/DVDD, internal oscillator (XI grounded), RATE grounded for 10 SPS. Firmware selects channel A / gain 128 with the 25th pulse. BASE and XO are unconnected; VFB is grounded. The internal regulator is bypassed. VBG is unconnected in this mode, as permitted by the <a href="https://cdn.sparkfun.com/datasheets/Sensors/ForceFlex/hx711_english.pdf">AVIA reference datasheet</a>, also saved in references/hx711.pdf.</p>
+<p>R1 (10 ohm) feeds local AVDD and bridge E+ from 3V3_SENSOR, with C1 100 nF and C2 10 uF to ground. E- and AGND share GND. C3 100 nF decouples DVDD, and C4 10 uF buffers incoming power. R2/R3 (100 ohm each) and C5 (100 nF differential) filter the bridge input symmetrically; nominal RC corner is 7.96 kHz excluding bridge impedance. These are interference filters, not a substitute for the ADC's 10 SPS rejection.</p>
+<p>R4 (100 ohm) is the local DOUT source resistor. R5 (100 ohm) feeds only the local clock input, with R6 (100 kohm) holding it low. The shared clock passthrough bypasses R5. No regulator, level shifter or external pass transistor is required. Unused channel B inputs are grounded.</p>
+<p>The bridge connector is keyed vertical JST-XH B4B-XH-A(LF)(SN): pin 1 E+ (AVDD), pin 2 E- (GND), pin 3 A+, pin 4 A-. Proposed cell colors are red/black/green/white respectively, subject to confirming the actual working cell harness before crimping. Do not identify a wire solely by color. Use matching XH housing and manufacturer-approved contacts for the actual wire gauge.</p>
+<p>Bridge excitation and ADC reference share AVDD, retaining ratiometric operation. The 10 ohm resistor reduces excitation slightly: for a 350 ohm bridge and assumed 1.5 mA analog load, AVDD is approximately 3.19 V before cable drop. Bridge resistance is not established by the Amazon listing. Measure supply current and AVDD on the first assembled set; existing 3.3 V operation is evidence for the cells, not a completed test of this new filter and harness. Do not infer controller supply headroom from cell operation alone.</p>
+<p>With an illustrative 24 AWG trunk resistance of 0.095 ohm/m per conductor and 26 AWG branch resistance of 0.134 ohm/m, 43 mA total / 21.5 mA per side / 10.75 mA per front yields approximately 10.6 mV round-trip wire drop at a front foot. This is a calculation using assumed cable resistance, excluding contacts; verify the selected cable specifications and measured current.</p>
+<p>Firmware must wait for all four DOUTs low, clock/read all four streams together for 24 bits and issue the common 25th pulse. Keep clock idle low, high pulses below the datasheet 50 us maximum, and account for power-down above 60 us. Define timeout/disconnected-cell behavior. Firmware was not changed or validated in this task.</p>
+<h2>Placement and mounting</h2>
+<p>Coordinates are millimetres from upper-left board outline, viewed from component side, X right and Y down. Two-layer, nominal 1.6 mm board. Routing is deliberately absent; a continuous ground plane and short symmetric analog routing are required at the routing stage.</p>
+<table>
+<thead>
+<tr>
+<th>Board</th>
+<th>Outline</th>
+<th>Mounting hole centres (2.2 mm NPTH, M2)</th>
+<th>Connector arrangement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BREAKOUT</td>
+<td>50 x 44</td>
+<td>(3.5,3.5), (46.5,3.5), (3.5,40.5), (46.5,40.5)</td>
+<td>8P8C vertical top entry; 6P6C LEFT/RIGHT toward bottom edge</td>
+</tr>
+<tr>
+<td>REAR SMART FOOT</td>
+<td>72 x 18</td>
+<td>(22,3.5), (55,14.5)</td>
+<td>6P6C left narrow end; 4P4C right narrow end</td>
+</tr>
+<tr>
+<td>FRONT SMART FOOT</td>
+<td>56 x 18</td>
+<td>(22,3.5), (52,14.5)</td>
+<td>4P4C left narrow end</td>
+</tr>
+</tbody>
+</table>
+<p>Both foot boards place the keyed bridge connector near HX711. An 18 mm board width leaves 2 mm total within the 20 mm housing envelope for walls and clearance; printed fit must be checked. Allow space for plug bodies, latch access, wire bend radius and solder tails. Jack body heights: 8P8C 16.38 mm; 6P6C 12.57 mm; 4P4C 14.5 mm, before PCB thickness and underside clearance. The complete connector/cable envelope is not just the PCB outline.</p>
+<p>Role, A0 revision, directions and pin references are included on board silkscreen, with some service text on the underside. JST signals are labeled. Each foot has TP1 power, TP2 ground, TP3 clock, TP4 local DOUT. The breakout exposes all seven live signals. Mounting courtyards reserve clearance for simple standoffs; final screw-head and enclosure tolerances remain mechanical checks.</p>
+<h2>Jack procurement and qualification</h2>
+<p>Stock below is the observed research snapshot collected September 8–9, 2026, not reserved inventory. Recheck at order time. The selected jacks are through-hole, unshielded, without magnetics. <strong>JLCPCB assembly acceptance for the selected modular jacks is unresolved.</strong> Their manufacturer drawings and CAD were preferred over substituting an in-stock but mechanically unverified footprint.</p>
+<table>
+<thead>
+<tr>
+<th>Function / total system quantity</th>
+<th>Manufacturer MPN</th>
+<th>LCSC identification</th>
+<th>Observed stock</th>
+<th>JLCPCB status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>8P8C / 1</td>
+<td>Wurth 615008144221</td>
+<td>C6461975 catalog listing; procurement unconfirmed</td>
+<td><a href="https://www.digikey.com/en/products/detail/w%C3%BCrth-elektronik/615008144221/2627290">DigiKey 678</a></td>
+<td>Not confirmed; quote/consignment or external THT assembly required</td>
+</tr>
+<tr>
+<td>6P6C / 4</td>
+<td>Wurth 615006143621</td>
+<td>Exact catalog ID not verified</td>
+<td><a href="https://www.digikey.com/en/products/detail/w%C3%BCrth-elektronik/615006143621/16608579">DigiKey 3,630</a></td>
+<td>Not confirmed</td>
+</tr>
+<tr>
+<td>4P4C / 4</td>
+<td>Wurth 615004143821</td>
+<td>Exact catalog ID not verified</td>
+<td><a href="https://www.digikey.com/en/products/detail/w%C3%BCrth-elektronik/615004143821/2627285">DigiKey 3,207</a></td>
+<td>Not confirmed</td>
+</tr>
+<tr>
+<td>HX711 / 4</td>
+<td>AVIA HX711</td>
+<td>C43656</td>
+<td><a href="https://www.lcsc.com/product-detail/C43656.html">LCSC 8,678</a></td>
+<td><a href="https://jlcpcb.com/partdetail/HX711/C43656">Extended SMT</a>; JLC stock separately unverified</td>
+</tr>
+<tr>
+<td>Bridge header / 4</td>
+<td>JST B4B-XH-A(LF)(SN)</td>
+<td>C144395</td>
+<td><a href="https://www.lcsc.com/product-detail/C144395.html">LCSC 95,090</a></td>
+<td><a href="https://jlcpcb.com/partdetail/JST-B4B_XH_A_LF_SN/C144395">Assembly listing</a>; confirm process quote</td>
+</tr>
+</tbody>
+</table>
+<p><a href="https://www.we-online.com/components/products/datasheet/615008144221.pdf">8P8C manufacturer drawing</a>, <a href="https://www.we-online.com/components/products/datasheet/615006143621.pdf">6P6C drawing</a>, <a href="https://www.we-online.com/components/products/datasheet/615004143821.pdf">4P4C drawing</a>. Saved drawings and manufacturer Eagle library accompany the package. No footprint substitution is approved by matching “RJ” names alone.</p>
+<h2>Physical orientation audit</h2>
+<p>All footprints are on F.Cu, viewed through the component side. Manufacturer Eagle XY coordinates were converted only by reversing Y for KiCad's downward Y convention. Placement uses rotation, never a footprint mirror. The saved PCB pad coordinates and drills were checked against the source drawings/CAD. Square pad identifies pin 1. These are documentary checks, not a measurement of a delivered jack.</p>
+<table>
+<thead>
+<tr>
+<th>Jack</th>
+<th>Native footprint direction / latch</th>
+<th>Contact order looking into jack mouth</th>
+<th>Opposing plug mating-tip view, same latch position</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>615008144221</td>
+<td>Vertical opening +Z; latch toward -Y</td>
+<td>With latch at top: 8,7,6,5,4,3,2,1 left to right</td>
+<td>With latch at top: 1,2,3,4,5,6,7,8</td>
+</tr>
+<tr>
+<td>615006143621</td>
+<td>Horizontal mouth +Y; tab down</td>
+<td>With latch at bottom: 1,2,3,4,5,6</td>
+<td>With latch at bottom: 6,5,4,3,2,1</td>
+</tr>
+<tr>
+<td>615004143821</td>
+<td>Horizontal mouth +Y; tab up</td>
+<td>With latch at top: 4,3,2,1</td>
+<td>With latch at top: 1,2,3,4</td>
+</tr>
+</tbody>
+</table>
+<p>Plug mating-tip view means looking directly at the tip that enters the jack, not looking down onto the gold contacts. Opposing mating-face views necessarily appear mirrored. A solder-side board view also reverses apparent left/right: never transfer that view directly to a component-side footprint. Use the numbered tables and physical continuity test as the fabrication authority.</p>
+<p>Native component-side signal-pad coordinates relative to each footprint origin:</p>
+<table>
+<thead>
+<tr>
+<th>Contact</th>
+<th>8P8C X,Y</th>
+<th>6P6C X,Y</th>
+<th>4P4C X,Y</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>4.445, 4.65</td>
+<td>-3.175, -7.71</td>
+<td>1.53, -1.8</td>
+</tr>
+<tr>
+<td>2</td>
+<td>3.175, 7.19</td>
+<td>-1.905, -5.17</td>
+<td>0.51, -4.34</td>
+</tr>
+<tr>
+<td>3</td>
+<td>1.905, 4.65</td>
+<td>-0.635, -7.71</td>
+<td>-0.51, -1.8</td>
+</tr>
+<tr>
+<td>4</td>
+<td>0.635, 7.19</td>
+<td>0.635, -5.17</td>
+<td>-1.53, -4.34</td>
+</tr>
+<tr>
+<td>5</td>
+<td>-0.635, 4.65</td>
+<td>1.905, -7.71</td>
+<td>—</td>
+</tr>
+<tr>
+<td>6</td>
+<td>-1.905, 7.19</td>
+<td>3.175, -5.17</td>
+<td>—</td>
+</tr>
+<tr>
+<td>7</td>
+<td>-3.175, 4.65</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>8</td>
+<td>-4.445, 7.19</td>
+<td>—</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p>Signal drills are 0.9 mm. Locator NPTH: 8P8C at (+/-5.715,-1.7), 3.17 mm; 6P6C at (+/-5.08,1.18), 3.25 mm; 4P4C at (+/-5,0.5), 2.36 mm. The 4P4C split mounting feature has a larger barb than its nominal shaft; use the specified board drill.</p>
+<p>See <a href="PHYSICAL-PINS.md">placed physical pin mapping</a> for every modular jack's actual PCB pad coordinate, net and contact number, and <a href="verification/desk-audit.md">desk audit</a> for check details.</p>
+<h2>Validation and release gate</h2>
+<p>Native KiCad ERC: <strong>0 violations for each schematic</strong>. Native preliminary DRC: <strong>0 non-connectivity violations</strong>; intentionally unrouted connections: breakout 17, rear 40, front 36. No traces or ground zones have been added. These are not final clean routed boards.</p>
+<p>The independent-representation desk audit passed <strong>317 checks, 0 failed</strong>, comparing exported KiCad netlists, saved PCB pads, manufacturer-coordinate expectations, and a five-board harness graph. It verifies each DOUT reaches its intended controller contact and remains separate from the others. It is a same-author check, <strong>not an independent human review or physical continuity certification</strong>.</p>
+<p>Before routing/final release, resolve: (1) acceptance of the listed interface and 12 in rear/front assumption; (2) selected modular-jack JLC assembly route or a newly verified stocked substitute; (3) housing opening/height/latch/plug clearance; (4) actual load-cell wire order and connector contacts. Before Gerbers, obtain an independent end-to-end review and a power-off sample harness check: every jack solder pin to its mating plug contact, all cable n-to-n paths, NC isolation, no cross-short between power/ground/DOUT, and correct rear/front identity on both sides. Record instrument readings and reviewer identity. Do not energize a cable just because it resembles a straight-through telephone lead.</p>
+<p>After routing: run native ERC/DRC and schematic/PCB parity again, require zero unrouted items, inspect copper/return paths, check jack fit with physical parts, then regenerate the full manufacturing set together. First-article validation should compare zero/span/noise with the existing 3.3 V modules, all four channels running, at maximum cable lengths.</p>
+<h2>Editable designs and review drawings</h2>
+<p>Open each .kicad_pro in KiCad 10; the local footprint table resolves ../libraries. Keep the extracted directory structure intact.</p>
+<h3>breakout</h3>
+<p><a href="hankinator-lc-breakout/hankinator-lc-breakout.kicad_pro">KiCad project</a> · <a href="hankinator-lc-breakout/hankinator-lc-breakout.kicad_sch">schematic</a> · <a href="hankinator-lc-breakout/hankinator-lc-breakout.kicad_pcb">PCB</a> · <a href="hankinator-lc-breakout/checks/erc.rpt">ERC</a> · <a href="hankinator-lc-breakout/checks/preliminary-drc.rpt">preliminary DRC</a></p>
+<p><img alt="Complete schematic" src="hankinator-lc-breakout/review/hankinator-lc-breakout.svg" /></p>
+<p><img alt="Preliminary placement, copper/fab/courtyard" src="hankinator-lc-breakout/review/placement.svg" /></p>
+<h3>rear-smart-foot</h3>
+<p><a href="hankinator-lc-rear-smart-foot/hankinator-lc-rear-smart-foot.kicad_pro">KiCad project</a> · <a href="hankinator-lc-rear-smart-foot/hankinator-lc-rear-smart-foot.kicad_sch">schematic</a> · <a href="hankinator-lc-rear-smart-foot/hankinator-lc-rear-smart-foot.kicad_pcb">PCB</a> · <a href="hankinator-lc-rear-smart-foot/checks/erc.rpt">ERC</a> · <a href="hankinator-lc-rear-smart-foot/checks/preliminary-drc.rpt">preliminary DRC</a></p>
+<p><img alt="Complete schematic" src="hankinator-lc-rear-smart-foot/review/hankinator-lc-rear-smart-foot.svg" /></p>
+<p><img alt="Preliminary placement, copper/fab/courtyard" src="hankinator-lc-rear-smart-foot/review/placement.svg" /></p>
+<h3>front-smart-foot</h3>
+<p><a href="hankinator-lc-front-smart-foot/hankinator-lc-front-smart-foot.kicad_pro">KiCad project</a> · <a href="hankinator-lc-front-smart-foot/hankinator-lc-front-smart-foot.kicad_sch">schematic</a> · <a href="hankinator-lc-front-smart-foot/hankinator-lc-front-smart-foot.kicad_pcb">PCB</a> · <a href="hankinator-lc-front-smart-foot/checks/erc.rpt">ERC</a> · <a href="hankinator-lc-front-smart-foot/checks/preliminary-drc.rpt">preliminary DRC</a></p>
+<p><img alt="Complete schematic" src="hankinator-lc-front-smart-foot/review/hankinator-lc-front-smart-foot.svg" /></p>
+<p><img alt="Preliminary placement, copper/fab/courtyard" src="hankinator-lc-front-smart-foot/review/placement.svg" /></p>
+<p>See <a href="BOM.md">BOM</a> for per-design quantities and <a href="design-manifest.json">design manifest</a> for net assignments and component placement coordinates.</p>

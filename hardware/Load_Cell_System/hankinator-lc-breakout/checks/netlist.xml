@@ -1,0 +1,579 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<export version="E">
+  <design>
+    <source>C:\Users\crisd\Documents\Codex\2026-09-08\referenced-chatgpt-conversation-this-is-an-2\outputs\hankinator-load-cell-system\hankinator-lc-breakout\hankinator-lc-breakout.kicad_sch</source>
+    <date>2026-09-08T20:41:30</date>
+    <tool>Eeschema 10.0.5</tool>
+    <sheet number="1" name="/" tstamps="/">
+      <title_block>
+        <title>hankinator-lc-breakout</title>
+        <company>Hankinator</company>
+        <rev>A0 APPROVAL</rev>
+        <date>2026-09-08</date>
+        <source>hankinator-lc-breakout.kicad_sch</source>
+        <comment number="1" value="No manufacturing release"/>
+        <comment number="2" value=""/>
+        <comment number="3" value=""/>
+        <comment number="4" value=""/>
+        <comment number="5" value=""/>
+        <comment number="6" value=""/>
+        <comment number="7" value=""/>
+        <comment number="8" value=""/>
+        <comment number="9" value=""/>
+      </title_block>
+    </sheet>
+  </design>
+  <components>
+    <comp ref="H1">
+      <value>M2 / 2.2mm NPTH</value>
+      <footprint>MountingHole:MountingHole_2.2mm_M2</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="LCSC"/>
+        <field name="Manufacturer"/>
+        <field name="Footprint">MountingHole:MountingHole_2.2mm_M2</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Mechanical" part="MountingHole" description="Mounting Hole without connection"/>
+      <property name="MPN" value=""/>
+      <property name="LCSC" value=""/>
+      <property name="Manufacturer" value=""/>
+      <property name="Sheetname" value="hankinator-lc-breakout"/>
+      <property name="Sheetfile" value="hankinator-lc-breakout.kicad_sch"/>
+      <property name="ki_keywords" value="mounting hole"/>
+      <property name="ki_fp_filters" value="MountingHole*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>53e8bdec-a428-46e3-a224-5cb2c9570593</tstamps>
+      <units>
+        <unit name="A">
+          <pins/>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="H2">
+      <value>M2 / 2.2mm NPTH</value>
+      <footprint>MountingHole:MountingHole_2.2mm_M2</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="LCSC"/>
+        <field name="Manufacturer"/>
+        <field name="Footprint">MountingHole:MountingHole_2.2mm_M2</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Mechanical" part="MountingHole" description="Mounting Hole without connection"/>
+      <property name="MPN" value=""/>
+      <property name="LCSC" value=""/>
+      <property name="Manufacturer" value=""/>
+      <property name="Sheetname" value="hankinator-lc-breakout"/>
+      <property name="Sheetfile" value="hankinator-lc-breakout.kicad_sch"/>
+      <property name="ki_keywords" value="mounting hole"/>
+      <property name="ki_fp_filters" value="MountingHole*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>b81617e7-3f58-4334-837f-127e09fff4bf</tstamps>
+      <units>
+        <unit name="A">
+          <pins/>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="H3">
+      <value>M2 / 2.2mm NPTH</value>
+      <footprint>MountingHole:MountingHole_2.2mm_M2</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="LCSC"/>
+        <field name="Manufacturer"/>
+        <field name="Footprint">MountingHole:MountingHole_2.2mm_M2</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Mechanical" part="MountingHole" description="Mounting Hole without connection"/>
+      <property name="MPN" value=""/>
+      <property name="LCSC" value=""/>
+      <property name="Manufacturer" value=""/>
+      <property name="Sheetname" value="hankinator-lc-breakout"/>
+      <property name="Sheetfile" value="hankinator-lc-breakout.kicad_sch"/>
+      <property name="ki_keywords" value="mounting hole"/>
+      <property name="ki_fp_filters" value="MountingHole*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>f28a2e6d-e110-454b-bcbe-ac75ea7d3d2a</tstamps>
+      <units>
+        <unit name="A">
+          <pins/>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="H4">
+      <value>M2 / 2.2mm NPTH</value>
+      <footprint>MountingHole:MountingHole_2.2mm_M2</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="LCSC"/>
+        <field name="Manufacturer"/>
+        <field name="Footprint">MountingHole:MountingHole_2.2mm_M2</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Mechanical" part="MountingHole" description="Mounting Hole without connection"/>
+      <property name="MPN" value=""/>
+      <property name="LCSC" value=""/>
+      <property name="Manufacturer" value=""/>
+      <property name="Sheetname" value="hankinator-lc-breakout"/>
+      <property name="Sheetfile" value="hankinator-lc-breakout.kicad_sch"/>
+      <property name="ki_keywords" value="mounting hole"/>
+      <property name="ki_fp_filters" value="MountingHole*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>426ad911-7081-4292-8786-8ea2224024b3</tstamps>
+      <units>
+        <unit name="A">
+          <pins/>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="J1">
+      <value>CONTROLLER / 8P8C</value>
+      <footprint>HankinatorLC:WE_615008144221</footprint>
+      <fields>
+        <field name="MPN">615008144221</field>
+        <field name="LCSC"/>
+        <field name="Manufacturer">Wurth Elektronik</field>
+        <field name="Footprint">HankinatorLC:WE_615008144221</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Connector_Generic" part="Conn_01x08" description="Generic connector, single row, 01x08, script generated (kicad-library-utils/schlib/autogen/connector/)"/>
+      <property name="MPN" value="615008144221"/>
+      <property name="LCSC" value=""/>
+      <property name="Manufacturer" value="Wurth Elektronik"/>
+      <property name="Sheetname" value="hankinator-lc-breakout"/>
+      <property name="Sheetfile" value="hankinator-lc-breakout.kicad_sch"/>
+      <property name="ki_keywords" value="connector"/>
+      <property name="ki_fp_filters" value="Connector*:*_1x??_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>0dacb9a2-4a9b-4b3c-a5da-5a143b047357</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="3"/>
+            <pin num="4"/>
+            <pin num="5"/>
+            <pin num="6"/>
+            <pin num="7"/>
+            <pin num="8"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="J2">
+      <value>LEFT / 6P6C</value>
+      <footprint>HankinatorLC:WE_615006143621</footprint>
+      <fields>
+        <field name="MPN">615006143621</field>
+        <field name="LCSC"/>
+        <field name="Manufacturer">Wurth Elektronik</field>
+        <field name="Footprint">HankinatorLC:WE_615006143621</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Connector_Generic" part="Conn_01x06" description="Generic connector, single row, 01x06, script generated (kicad-library-utils/schlib/autogen/connector/)"/>
+      <property name="MPN" value="615006143621"/>
+      <property name="LCSC" value=""/>
+      <property name="Manufacturer" value="Wurth Elektronik"/>
+      <property name="Sheetname" value="hankinator-lc-breakout"/>
+      <property name="Sheetfile" value="hankinator-lc-breakout.kicad_sch"/>
+      <property name="ki_keywords" value="connector"/>
+      <property name="ki_fp_filters" value="Connector*:*_1x??_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>caa1f79f-6e8c-4e39-bc81-8f02aedaab47</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="3"/>
+            <pin num="4"/>
+            <pin num="5"/>
+            <pin num="6"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="J3">
+      <value>RIGHT / 6P6C</value>
+      <footprint>HankinatorLC:WE_615006143621</footprint>
+      <fields>
+        <field name="MPN">615006143621</field>
+        <field name="LCSC"/>
+        <field name="Manufacturer">Wurth Elektronik</field>
+        <field name="Footprint">HankinatorLC:WE_615006143621</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Connector_Generic" part="Conn_01x06" description="Generic connector, single row, 01x06, script generated (kicad-library-utils/schlib/autogen/connector/)"/>
+      <property name="MPN" value="615006143621"/>
+      <property name="LCSC" value=""/>
+      <property name="Manufacturer" value="Wurth Elektronik"/>
+      <property name="Sheetname" value="hankinator-lc-breakout"/>
+      <property name="Sheetfile" value="hankinator-lc-breakout.kicad_sch"/>
+      <property name="ki_keywords" value="connector"/>
+      <property name="ki_fp_filters" value="Connector*:*_1x??_*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>ee4cd47f-198b-46a1-a8cf-f3b009284c4d</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+            <pin num="2"/>
+            <pin num="3"/>
+            <pin num="4"/>
+            <pin num="5"/>
+            <pin num="6"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="TP1">
+      <value>3V3_SENSOR</value>
+      <footprint>TestPoint:TestPoint_Pad_D1.5mm</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="LCSC"/>
+        <field name="Manufacturer"/>
+        <field name="Footprint">TestPoint:TestPoint_Pad_D1.5mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Connector" part="TestPoint" description="test point"/>
+      <property name="MPN" value=""/>
+      <property name="LCSC" value=""/>
+      <property name="Manufacturer" value=""/>
+      <property name="Sheetname" value="hankinator-lc-breakout"/>
+      <property name="Sheetfile" value="hankinator-lc-breakout.kicad_sch"/>
+      <property name="ki_keywords" value="test point tp"/>
+      <property name="ki_fp_filters" value="Pin* Test*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>133cb0bf-51ed-4560-b653-4ab75d809988</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="TP2">
+      <value>GND</value>
+      <footprint>TestPoint:TestPoint_Pad_D1.5mm</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="LCSC"/>
+        <field name="Manufacturer"/>
+        <field name="Footprint">TestPoint:TestPoint_Pad_D1.5mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Connector" part="TestPoint" description="test point"/>
+      <property name="MPN" value=""/>
+      <property name="LCSC" value=""/>
+      <property name="Manufacturer" value=""/>
+      <property name="Sheetname" value="hankinator-lc-breakout"/>
+      <property name="Sheetfile" value="hankinator-lc-breakout.kicad_sch"/>
+      <property name="ki_keywords" value="test point tp"/>
+      <property name="ki_fp_filters" value="Pin* Test*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>dd25593e-6aec-4499-b3fa-7d7774ea31f4</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="TP3">
+      <value>HX_SCK</value>
+      <footprint>TestPoint:TestPoint_Pad_D1.5mm</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="LCSC"/>
+        <field name="Manufacturer"/>
+        <field name="Footprint">TestPoint:TestPoint_Pad_D1.5mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Connector" part="TestPoint" description="test point"/>
+      <property name="MPN" value=""/>
+      <property name="LCSC" value=""/>
+      <property name="Manufacturer" value=""/>
+      <property name="Sheetname" value="hankinator-lc-breakout"/>
+      <property name="Sheetfile" value="hankinator-lc-breakout.kicad_sch"/>
+      <property name="ki_keywords" value="test point tp"/>
+      <property name="ki_fp_filters" value="Pin* Test*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>9e0b3091-6392-40c3-8ab3-b0da23a0e488</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="TP4">
+      <value>HX_FL</value>
+      <footprint>TestPoint:TestPoint_Pad_D1.5mm</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="LCSC"/>
+        <field name="Manufacturer"/>
+        <field name="Footprint">TestPoint:TestPoint_Pad_D1.5mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Connector" part="TestPoint" description="test point"/>
+      <property name="MPN" value=""/>
+      <property name="LCSC" value=""/>
+      <property name="Manufacturer" value=""/>
+      <property name="Sheetname" value="hankinator-lc-breakout"/>
+      <property name="Sheetfile" value="hankinator-lc-breakout.kicad_sch"/>
+      <property name="ki_keywords" value="test point tp"/>
+      <property name="ki_fp_filters" value="Pin* Test*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>6b9adbdc-2fb3-4d95-b2c9-0414fafe5899</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="TP5">
+      <value>HX_FR</value>
+      <footprint>TestPoint:TestPoint_Pad_D1.5mm</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="LCSC"/>
+        <field name="Manufacturer"/>
+        <field name="Footprint">TestPoint:TestPoint_Pad_D1.5mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Connector" part="TestPoint" description="test point"/>
+      <property name="MPN" value=""/>
+      <property name="LCSC" value=""/>
+      <property name="Manufacturer" value=""/>
+      <property name="Sheetname" value="hankinator-lc-breakout"/>
+      <property name="Sheetfile" value="hankinator-lc-breakout.kicad_sch"/>
+      <property name="ki_keywords" value="test point tp"/>
+      <property name="ki_fp_filters" value="Pin* Test*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>2a5d8b79-4a0d-46be-8da3-b44244414891</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="TP6">
+      <value>HX_RL</value>
+      <footprint>TestPoint:TestPoint_Pad_D1.5mm</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="LCSC"/>
+        <field name="Manufacturer"/>
+        <field name="Footprint">TestPoint:TestPoint_Pad_D1.5mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Connector" part="TestPoint" description="test point"/>
+      <property name="MPN" value=""/>
+      <property name="LCSC" value=""/>
+      <property name="Manufacturer" value=""/>
+      <property name="Sheetname" value="hankinator-lc-breakout"/>
+      <property name="Sheetfile" value="hankinator-lc-breakout.kicad_sch"/>
+      <property name="ki_keywords" value="test point tp"/>
+      <property name="ki_fp_filters" value="Pin* Test*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>4230d25d-617c-4257-9501-366844a95a9c</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+    <comp ref="TP7">
+      <value>HX_RR</value>
+      <footprint>TestPoint:TestPoint_Pad_D1.5mm</footprint>
+      <fields>
+        <field name="MPN"/>
+        <field name="LCSC"/>
+        <field name="Manufacturer"/>
+        <field name="Footprint">TestPoint:TestPoint_Pad_D1.5mm</field>
+        <field name="Datasheet"/>
+        <field name="Description"/>
+      </fields>
+      <libsource lib="Connector" part="TestPoint" description="test point"/>
+      <property name="MPN" value=""/>
+      <property name="LCSC" value=""/>
+      <property name="Manufacturer" value=""/>
+      <property name="Sheetname" value="hankinator-lc-breakout"/>
+      <property name="Sheetfile" value="hankinator-lc-breakout.kicad_sch"/>
+      <property name="ki_keywords" value="test point tp"/>
+      <property name="ki_fp_filters" value="Pin* Test*"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamps>7e8598fb-91b4-4007-8a44-f58d5eeb1502</tstamps>
+      <units>
+        <unit name="A">
+          <pins>
+            <pin num="1"/>
+          </pins>
+        </unit>
+      </units>
+    </comp>
+  </components>
+  <libparts>
+    <libpart lib="Connector" part="TestPoint">
+      <description>test point</description>
+      <footprints>
+        <fp>Pin*</fp>
+        <fp>Test*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">TP</field>
+        <field name="Value">TestPoint</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description">test point</field>
+      </fields>
+      <pins>
+        <pin num="1" name="1" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="Connector_Generic" part="Conn_01x06">
+      <description>Generic connector, single row, 01x06, script generated (kicad-library-utils/schlib/autogen/connector/)</description>
+      <footprints>
+        <fp>Connector*:*_1x??_*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">J</field>
+        <field name="Value">Conn_01x06</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description">Generic connector, single row, 01x06, script generated (kicad-library-utils/schlib/autogen/connector/)</field>
+      </fields>
+      <pins>
+        <pin num="1" name="Pin_1" type="passive"/>
+        <pin num="2" name="Pin_2" type="passive"/>
+        <pin num="3" name="Pin_3" type="passive"/>
+        <pin num="4" name="Pin_4" type="passive"/>
+        <pin num="5" name="Pin_5" type="passive"/>
+        <pin num="6" name="Pin_6" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="Connector_Generic" part="Conn_01x08">
+      <description>Generic connector, single row, 01x08, script generated (kicad-library-utils/schlib/autogen/connector/)</description>
+      <footprints>
+        <fp>Connector*:*_1x??_*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">J</field>
+        <field name="Value">Conn_01x08</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description">Generic connector, single row, 01x08, script generated (kicad-library-utils/schlib/autogen/connector/)</field>
+      </fields>
+      <pins>
+        <pin num="1" name="Pin_1" type="passive"/>
+        <pin num="2" name="Pin_2" type="passive"/>
+        <pin num="3" name="Pin_3" type="passive"/>
+        <pin num="4" name="Pin_4" type="passive"/>
+        <pin num="5" name="Pin_5" type="passive"/>
+        <pin num="6" name="Pin_6" type="passive"/>
+        <pin num="7" name="Pin_7" type="passive"/>
+        <pin num="8" name="Pin_8" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="Mechanical" part="MountingHole">
+      <description>Mounting Hole without connection</description>
+      <footprints>
+        <fp>MountingHole*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">H</field>
+        <field name="Value">MountingHole</field>
+        <field name="Footprint"/>
+        <field name="Datasheet"/>
+        <field name="Description">Mounting Hole without connection</field>
+      </fields>
+    </libpart>
+  </libparts>
+  <libraries>
+    <library logical="Connector">
+      <uri>${KICAD10_SYMBOL_DIR}/Connector.kicad_sym</uri>
+    </library>
+    <library logical="Connector_Generic">
+      <uri>${KICAD10_SYMBOL_DIR}/Connector_Generic.kicad_sym</uri>
+    </library>
+    <library logical="Mechanical">
+      <uri>${KICAD10_SYMBOL_DIR}/Mechanical.kicad_sym</uri>
+    </library>
+  </libraries>
+  <nets>
+    <net code="1" name="/3V3_SENSOR" class="Default">
+      <node ref="J1" pin="4" pinfunction="Pin_4_4" pintype="passive"/>
+      <node ref="J2" pin="3" pinfunction="Pin_3_3" pintype="passive"/>
+      <node ref="J3" pin="3" pinfunction="Pin_3_3" pintype="passive"/>
+      <node ref="TP1" pin="1" pinfunction="1_1" pintype="passive"/>
+    </net>
+    <net code="2" name="/GND" class="Default">
+      <node ref="J1" pin="2" pinfunction="Pin_2_2" pintype="passive"/>
+      <node ref="J2" pin="4" pinfunction="Pin_4_4" pintype="passive"/>
+      <node ref="J3" pin="4" pinfunction="Pin_4_4" pintype="passive"/>
+      <node ref="TP2" pin="1" pinfunction="1_1" pintype="passive"/>
+    </net>
+    <net code="3" name="/HX_FL" class="Default">
+      <node ref="J1" pin="3" pinfunction="Pin_3_3" pintype="passive"/>
+      <node ref="J2" pin="1" pinfunction="Pin_1_1" pintype="passive"/>
+      <node ref="TP4" pin="1" pinfunction="1_1" pintype="passive"/>
+    </net>
+    <net code="4" name="/HX_FR" class="Default">
+      <node ref="J1" pin="7" pinfunction="Pin_7_7" pintype="passive"/>
+      <node ref="J3" pin="1" pinfunction="Pin_1_1" pintype="passive"/>
+      <node ref="TP5" pin="1" pinfunction="1_1" pintype="passive"/>
+    </net>
+    <net code="5" name="/HX_RL" class="Default">
+      <node ref="J1" pin="6" pinfunction="Pin_6_6" pintype="passive"/>
+      <node ref="J2" pin="6" pinfunction="Pin_6_6" pintype="passive"/>
+      <node ref="TP6" pin="1" pinfunction="1_1" pintype="passive"/>
+    </net>
+    <net code="6" name="/HX_RR" class="Default">
+      <node ref="J1" pin="8" pinfunction="Pin_8_8" pintype="passive"/>
+      <node ref="J3" pin="6" pinfunction="Pin_6_6" pintype="passive"/>
+      <node ref="TP7" pin="1" pinfunction="1_1" pintype="passive"/>
+    </net>
+    <net code="7" name="/HX_SCK" class="Default">
+      <node ref="J1" pin="1" pinfunction="Pin_1_1" pintype="passive"/>
+      <node ref="J2" pin="2" pinfunction="Pin_2_2" pintype="passive"/>
+      <node ref="J3" pin="2" pinfunction="Pin_2_2" pintype="passive"/>
+      <node ref="TP3" pin="1" pinfunction="1_1" pintype="passive"/>
+    </net>
+    <net code="8" name="unconnected-(J1-Pin_5-Pad5)" class="Default">
+      <node ref="J1" pin="5" pinfunction="Pin_5_5" pintype="passive+no_connect"/>
+    </net>
+    <net code="9" name="unconnected-(J2-Pin_5-Pad5)" class="Default">
+      <node ref="J2" pin="5" pinfunction="Pin_5_5" pintype="passive+no_connect"/>
+    </net>
+    <net code="10" name="unconnected-(J3-Pin_5-Pad5)" class="Default">
+      <node ref="J3" pin="5" pinfunction="Pin_5_5" pintype="passive+no_connect"/>
+    </net>
+  </nets>
+</export>

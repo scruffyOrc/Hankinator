@@ -1,0 +1,1292 @@
+[
+  {
+    "name": "hankinator-lc-breakout",
+    "role": "breakout",
+    "width": 50,
+    "height": 44,
+    "parts": [
+      {
+        "ref": "J1",
+        "libid": "Connector_Generic:Conn_01x08",
+        "value": "CONTROLLER / 8P8C",
+        "fp": "HankinatorLC:WE_615008144221",
+        "nets": {
+          "1": "HX_SCK",
+          "2": "GND",
+          "3": "HX_FL",
+          "4": "3V3_SENSOR",
+          "5": null,
+          "6": "HX_RL",
+          "7": "HX_FR",
+          "8": "HX_RR"
+        },
+        "uuid": "0dacb9a2-4a9b-4b3c-a5da-5a143b047357",
+        "root_uuid": "868a3ebb-a522-4378-ba18-661aa2e25fee",
+        "pcb": [
+          25,
+          10,
+          0
+        ],
+        "mpn": "615008144221",
+        "lcsc": "",
+        "maker": "Wurth Elektronik",
+        "dnp": false
+      },
+      {
+        "ref": "J2",
+        "libid": "Connector_Generic:Conn_01x06",
+        "value": "LEFT / 6P6C",
+        "fp": "HankinatorLC:WE_615006143621",
+        "nets": {
+          "1": "HX_FL",
+          "2": "HX_SCK",
+          "3": "3V3_SENSOR",
+          "4": "GND",
+          "5": null,
+          "6": "HX_RL"
+        },
+        "uuid": "caa1f79f-6e8c-4e39-bc81-8f02aedaab47",
+        "root_uuid": "868a3ebb-a522-4378-ba18-661aa2e25fee",
+        "pcb": [
+          13.5,
+          34.65,
+          0
+        ],
+        "mpn": "615006143621",
+        "lcsc": "",
+        "maker": "Wurth Elektronik",
+        "dnp": false
+      },
+      {
+        "ref": "J3",
+        "libid": "Connector_Generic:Conn_01x06",
+        "value": "RIGHT / 6P6C",
+        "fp": "HankinatorLC:WE_615006143621",
+        "nets": {
+          "1": "HX_FR",
+          "2": "HX_SCK",
+          "3": "3V3_SENSOR",
+          "4": "GND",
+          "5": null,
+          "6": "HX_RR"
+        },
+        "uuid": "ee4cd47f-198b-46a1-a8cf-f3b009284c4d",
+        "root_uuid": "868a3ebb-a522-4378-ba18-661aa2e25fee",
+        "pcb": [
+          36.5,
+          34.65,
+          0
+        ],
+        "mpn": "615006143621",
+        "lcsc": "",
+        "maker": "Wurth Elektronik",
+        "dnp": false
+      },
+      {
+        "ref": "TP1",
+        "libid": "Connector:TestPoint",
+        "value": "3V3_SENSOR",
+        "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+        "nets": {
+          "1": "3V3_SENSOR"
+        },
+        "uuid": "133cb0bf-51ed-4560-b653-4ab75d809988",
+        "root_uuid": "868a3ebb-a522-4378-ba18-661aa2e25fee",
+        "pcb": [
+          13,
+          22.5,
+          0
+        ],
+        "mpn": "",
+        "lcsc": "",
+        "maker": "",
+        "dnp": false
+      },
+      {
+        "ref": "TP2",
+        "libid": "Connector:TestPoint",
+        "value": "GND",
+        "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+        "nets": {
+          "1": "GND"
+        },
+        "uuid": "dd25593e-6aec-4499-b3fa-7d7774ea31f4",
+        "root_uuid": "868a3ebb-a522-4378-ba18-661aa2e25fee",
+        "pcb": [
+          17,
+          22.5,
+          0
+        ],
+        "mpn": "",
+        "lcsc": "",
+        "maker": "",
+        "dnp": false
+      },
+      {
+        "ref": "TP3",
+        "libid": "Connector:TestPoint",
+        "value": "HX_SCK",
+        "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+        "nets": {
+          "1": "HX_SCK"
+        },
+        "uuid": "9e0b3091-6392-40c3-8ab3-b0da23a0e488",
+        "root_uuid": "868a3ebb-a522-4378-ba18-661aa2e25fee",
+        "pcb": [
+          21,
+          22.5,
+          0
+        ],
+        "mpn": "",
+        "lcsc": "",
+        "maker": "",
+        "dnp": false
+      },
+      {
+        "ref": "TP4",
+        "libid": "Connector:TestPoint",
+        "value": "HX_FL",
+        "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+        "nets": {
+          "1": "HX_FL"
+        },
+        "uuid": "6b9adbdc-2fb3-4d95-b2c9-0414fafe5899",
+        "root_uuid": "868a3ebb-a522-4378-ba18-661aa2e25fee",
+        "pcb": [
+          25,
+          22.5,
+          0
+        ],
+        "mpn": "",
+        "lcsc": "",
+        "maker": "",
+        "dnp": false
+      },
+      {
+        "ref": "TP5",
+        "libid": "Connector:TestPoint",
+        "value": "HX_FR",
+        "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+        "nets": {
+          "1": "HX_FR"
+        },
+        "uuid": "2a5d8b79-4a0d-46be-8da3-b44244414891",
+        "root_uuid": "868a3ebb-a522-4378-ba18-661aa2e25fee",
+        "pcb": [
+          29,
+          22.5,
+          0
+        ],
+        "mpn": "",
+        "lcsc": "",
+        "maker": "",
+        "dnp": false
+      },
+      {
+        "ref": "TP6",
+        "libid": "Connector:TestPoint",
+        "value": "HX_RL",
+        "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+        "nets": {
+          "1": "HX_RL"
+        },
+        "uuid": "4230d25d-617c-4257-9501-366844a95a9c",
+        "root_uuid": "868a3ebb-a522-4378-ba18-661aa2e25fee",
+        "pcb": [
+          33,
+          22.5,
+          0
+        ],
+        "mpn": "",
+        "lcsc": "",
+        "maker": "",
+        "dnp": false
+      },
+      {
+        "ref": "TP7",
+        "libid": "Connector:TestPoint",
+        "value": "HX_RR",
+        "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+        "nets": {
+          "1": "HX_RR"
+        },
+        "uuid": "7e8598fb-91b4-4007-8a44-f58d5eeb1502",
+        "root_uuid": "868a3ebb-a522-4378-ba18-661aa2e25fee",
+        "pcb": [
+          37,
+          22.5,
+          0
+        ],
+        "mpn": "",
+        "lcsc": "",
+        "maker": "",
+        "dnp": false
+      },
+      {
+        "ref": "H1",
+        "libid": "Mechanical:MountingHole",
+        "value": "M2 / 2.2mm NPTH",
+        "fp": "MountingHole:MountingHole_2.2mm_M2",
+        "nets": {},
+        "uuid": "53e8bdec-a428-46e3-a224-5cb2c9570593",
+        "root_uuid": "868a3ebb-a522-4378-ba18-661aa2e25fee",
+        "pcb": [
+          3.5,
+          3.5,
+          0
+        ],
+        "mpn": "",
+        "lcsc": "",
+        "maker": "",
+        "dnp": false
+      },
+      {
+        "ref": "H2",
+        "libid": "Mechanical:MountingHole",
+        "value": "M2 / 2.2mm NPTH",
+        "fp": "MountingHole:MountingHole_2.2mm_M2",
+        "nets": {},
+        "uuid": "b81617e7-3f58-4334-837f-127e09fff4bf",
+        "root_uuid": "868a3ebb-a522-4378-ba18-661aa2e25fee",
+        "pcb": [
+          46.5,
+          3.5,
+          0
+        ],
+        "mpn": "",
+        "lcsc": "",
+        "maker": "",
+        "dnp": false
+      },
+      {
+        "ref": "H3",
+        "libid": "Mechanical:MountingHole",
+        "value": "M2 / 2.2mm NPTH",
+        "fp": "MountingHole:MountingHole_2.2mm_M2",
+        "nets": {},
+        "uuid": "f28a2e6d-e110-454b-bcbe-ac75ea7d3d2a",
+        "root_uuid": "868a3ebb-a522-4378-ba18-661aa2e25fee",
+        "pcb": [
+          3.5,
+          40.5,
+          0
+        ],
+        "mpn": "",
+        "lcsc": "",
+        "maker": "",
+        "dnp": false
+      },
+      {
+        "ref": "H4",
+        "libid": "Mechanical:MountingHole",
+        "value": "M2 / 2.2mm NPTH",
+        "fp": "MountingHole:MountingHole_2.2mm_M2",
+        "nets": {},
+        "uuid": "426ad911-7081-4292-8786-8ea2224024b3",
+        "root_uuid": "868a3ebb-a522-4378-ba18-661aa2e25fee",
+        "pcb": [
+          46.5,
+          40.5,
+          0
+        ],
+        "mpn": "",
+        "lcsc": "",
+        "maker": "",
+        "dnp": false
+      }
+    ]
+  },
+  {
+    "name": "hankinator-lc-rear-smart-foot",
+    "role": "rear-smart-foot",
+    "width": 72,
+    "height": 18,
+    "parts": [
+      {
+        "ref": "J1",
+        "libid": "Connector_Generic:Conn_01x06",
+        "value": "FROM BREAKOUT / 6P6C",
+        "fp": "HankinatorLC:WE_615006143621",
+        "nets": {
+          "1": "FRONT_DOUT",
+          "2": "HX_SCK",
+          "3": "3V3_SENSOR",
+          "4": "GND",
+          "5": null,
+          "6": "REAR_DOUT"
+        },
+        "uuid": "8fbf3d3f-dae3-4b0d-b700-418978e3f3c9",
+        "root_uuid": "8457b045-57db-47ef-9d0c-a17feb4871e3",
+        "pcb": [
+          9.35,
+          9,
+          270
+        ],
+        "mpn": "615006143621",
+        "lcsc": "",
+        "maker": "Wurth Elektronik",
+        "dnp": false
+      },
+      {
+        "ref": "J2",
+        "libid": "Connector_Generic:Conn_01x04",
+        "value": "TO FRONT / 4P4C",
+        "fp": "HankinatorLC:WE_615004143821",
+        "nets": {
+          "1": "FRONT_DOUT",
+          "2": "HX_SCK",
+          "3": "3V3_SENSOR",
+          "4": "GND"
+        },
+        "uuid": "b91e7c8f-3ae1-4f50-b33b-65472270ccb0",
+        "root_uuid": "8457b045-57db-47ef-9d0c-a17feb4871e3",
+        "pcb": [
+          65.2,
+          9,
+          90
+        ],
+        "mpn": "615004143821",
+        "lcsc": "",
+        "maker": "Wurth Elektronik",
+        "dnp": false
+      },
+      {
+        "ref": "J3",
+        "libid": "Connector_Generic:Conn_01x04",
+        "value": "LOAD CELL / JST-XH",
+        "fp": "Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical",
+        "nets": {
+          "1": "AVDD",
+          "2": "GND",
+          "3": "BRIDGE_A_P",
+          "4": "BRIDGE_A_N"
+        },
+        "uuid": "abc219ed-b217-48c1-b440-ba6628b9719b",
+        "root_uuid": "8457b045-57db-47ef-9d0c-a17feb4871e3",
+        "pcb": [
+          24,
+          11.5,
+          0
+        ],
+        "mpn": "B4B-XH-A(LF)(SN)",
+        "lcsc": "C144395",
+        "maker": "JST",
+        "dnp": false
+      },
+      {
+        "ref": "U1",
+        "libid": "Analog_ADC:HX711",
+        "value": "HX711",
+        "fp": "Package_SO:SOIC-16_3.9x9.9mm_P1.27mm",
+        "nets": {
+          "1": "3V3_SENSOR",
+          "2": null,
+          "3": "AVDD",
+          "4": "GND",
+          "5": "GND",
+          "6": null,
+          "7": "AIN_N",
+          "8": "AIN_P",
+          "9": "GND",
+          "10": "GND",
+          "11": "SCK_LOCAL",
+          "12": "DOUT_LOCAL",
+          "13": null,
+          "14": "GND",
+          "15": "GND",
+          "16": "3V3_SENSOR"
+        },
+        "uuid": "46ab085e-18f5-4731-a618-4bdb35b3a288",
+        "root_uuid": "8457b045-57db-47ef-9d0c-a17feb4871e3",
+        "pcb": [
+          41.5,
+          9,
+          0
+        ],
+        "mpn": "HX711",
+        "lcsc": "C43656",
+        "maker": "Avia Semicon (Xiamen)",
+        "dnp": false
+      },
+      {
+        "ref": "R1",
+        "libid": "Device:R",
+        "value": "10R",
+        "fp": "Resistor_SMD:R_0603_1608Metric",
+        "nets": {
+          "1": "3V3_SENSOR",
+          "2": "AVDD"
+        },
+        "uuid": "45689326-6f3c-48c0-b6e3-0a1f19e01409",
+        "root_uuid": "8457b045-57db-47ef-9d0c-a17feb4871e3",
+        "pcb": [
+          35,
+          3,
+          90
+        ],
+        "mpn": "0603WAF100JT5E",
+        "lcsc": "C22859",
+        "maker": "UNI-ROYAL",
+        "dnp": false
+      },
+      {
+        "ref": "C1",
+        "libid": "Device:C",
+        "value": "100n / 50V X7R",
+        "fp": "Capacitor_SMD:C_0603_1608Metric",
+        "nets": {
+          "1": "AVDD",
+          "2": "GND"
+        },
+        "uuid": "94dd6862-2450-473a-8217-281b309650e2",
+        "root_uuid": "8457b045-57db-47ef-9d0c-a17feb4871e3",
+        "pcb": [
+          35,
+          5.5,
+          0
+        ],
+        "mpn": "CL10B104KB8NNNC",
+        "lcsc": "C1591",
+        "maker": "Samsung",
+        "dnp": false
+      },
+      {
+        "ref": "C2",
+        "libid": "Device:C",
+        "value": "10u / 25V X5R",
+        "fp": "Capacitor_SMD:C_0805_2012Metric",
+        "nets": {
+          "1": "AVDD",
+          "2": "GND"
+        },
+        "uuid": "a176b50a-d99e-47f8-9c0b-4605c5d46931",
+        "root_uuid": "8457b045-57db-47ef-9d0c-a17feb4871e3",
+        "pcb": [
+          30.5,
+          5,
+          0
+        ],
+        "mpn": "CL21A106KAYNNNE",
+        "lcsc": "C15850",
+        "maker": "Samsung",
+        "dnp": false
+      },
+      {
+        "ref": "C3",
+        "libid": "Device:C",
+        "value": "100n / 50V X7R",
+        "fp": "Capacitor_SMD:C_0603_1608Metric",
+        "nets": {
+          "1": "3V3_SENSOR",
+          "2": "GND"
+        },
+        "uuid": "45e2bb22-3406-4c7f-9ef7-b09cbb9ed523",
+        "root_uuid": "8457b045-57db-47ef-9d0c-a17feb4871e3",
+        "pcb": [
+          45,
+          2,
+          0
+        ],
+        "mpn": "CL10B104KB8NNNC",
+        "lcsc": "C1591",
+        "maker": "Samsung",
+        "dnp": false
+      },
+      {
+        "ref": "C4",
+        "libid": "Device:C",
+        "value": "10u / 25V X5R",
+        "fp": "Capacitor_SMD:C_0805_2012Metric",
+        "nets": {
+          "1": "3V3_SENSOR",
+          "2": "GND"
+        },
+        "uuid": "5a72e3d0-e0b2-4224-af48-a256b92a879e",
+        "root_uuid": "8457b045-57db-47ef-9d0c-a17feb4871e3",
+        "pcb": [
+          27,
+          5.5,
+          0
+        ],
+        "mpn": "CL21A106KAYNNNE",
+        "lcsc": "C15850",
+        "maker": "Samsung",
+        "dnp": false
+      },
+      {
+        "ref": "R2",
+        "libid": "Device:R",
+        "value": "100R / 1%",
+        "fp": "Resistor_SMD:R_0603_1608Metric",
+        "nets": {
+          "1": "BRIDGE_A_P",
+          "2": "AIN_P"
+        },
+        "uuid": "8f96c9a9-366c-4d35-8c57-c0740e5603b9",
+        "root_uuid": "8457b045-57db-47ef-9d0c-a17feb4871e3",
+        "pcb": [
+          36,
+          14.5,
+          90
+        ],
+        "mpn": "0603WAF1000T5E",
+        "lcsc": "C22775",
+        "maker": "UNI-ROYAL",
+        "dnp": false
+      },
+      {
+        "ref": "R3",
+        "libid": "Device:R",
+        "value": "100R / 1%",
+        "fp": "Resistor_SMD:R_0603_1608Metric",
+        "nets": {
+          "1": "BRIDGE_A_N",
+          "2": "AIN_N"
+        },
+        "uuid": "6849f00c-bcd4-4c71-bde0-b146d4154532",
+        "root_uuid": "8457b045-57db-47ef-9d0c-a17feb4871e3",
+        "pcb": [
+          36,
+          11.5,
+          90
+        ],
+        "mpn": "0603WAF1000T5E",
+        "lcsc": "C22775",
+        "maker": "UNI-ROYAL",
+        "dnp": false
+      },
+      {
+        "ref": "C5",
+        "libid": "Device:C",
+        "value": "100n differential",
+        "fp": "Capacitor_SMD:C_0603_1608Metric",
+        "nets": {
+          "1": "AIN_P",
+          "2": "AIN_N"
+        },
+        "uuid": "3d62aee7-03d0-4df0-938e-3f22259b7d5e",
+        "root_uuid": "8457b045-57db-47ef-9d0c-a17feb4871e3",
+        "pcb": [
+          36,
+          8.5,
+          90
+        ],
+        "mpn": "CL10B104KB8NNNC",
+        "lcsc": "C1591",
+        "maker": "Samsung",
+        "dnp": false
+      },
+      {
+        "ref": "R4",
+        "libid": "Device:R",
+        "value": "100R / DOUT source",
+        "fp": "Resistor_SMD:R_0603_1608Metric",
+        "nets": {
+          "1": "DOUT_LOCAL",
+          "2": "REAR_DOUT"
+        },
+        "uuid": "c2b722a9-0523-41d6-8854-9cdfffb23eaf",
+        "root_uuid": "8457b045-57db-47ef-9d0c-a17feb4871e3",
+        "pcb": [
+          47,
+          7.5,
+          90
+        ],
+        "mpn": "0603WAF1000T5E",
+        "lcsc": "C22775",
+        "maker": "UNI-ROYAL",
+        "dnp": false
+      },
+      {
+        "ref": "R5",
+        "libid": "Device:R",
+        "value": "100R / SCK stub",
+        "fp": "Resistor_SMD:R_0603_1608Metric",
+        "nets": {
+          "1": "HX_SCK",
+          "2": "SCK_LOCAL"
+        },
+        "uuid": "5c390dcb-1bf9-485c-82de-3a723245e44e",
+        "root_uuid": "8457b045-57db-47ef-9d0c-a17feb4871e3",
+        "pcb": [
+          47,
+          10.5,
+          90
+        ],
+        "mpn": "0603WAF1000T5E",
+        "lcsc": "C22775",
+        "maker": "UNI-ROYAL",
+        "dnp": false
+      },
+      {
+        "ref": "R6",
+        "libid": "Device:R",
+        "value": "100k / SCK idle low",
+        "fp": "Resistor_SMD:R_0603_1608Metric",
+        "nets": {
+          "1": "SCK_LOCAL",
+          "2": "GND"
+        },
+        "uuid": "d988f27b-7624-447f-8d86-ed9219ad21cb",
+        "root_uuid": "8457b045-57db-47ef-9d0c-a17feb4871e3",
+        "pcb": [
+          50,
+          10.5,
+          0
+        ],
+        "mpn": "0603WAF1003T5E",
+        "lcsc": "C25803",
+        "maker": "UNI-ROYAL",
+        "dnp": false
+      },
+      {
+        "ref": "#FLG01",
+        "libid": "power:PWR_FLAG",
+        "value": "PWR_FLAG",
+        "fp": "",
+        "nets": {
+          "1": "3V3_SENSOR"
+        },
+        "uuid": "3c04ebdf-ae74-480b-ac84-ce71bd32f45a",
+        "root_uuid": "8457b045-57db-47ef-9d0c-a17feb4871e3",
+        "pcb": null,
+        "mpn": "",
+        "lcsc": "",
+        "maker": "",
+        "dnp": false
+      },
+      {
+        "ref": "#FLG02",
+        "libid": "power:PWR_FLAG",
+        "value": "PWR_FLAG",
+        "fp": "",
+        "nets": {
+          "1": "GND"
+        },
+        "uuid": "b147ba55-3e4f-4839-8215-2b2837b381b5",
+        "root_uuid": "8457b045-57db-47ef-9d0c-a17feb4871e3",
+        "pcb": null,
+        "mpn": "",
+        "lcsc": "",
+        "maker": "",
+        "dnp": false
+      },
+      {
+        "ref": "#FLG03",
+        "libid": "power:PWR_FLAG",
+        "value": "PWR_FLAG",
+        "fp": "",
+        "nets": {
+          "1": "AVDD"
+        },
+        "uuid": "e01fbff0-21de-48d7-83c3-7373b597a6bc",
+        "root_uuid": "8457b045-57db-47ef-9d0c-a17feb4871e3",
+        "pcb": null,
+        "mpn": "",
+        "lcsc": "",
+        "maker": "",
+        "dnp": false
+      },
+      {
+        "ref": "TP1",
+        "libid": "Connector:TestPoint",
+        "value": "3V3_SENSOR",
+        "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+        "nets": {
+          "1": "3V3_SENSOR"
+        },
+        "uuid": "a29d3f90-0a5e-4776-865e-95c07d93eaa4",
+        "root_uuid": "8457b045-57db-47ef-9d0c-a17feb4871e3",
+        "pcb": [
+          49,
+          3.5,
+          0
+        ],
+        "mpn": "",
+        "lcsc": "",
+        "maker": "",
+        "dnp": false
+      },
+      {
+        "ref": "TP2",
+        "libid": "Connector:TestPoint",
+        "value": "GND",
+        "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+        "nets": {
+          "1": "GND"
+        },
+        "uuid": "215328d4-6fff-4249-9164-62b1e6cea843",
+        "root_uuid": "8457b045-57db-47ef-9d0c-a17feb4871e3",
+        "pcb": [
+          52,
+          3.5,
+          0
+        ],
+        "mpn": "",
+        "lcsc": "",
+        "maker": "",
+        "dnp": false
+      },
+      {
+        "ref": "TP3",
+        "libid": "Connector:TestPoint",
+        "value": "HX_SCK",
+        "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+        "nets": {
+          "1": "HX_SCK"
+        },
+        "uuid": "6eed551a-9ecb-47a6-ae7b-a1692a5094a7",
+        "root_uuid": "8457b045-57db-47ef-9d0c-a17feb4871e3",
+        "pcb": [
+          49,
+          6.5,
+          0
+        ],
+        "mpn": "",
+        "lcsc": "",
+        "maker": "",
+        "dnp": false
+      },
+      {
+        "ref": "TP4",
+        "libid": "Connector:TestPoint",
+        "value": "REAR_DOUT",
+        "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+        "nets": {
+          "1": "REAR_DOUT"
+        },
+        "uuid": "b9ef8719-fd65-4d76-8d92-ef80728a1214",
+        "root_uuid": "8457b045-57db-47ef-9d0c-a17feb4871e3",
+        "pcb": [
+          52,
+          6.5,
+          0
+        ],
+        "mpn": "",
+        "lcsc": "",
+        "maker": "",
+        "dnp": false
+      },
+      {
+        "ref": "H1",
+        "libid": "Mechanical:MountingHole",
+        "value": "M2 / 2.2mm NPTH",
+        "fp": "MountingHole:MountingHole_2.2mm_M2",
+        "nets": {},
+        "uuid": "792087d7-038b-48ab-bac9-792a89d14df8",
+        "root_uuid": "8457b045-57db-47ef-9d0c-a17feb4871e3",
+        "pcb": [
+          22,
+          3.5,
+          0
+        ],
+        "mpn": "",
+        "lcsc": "",
+        "maker": "",
+        "dnp": false
+      },
+      {
+        "ref": "H2",
+        "libid": "Mechanical:MountingHole",
+        "value": "M2 / 2.2mm NPTH",
+        "fp": "MountingHole:MountingHole_2.2mm_M2",
+        "nets": {},
+        "uuid": "b91cf110-36c9-462c-9930-933ac93f7234",
+        "root_uuid": "8457b045-57db-47ef-9d0c-a17feb4871e3",
+        "pcb": [
+          55,
+          14.5,
+          0
+        ],
+        "mpn": "",
+        "lcsc": "",
+        "maker": "",
+        "dnp": false
+      }
+    ]
+  },
+  {
+    "name": "hankinator-lc-front-smart-foot",
+    "role": "front-smart-foot",
+    "width": 56,
+    "height": 18,
+    "parts": [
+      {
+        "ref": "J1",
+        "libid": "Connector_Generic:Conn_01x04",
+        "value": "FROM REAR / 4P4C",
+        "fp": "HankinatorLC:WE_615004143821",
+        "nets": {
+          "1": "FRONT_DOUT",
+          "2": "HX_SCK",
+          "3": "3V3_SENSOR",
+          "4": "GND"
+        },
+        "uuid": "e5a77bb0-281f-4468-8e75-97580c2b389c",
+        "root_uuid": "cc719ae1-15e3-4d58-a3e1-9b432cba6935",
+        "pcb": [
+          6.8,
+          9,
+          270
+        ],
+        "mpn": "615004143821",
+        "lcsc": "",
+        "maker": "Wurth Elektronik",
+        "dnp": false
+      },
+      {
+        "ref": "J3",
+        "libid": "Connector_Generic:Conn_01x04",
+        "value": "LOAD CELL / JST-XH",
+        "fp": "Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical",
+        "nets": {
+          "1": "AVDD",
+          "2": "GND",
+          "3": "BRIDGE_A_P",
+          "4": "BRIDGE_A_N"
+        },
+        "uuid": "2374c166-2102-44dc-af3b-48958d3fd859",
+        "root_uuid": "cc719ae1-15e3-4d58-a3e1-9b432cba6935",
+        "pcb": [
+          24,
+          11.5,
+          0
+        ],
+        "mpn": "B4B-XH-A(LF)(SN)",
+        "lcsc": "C144395",
+        "maker": "JST",
+        "dnp": false
+      },
+      {
+        "ref": "U1",
+        "libid": "Analog_ADC:HX711",
+        "value": "HX711",
+        "fp": "Package_SO:SOIC-16_3.9x9.9mm_P1.27mm",
+        "nets": {
+          "1": "3V3_SENSOR",
+          "2": null,
+          "3": "AVDD",
+          "4": "GND",
+          "5": "GND",
+          "6": null,
+          "7": "AIN_N",
+          "8": "AIN_P",
+          "9": "GND",
+          "10": "GND",
+          "11": "SCK_LOCAL",
+          "12": "DOUT_LOCAL",
+          "13": null,
+          "14": "GND",
+          "15": "GND",
+          "16": "3V3_SENSOR"
+        },
+        "uuid": "4d990f9d-f13a-4acd-bb5c-2e16be92a76d",
+        "root_uuid": "cc719ae1-15e3-4d58-a3e1-9b432cba6935",
+        "pcb": [
+          41.5,
+          9,
+          0
+        ],
+        "mpn": "HX711",
+        "lcsc": "C43656",
+        "maker": "Avia Semicon (Xiamen)",
+        "dnp": false
+      },
+      {
+        "ref": "R1",
+        "libid": "Device:R",
+        "value": "10R",
+        "fp": "Resistor_SMD:R_0603_1608Metric",
+        "nets": {
+          "1": "3V3_SENSOR",
+          "2": "AVDD"
+        },
+        "uuid": "d9c3c646-8562-4910-a047-128e4bcf69ad",
+        "root_uuid": "cc719ae1-15e3-4d58-a3e1-9b432cba6935",
+        "pcb": [
+          35,
+          3,
+          90
+        ],
+        "mpn": "0603WAF100JT5E",
+        "lcsc": "C22859",
+        "maker": "UNI-ROYAL",
+        "dnp": false
+      },
+      {
+        "ref": "C1",
+        "libid": "Device:C",
+        "value": "100n / 50V X7R",
+        "fp": "Capacitor_SMD:C_0603_1608Metric",
+        "nets": {
+          "1": "AVDD",
+          "2": "GND"
+        },
+        "uuid": "0c571dd5-85a9-4fa9-b755-c8e1403bc835",
+        "root_uuid": "cc719ae1-15e3-4d58-a3e1-9b432cba6935",
+        "pcb": [
+          35,
+          5.5,
+          0
+        ],
+        "mpn": "CL10B104KB8NNNC",
+        "lcsc": "C1591",
+        "maker": "Samsung",
+        "dnp": false
+      },
+      {
+        "ref": "C2",
+        "libid": "Device:C",
+        "value": "10u / 25V X5R",
+        "fp": "Capacitor_SMD:C_0805_2012Metric",
+        "nets": {
+          "1": "AVDD",
+          "2": "GND"
+        },
+        "uuid": "d875357c-b8ed-4333-9ffc-5a4facf5a68a",
+        "root_uuid": "cc719ae1-15e3-4d58-a3e1-9b432cba6935",
+        "pcb": [
+          30.5,
+          5,
+          0
+        ],
+        "mpn": "CL21A106KAYNNNE",
+        "lcsc": "C15850",
+        "maker": "Samsung",
+        "dnp": false
+      },
+      {
+        "ref": "C3",
+        "libid": "Device:C",
+        "value": "100n / 50V X7R",
+        "fp": "Capacitor_SMD:C_0603_1608Metric",
+        "nets": {
+          "1": "3V3_SENSOR",
+          "2": "GND"
+        },
+        "uuid": "615f52b3-ddee-4c1a-b481-627afb60a8a9",
+        "root_uuid": "cc719ae1-15e3-4d58-a3e1-9b432cba6935",
+        "pcb": [
+          45,
+          2,
+          0
+        ],
+        "mpn": "CL10B104KB8NNNC",
+        "lcsc": "C1591",
+        "maker": "Samsung",
+        "dnp": false
+      },
+      {
+        "ref": "C4",
+        "libid": "Device:C",
+        "value": "10u / 25V X5R",
+        "fp": "Capacitor_SMD:C_0805_2012Metric",
+        "nets": {
+          "1": "3V3_SENSOR",
+          "2": "GND"
+        },
+        "uuid": "39c40bb1-4431-41b4-9f6f-b535c4a3d502",
+        "root_uuid": "cc719ae1-15e3-4d58-a3e1-9b432cba6935",
+        "pcb": [
+          27,
+          5.5,
+          0
+        ],
+        "mpn": "CL21A106KAYNNNE",
+        "lcsc": "C15850",
+        "maker": "Samsung",
+        "dnp": false
+      },
+      {
+        "ref": "R2",
+        "libid": "Device:R",
+        "value": "100R / 1%",
+        "fp": "Resistor_SMD:R_0603_1608Metric",
+        "nets": {
+          "1": "BRIDGE_A_P",
+          "2": "AIN_P"
+        },
+        "uuid": "d816b1d5-433e-44d2-9656-7bb749a8dc1b",
+        "root_uuid": "cc719ae1-15e3-4d58-a3e1-9b432cba6935",
+        "pcb": [
+          36,
+          14.5,
+          90
+        ],
+        "mpn": "0603WAF1000T5E",
+        "lcsc": "C22775",
+        "maker": "UNI-ROYAL",
+        "dnp": false
+      },
+      {
+        "ref": "R3",
+        "libid": "Device:R",
+        "value": "100R / 1%",
+        "fp": "Resistor_SMD:R_0603_1608Metric",
+        "nets": {
+          "1": "BRIDGE_A_N",
+          "2": "AIN_N"
+        },
+        "uuid": "5c6323a4-e14b-44cd-96db-6686747d7f2d",
+        "root_uuid": "cc719ae1-15e3-4d58-a3e1-9b432cba6935",
+        "pcb": [
+          36,
+          11.5,
+          90
+        ],
+        "mpn": "0603WAF1000T5E",
+        "lcsc": "C22775",
+        "maker": "UNI-ROYAL",
+        "dnp": false
+      },
+      {
+        "ref": "C5",
+        "libid": "Device:C",
+        "value": "100n differential",
+        "fp": "Capacitor_SMD:C_0603_1608Metric",
+        "nets": {
+          "1": "AIN_P",
+          "2": "AIN_N"
+        },
+        "uuid": "545d21dc-e3c1-4e6b-98e4-ebc79f041d62",
+        "root_uuid": "cc719ae1-15e3-4d58-a3e1-9b432cba6935",
+        "pcb": [
+          36,
+          8.5,
+          90
+        ],
+        "mpn": "CL10B104KB8NNNC",
+        "lcsc": "C1591",
+        "maker": "Samsung",
+        "dnp": false
+      },
+      {
+        "ref": "R4",
+        "libid": "Device:R",
+        "value": "100R / DOUT source",
+        "fp": "Resistor_SMD:R_0603_1608Metric",
+        "nets": {
+          "1": "DOUT_LOCAL",
+          "2": "FRONT_DOUT"
+        },
+        "uuid": "ddf4cb1c-4156-4cf6-abaf-1195ff8cf64b",
+        "root_uuid": "cc719ae1-15e3-4d58-a3e1-9b432cba6935",
+        "pcb": [
+          47,
+          7.5,
+          90
+        ],
+        "mpn": "0603WAF1000T5E",
+        "lcsc": "C22775",
+        "maker": "UNI-ROYAL",
+        "dnp": false
+      },
+      {
+        "ref": "R5",
+        "libid": "Device:R",
+        "value": "100R / SCK stub",
+        "fp": "Resistor_SMD:R_0603_1608Metric",
+        "nets": {
+          "1": "HX_SCK",
+          "2": "SCK_LOCAL"
+        },
+        "uuid": "1a4a409d-268e-4ce7-b601-ad1d0b1d5075",
+        "root_uuid": "cc719ae1-15e3-4d58-a3e1-9b432cba6935",
+        "pcb": [
+          47,
+          10.5,
+          90
+        ],
+        "mpn": "0603WAF1000T5E",
+        "lcsc": "C22775",
+        "maker": "UNI-ROYAL",
+        "dnp": false
+      },
+      {
+        "ref": "R6",
+        "libid": "Device:R",
+        "value": "100k / SCK idle low",
+        "fp": "Resistor_SMD:R_0603_1608Metric",
+        "nets": {
+          "1": "SCK_LOCAL",
+          "2": "GND"
+        },
+        "uuid": "8ffa20ce-54b4-424e-ab30-96c278b348e9",
+        "root_uuid": "cc719ae1-15e3-4d58-a3e1-9b432cba6935",
+        "pcb": [
+          50,
+          10.5,
+          0
+        ],
+        "mpn": "0603WAF1003T5E",
+        "lcsc": "C25803",
+        "maker": "UNI-ROYAL",
+        "dnp": false
+      },
+      {
+        "ref": "#FLG01",
+        "libid": "power:PWR_FLAG",
+        "value": "PWR_FLAG",
+        "fp": "",
+        "nets": {
+          "1": "3V3_SENSOR"
+        },
+        "uuid": "26ae03d7-0327-4077-be73-ae460d617c79",
+        "root_uuid": "cc719ae1-15e3-4d58-a3e1-9b432cba6935",
+        "pcb": null,
+        "mpn": "",
+        "lcsc": "",
+        "maker": "",
+        "dnp": false
+      },
+      {
+        "ref": "#FLG02",
+        "libid": "power:PWR_FLAG",
+        "value": "PWR_FLAG",
+        "fp": "",
+        "nets": {
+          "1": "GND"
+        },
+        "uuid": "e7607a70-2bad-4c36-b431-438e7c6c719c",
+        "root_uuid": "cc719ae1-15e3-4d58-a3e1-9b432cba6935",
+        "pcb": null,
+        "mpn": "",
+        "lcsc": "",
+        "maker": "",
+        "dnp": false
+      },
+      {
+        "ref": "#FLG03",
+        "libid": "power:PWR_FLAG",
+        "value": "PWR_FLAG",
+        "fp": "",
+        "nets": {
+          "1": "AVDD"
+        },
+        "uuid": "6545894e-e3d0-445c-827e-811120ea441e",
+        "root_uuid": "cc719ae1-15e3-4d58-a3e1-9b432cba6935",
+        "pcb": null,
+        "mpn": "",
+        "lcsc": "",
+        "maker": "",
+        "dnp": false
+      },
+      {
+        "ref": "TP1",
+        "libid": "Connector:TestPoint",
+        "value": "3V3_SENSOR",
+        "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+        "nets": {
+          "1": "3V3_SENSOR"
+        },
+        "uuid": "f7aacf5d-8c1d-4489-b11b-cb65de5d93b0",
+        "root_uuid": "cc719ae1-15e3-4d58-a3e1-9b432cba6935",
+        "pcb": [
+          49,
+          3.5,
+          0
+        ],
+        "mpn": "",
+        "lcsc": "",
+        "maker": "",
+        "dnp": false
+      },
+      {
+        "ref": "TP2",
+        "libid": "Connector:TestPoint",
+        "value": "GND",
+        "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+        "nets": {
+          "1": "GND"
+        },
+        "uuid": "81143624-566a-48f0-8f40-51fa0e426767",
+        "root_uuid": "cc719ae1-15e3-4d58-a3e1-9b432cba6935",
+        "pcb": [
+          52,
+          3.5,
+          0
+        ],
+        "mpn": "",
+        "lcsc": "",
+        "maker": "",
+        "dnp": false
+      },
+      {
+        "ref": "TP3",
+        "libid": "Connector:TestPoint",
+        "value": "HX_SCK",
+        "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+        "nets": {
+          "1": "HX_SCK"
+        },
+        "uuid": "1b42fe1a-c8b4-4ffc-875c-e22593272913",
+        "root_uuid": "cc719ae1-15e3-4d58-a3e1-9b432cba6935",
+        "pcb": [
+          49,
+          6.5,
+          0
+        ],
+        "mpn": "",
+        "lcsc": "",
+        "maker": "",
+        "dnp": false
+      },
+      {
+        "ref": "TP4",
+        "libid": "Connector:TestPoint",
+        "value": "FRONT_DOUT",
+        "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+        "nets": {
+          "1": "FRONT_DOUT"
+        },
+        "uuid": "95c71ca5-a513-4da0-8455-bbdb513b25f6",
+        "root_uuid": "cc719ae1-15e3-4d58-a3e1-9b432cba6935",
+        "pcb": [
+          52,
+          6.5,
+          0
+        ],
+        "mpn": "",
+        "lcsc": "",
+        "maker": "",
+        "dnp": false
+      },
+      {
+        "ref": "H1",
+        "libid": "Mechanical:MountingHole",
+        "value": "M2 / 2.2mm NPTH",
+        "fp": "MountingHole:MountingHole_2.2mm_M2",
+        "nets": {},
+        "uuid": "0982258d-f128-4d22-bdf2-7676fa8aa022",
+        "root_uuid": "cc719ae1-15e3-4d58-a3e1-9b432cba6935",
+        "pcb": [
+          22,
+          3.5,
+          0
+        ],
+        "mpn": "",
+        "lcsc": "",
+        "maker": "",
+        "dnp": false
+      },
+      {
+        "ref": "H2",
+        "libid": "Mechanical:MountingHole",
+        "value": "M2 / 2.2mm NPTH",
+        "fp": "MountingHole:MountingHole_2.2mm_M2",
+        "nets": {},
+        "uuid": "ec77e090-5b56-4b9d-8396-56c81b2c11fb",
+        "root_uuid": "cc719ae1-15e3-4d58-a3e1-9b432cba6935",
+        "pcb": [
+          52,
+          14.5,
+          0
+        ],
+        "mpn": "",
+        "lcsc": "",
+        "maker": "",
+        "dnp": false
+      }
+    ]
+  }
+]

@@ -1,0 +1,1 @@
+HE PCB: every exported PTH/NPTH drill coordinate matches source at shared placement origin.

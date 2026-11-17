@@ -1,0 +1,23 @@
+%TF.GenerationSoftware,KiCad,Pcbnew,10.0.5*%
+%TF.CreationDate,2026-09-02T03:59:21-07:00*%
+%TF.ProjectId,skein-winder-controller-v1a,736b6569-6e2d-4776-996e-6465722d636f,rev?*%
+%TF.SameCoordinates,Original*%
+%TF.FileFunction,Profile,NP*%
+%FSLAX46Y46*%
+G04 Gerber Fmt 4.6, Leading zero omitted, Abs format (unit mm)*
+G04 Created by KiCad (PCBNEW 10.0.5) date 2026-09-02 03:59:21*
+%MOMM*%
+%LPD*%
+G01*
+G04 APERTURE LIST*
+%TA.AperFunction,Profile*%
+%ADD10C,0.300000*%
+%TD*%
+G04 APERTURE END LIST*
+D10*
+X2000000Y-2000000D02*
+X127000000Y-2000000D01*
+X127000000Y-87000000D01*
+X2000000Y-87000000D01*
+X2000000Y-2000000D01*
+M02*

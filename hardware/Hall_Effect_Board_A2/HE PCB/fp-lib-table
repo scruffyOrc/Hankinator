@@ -1,0 +1,1 @@
+(fp_lib_table (version 7) (lib (name "HankinatorLC") (type "KiCad") (uri "${KIPRJMOD}/../libraries/HankinatorLC.pretty") (options "") (descr "DH jack")) (lib (name "HallLocal") (type "KiCad") (uri "${KIPRJMOD}/../libraries/HallLocal.pretty") (options "") (descr "TI drawing")))

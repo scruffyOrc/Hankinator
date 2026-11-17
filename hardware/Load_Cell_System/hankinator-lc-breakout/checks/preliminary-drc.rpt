@@ -1,0 +1,86 @@
+** Drc report for hankinator-lc-breakout.kicad_pcb **
+** Created on 2026-09-08T20:41:33 **
+** Report includes: Errors, Warnings **
+
+** Found 0 DRC violations **
+
+** Found 17 unconnected pads **
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(23.0950 mm, 17.1900 mm): PTH pad 6 [HX_RL] of J1
+    @(16.6750 mm, 29.4800 mm): PTH pad 6 [HX_RL] of J2
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(33.0000 mm, 22.5000 mm): Pad 1 [HX_RL] of TP6 on F.Cu
+    @(23.0950 mm, 17.1900 mm): PTH pad 6 [HX_RL] of J1
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(21.8250 mm, 14.6500 mm): PTH pad 7 [HX_FR] of J1
+    @(29.0000 mm, 22.5000 mm): Pad 1 [HX_FR] of TP5 on F.Cu
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(29.0000 mm, 22.5000 mm): Pad 1 [HX_FR] of TP5 on F.Cu
+    @(33.3250 mm, 26.9400 mm): PTH pad 1 [HX_FR] of J3
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(10.3250 mm, 26.9400 mm): PTH pad 1 [HX_FL] of J2
+    @(25.0000 mm, 22.5000 mm): Pad 1 [HX_FL] of TP4 on F.Cu
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(25.0000 mm, 22.5000 mm): Pad 1 [HX_FL] of TP4 on F.Cu
+    @(26.9050 mm, 14.6500 mm): PTH pad 3 [HX_FL] of J1
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(21.0000 mm, 22.5000 mm): Pad 1 [HX_SCK] of TP3 on F.Cu
+    @(11.5950 mm, 29.4800 mm): PTH pad 2 [HX_SCK] of J2
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(21.0000 mm, 22.5000 mm): Pad 1 [HX_SCK] of TP3 on F.Cu
+    @(34.5950 mm, 29.4800 mm): PTH pad 2 [HX_SCK] of J3
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(29.4450 mm, 14.6500 mm): PTH pad 1 [HX_SCK] of J1
+    @(21.0000 mm, 22.5000 mm): Pad 1 [HX_SCK] of TP3 on F.Cu
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(13.0000 mm, 22.5000 mm): Pad 1 [3V3_SENSOR] of TP1 on F.Cu
+    @(12.8650 mm, 26.9400 mm): PTH pad 3 [3V3_SENSOR] of J2
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(25.6350 mm, 17.1900 mm): PTH pad 4 [3V3_SENSOR] of J1
+    @(13.0000 mm, 22.5000 mm): Pad 1 [3V3_SENSOR] of TP1 on F.Cu
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(35.8650 mm, 26.9400 mm): PTH pad 3 [3V3_SENSOR] of J3
+    @(25.6350 mm, 17.1900 mm): PTH pad 4 [3V3_SENSOR] of J1
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(17.0000 mm, 22.5000 mm): Pad 1 [GND] of TP2 on F.Cu
+    @(14.1350 mm, 29.4800 mm): PTH pad 4 [GND] of J2
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(28.1750 mm, 17.1900 mm): PTH pad 2 [GND] of J1
+    @(17.0000 mm, 22.5000 mm): Pad 1 [GND] of TP2 on F.Cu
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(37.1350 mm, 29.4800 mm): PTH pad 4 [GND] of J3
+    @(28.1750 mm, 17.1900 mm): PTH pad 2 [GND] of J1
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(37.0000 mm, 22.5000 mm): Pad 1 [HX_RR] of TP7 on F.Cu
+    @(20.5550 mm, 17.1900 mm): PTH pad 8 [HX_RR] of J1
+[unconnected_items]: Missing connection between items
+    Local override; error
+    @(39.6750 mm, 29.4800 mm): PTH pad 6 [HX_RR] of J3
+    @(37.0000 mm, 22.5000 mm): Pad 1 [HX_RR] of TP7 on F.Cu
+
+** Found 0 Footprint errors **
+
+** Ignored checks **
+    - Footprint has no courtyard defined
+    - Track endpoint not centered on via
+    - Tuning profile track geometries
+    - Footprint doesn't match symbol's footprint filters
+    - Footprint component type doesn't match footprint pads
+
+** End of Report **

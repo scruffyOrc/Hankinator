@@ -1,0 +1,383 @@
+[
+  {
+    "name": "HE PCB",
+    "role": "hall",
+    "width": 37,
+    "height": 20,
+    "parts": [
+      {
+        "ref": "J1",
+        "libid": "Connector_Generic:Conn_01x04",
+        "value": "DH HALL PORT",
+        "fp": "HankinatorLC:Evercom_5501-4P4C-13MM",
+        "nets": {
+          "1": "GND",
+          "2": "HE",
+          "3": null,
+          "4": "3V3_SENSOR"
+        },
+        "uuid": "c767e631-757e-49e2-87c7-d05e9f8ccb33",
+        "root_uuid": "9dbb37a0-615f-43b2-8d70-3fbe9283cd43",
+        "pcb": [
+          7,
+          10,
+          270
+        ],
+        "mpn": "5501-4P4C-13MM",
+        "lcsc": "C3097719",
+        "maker": "EVERCOM",
+        "dnp": false
+      },
+      {
+        "ref": "U1",
+        "libid": "Sensor_Magnetic:DRV5033AJxLPG",
+        "value": "DRV5033AJQLPGM",
+        "fp": "HallLocal:TI_LPG0003A",
+        "nets": {
+          "1": "3V3_SENSOR",
+          "2": "GND",
+          "3": "HALL_N"
+        },
+        "uuid": "c3ddb62c-1132-4ef3-abb3-a27d50e32094",
+        "root_uuid": "9dbb37a0-615f-43b2-8d70-3fbe9283cd43",
+        "pcb": [
+          40,
+          8.73,
+          270
+        ],
+        "mpn": "DRV5033AJQLPGM",
+        "lcsc": "C201608",
+        "maker": "Texas Instruments",
+        "dnp": false
+      },
+      {
+        "ref": "Q1",
+        "libid": "Transistor_FET:AO3401A",
+        "value": "AO3401A",
+        "fp": "Package_TO_SOT_SMD:SOT-23",
+        "nets": {
+          "1": "HALL_N",
+          "2": "3V3_SENSOR",
+          "3": "LED_SWITCHED"
+        },
+        "uuid": "0334f3d3-034c-4020-802c-7adba879c71a",
+        "root_uuid": "9dbb37a0-615f-43b2-8d70-3fbe9283cd43",
+        "pcb": [
+          25,
+          12,
+          0
+        ],
+        "mpn": "AO3401A",
+        "lcsc": "C15127",
+        "maker": "Alpha & Omega",
+        "dnp": false
+      },
+      {
+        "ref": "R1",
+        "libid": "Device:R",
+        "value": "4.7k / pull-up",
+        "fp": "Resistor_SMD:R_0603_1608Metric",
+        "nets": {
+          "1": "3V3_SENSOR",
+          "2": "HALL_N"
+        },
+        "uuid": "359ca99f-b166-4efd-8361-ae4afb49428e",
+        "root_uuid": "9dbb37a0-615f-43b2-8d70-3fbe9283cd43",
+        "pcb": [
+          32,
+          12,
+          0
+        ],
+        "mpn": "0603WAF4701T5E",
+        "lcsc": "C23162",
+        "maker": "UNI-ROYAL",
+        "dnp": false
+      },
+      {
+        "ref": "R2",
+        "libid": "Device:R",
+        "value": "100R / cable",
+        "fp": "Resistor_SMD:R_0603_1608Metric",
+        "nets": {
+          "1": "HALL_N",
+          "2": "HE"
+        },
+        "uuid": "23a1e250-310f-4f19-a5e7-a5792bc1030c",
+        "root_uuid": "9dbb37a0-615f-43b2-8d70-3fbe9283cd43",
+        "pcb": [
+          20,
+          10,
+          0
+        ],
+        "mpn": "0603WAF1000T5E",
+        "lcsc": "C22775",
+        "maker": "UNI-ROYAL",
+        "dnp": false
+      },
+      {
+        "ref": "R3",
+        "libid": "Device:R",
+        "value": "1k / PWR LED",
+        "fp": "Resistor_SMD:R_0603_1608Metric",
+        "nets": {
+          "1": "3V3_SENSOR",
+          "2": "PWR_A"
+        },
+        "uuid": "c82cbce7-a4c5-47fe-a1fa-e1fbc601ca7b",
+        "root_uuid": "9dbb37a0-615f-43b2-8d70-3fbe9283cd43",
+        "pcb": [
+          25,
+          5,
+          0
+        ],
+        "mpn": "0603WAF1001T5E",
+        "lcsc": "C21190",
+        "maker": "UNI-ROYAL",
+        "dnp": false
+      },
+      {
+        "ref": "R4",
+        "libid": "Device:R",
+        "value": "1k / TRIG LED",
+        "fp": "Resistor_SMD:R_0603_1608Metric",
+        "nets": {
+          "1": "LED_SWITCHED",
+          "2": "TRIG_A"
+        },
+        "uuid": "291d6922-00ee-4de1-801c-9acd6fb8b44e",
+        "root_uuid": "9dbb37a0-615f-43b2-8d70-3fbe9283cd43",
+        "pcb": [
+          29,
+          12,
+          0
+        ],
+        "mpn": "0603WAF1001T5E",
+        "lcsc": "C21190",
+        "maker": "UNI-ROYAL",
+        "dnp": false
+      },
+      {
+        "ref": "D1",
+        "libid": "Device:LED",
+        "value": "RED / POWER",
+        "fp": "LED_SMD:LED_0603_1608Metric",
+        "nets": {
+          "1": "GND",
+          "2": "PWR_A"
+        },
+        "uuid": "853b50ae-fecb-4846-b108-3604b0608ddb",
+        "root_uuid": "9dbb37a0-615f-43b2-8d70-3fbe9283cd43",
+        "pcb": [
+          28,
+          5,
+          0
+        ],
+        "mpn": "KT-0603R",
+        "lcsc": "C2286",
+        "maker": "Hubei KENTO",
+        "dnp": false
+      },
+      {
+        "ref": "D2",
+        "libid": "Device:LED",
+        "value": "RED / TRIGGER",
+        "fp": "LED_SMD:LED_0603_1608Metric",
+        "nets": {
+          "1": "GND",
+          "2": "TRIG_A"
+        },
+        "uuid": "ea369985-7bfd-472a-a1b5-26105b23329e",
+        "root_uuid": "9dbb37a0-615f-43b2-8d70-3fbe9283cd43",
+        "pcb": [
+          29,
+          16,
+          0
+        ],
+        "mpn": "KT-0603R",
+        "lcsc": "C2286",
+        "maker": "Hubei KENTO",
+        "dnp": false
+      },
+      {
+        "ref": "C1",
+        "libid": "Device:C",
+        "value": "100n / 50V",
+        "fp": "Capacitor_SMD:C_0603_1608Metric",
+        "nets": {
+          "1": "3V3_SENSOR",
+          "2": "GND"
+        },
+        "uuid": "e51ff130-dd78-4f87-803a-46ec86ee38d0",
+        "root_uuid": "9dbb37a0-615f-43b2-8d70-3fbe9283cd43",
+        "pcb": [
+          35,
+          10,
+          90
+        ],
+        "mpn": "CL10B104KB8NNNC",
+        "lcsc": "C1591",
+        "maker": "Samsung",
+        "dnp": false
+      },
+      {
+        "ref": "C2",
+        "libid": "Device:C",
+        "value": "10u / 25V",
+        "fp": "Capacitor_SMD:C_0805_2012Metric",
+        "nets": {
+          "1": "3V3_SENSOR",
+          "2": "GND"
+        },
+        "uuid": "e6a7bd27-8da5-49a6-8f59-b397ef57d0ad",
+        "root_uuid": "9dbb37a0-615f-43b2-8d70-3fbe9283cd43",
+        "pcb": [
+          17,
+          10,
+          90
+        ],
+        "mpn": "CL21A106KAYNNNE",
+        "lcsc": "C15850",
+        "maker": "Samsung",
+        "dnp": false
+      },
+      {
+        "ref": "TP1",
+        "libid": "Connector:TestPoint",
+        "value": "GND",
+        "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+        "nets": {
+          "1": "GND"
+        },
+        "uuid": "20748671-b2d7-41fc-8405-d2af96178ffd",
+        "root_uuid": "9dbb37a0-615f-43b2-8d70-3fbe9283cd43",
+        "pcb": [
+          24,
+          17,
+          0
+        ],
+        "mpn": "",
+        "lcsc": "",
+        "maker": "",
+        "dnp": false
+      },
+      {
+        "ref": "TP2",
+        "libid": "Connector:TestPoint",
+        "value": "3V3_SENSOR",
+        "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+        "nets": {
+          "1": "3V3_SENSOR"
+        },
+        "uuid": "65aaec7d-b991-4df6-9920-a195ddd2f13c",
+        "root_uuid": "9dbb37a0-615f-43b2-8d70-3fbe9283cd43",
+        "pcb": [
+          28,
+          9,
+          0
+        ],
+        "mpn": "",
+        "lcsc": "",
+        "maker": "",
+        "dnp": false
+      },
+      {
+        "ref": "TP3",
+        "libid": "Connector:TestPoint",
+        "value": "HE",
+        "fp": "TestPoint:TestPoint_Pad_D1.5mm",
+        "nets": {
+          "1": "HE"
+        },
+        "uuid": "523f43a8-0a6f-453d-8eb9-b17f61021880",
+        "root_uuid": "9dbb37a0-615f-43b2-8d70-3fbe9283cd43",
+        "pcb": [
+          23,
+          7,
+          0
+        ],
+        "mpn": "",
+        "lcsc": "",
+        "maker": "",
+        "dnp": false
+      },
+      {
+        "ref": "H1",
+        "libid": "Mechanical:MountingHole",
+        "value": "M3 / 3.2mm NPTH",
+        "fp": "MountingHole:MountingHole_3.2mm_M3",
+        "nets": {},
+        "uuid": "af3a55eb-b8b1-4403-8e3e-c5729e1f218c",
+        "root_uuid": "9dbb37a0-615f-43b2-8d70-3fbe9283cd43",
+        "pcb": [
+          18.5,
+          3.5,
+          0
+        ],
+        "mpn": "",
+        "lcsc": "",
+        "maker": "",
+        "dnp": false
+      },
+      {
+        "ref": "H2",
+        "libid": "Mechanical:MountingHole",
+        "value": "M3 / 3.2mm NPTH",
+        "fp": "MountingHole:MountingHole_3.2mm_M3",
+        "nets": {},
+        "uuid": "d4c2e795-6178-435b-ad57-6bf89d98c74c",
+        "root_uuid": "9dbb37a0-615f-43b2-8d70-3fbe9283cd43",
+        "pcb": [
+          18.5,
+          16.5,
+          0
+        ],
+        "mpn": "",
+        "lcsc": "",
+        "maker": "",
+        "dnp": false
+      },
+      {
+        "ref": "#FLG01",
+        "libid": "power:PWR_FLAG",
+        "value": "PWR_FLAG",
+        "fp": "",
+        "nets": {
+          "1": "3V3_SENSOR"
+        },
+        "uuid": "2a9e01c7-97bb-4ddf-aa35-ac9bd46f9315",
+        "root_uuid": "9dbb37a0-615f-43b2-8d70-3fbe9283cd43",
+        "pcb": null,
+        "mpn": "",
+        "lcsc": "",
+        "maker": "",
+        "dnp": false
+      },
+      {
+        "ref": "#FLG02",
+        "libid": "power:PWR_FLAG",
+        "value": "PWR_FLAG",
+        "fp": "",
+        "nets": {
+          "1": "GND"
+        },
+        "uuid": "dbb6de0c-2065-40d6-ae66-fd05015878bf",
+        "root_uuid": "9dbb37a0-615f-43b2-8d70-3fbe9283cd43",
+        "pcb": null,
+        "mpn": "",
+        "lcsc": "",
+        "maker": "",
+        "dnp": false
+      }
+    ],
+    "cad_outline": [
+      5,
+      0,
+      42,
+      20
+    ],
+    "assembly_origin": [
+      5,
+      20
+    ]
+  }
+]

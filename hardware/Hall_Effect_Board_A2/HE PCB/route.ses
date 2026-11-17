@@ -1,0 +1,282 @@
+(session route
+  (base_design route)
+  (placement
+    (resolution um 10)
+    (component "HallLocal:TI_LPG0003A"
+      (place U1 400000 -87300 front 270)
+    )
+    (component "TestPoint:TestPoint_Pad_D1.5mm"
+      (place TP3 230000 -70000 front 0)
+      (place TP1 240000 -170000 front 0)
+      (place TP2 280000 -90000 front 0)
+    )
+    (component "LED_SMD:LED_0603_1608Metric"
+      (place D1 280000 -50000 front 0)
+      (place D2 290000 -160000 front 0)
+    )
+    (component "Package_TO_SOT_SMD:SOT-23"
+      (place Q1 250000 -120000 front 0)
+    )
+    (component "Resistor_SMD:R_0603_1608Metric"
+      (place R1 320000 -120000 front 0)
+      (place R4 290000 -120000 front 0)
+      (place R2 200000 -100000 front 0)
+      (place R3 250000 -50000 front 0)
+    )
+    (component "Capacitor_SMD:C_0805_2012Metric"
+      (place C2 170000 -100000 front 90)
+    )
+    (component "HankinatorLC:Evercom_5501-4P4C-13MM"
+      (place J1 70000 -100000 front 270)
+    )
+    (component "MountingHole:MountingHole_3.2mm_M3"
+      (place H2 185000 -165000 front 0)
+      (place H1 185000 -35000 front 0)
+    )
+    (component "Capacitor_SMD:C_0603_1608Metric"
+      (place C1 350000 -100000 front 90)
+    )
+  )
+  (was_is
+  )
+  (routes 
+    (resolution um 10)
+    (parser
+      (host_cad "KiCad's Pcbnew")
+      (host_version "10.0.5")
+    )
+    (library_out 
+      (padstack "Via[0-1]_600:300_um"
+        (shape
+          (circle F.Cu 6000 0 0)
+        )
+        (shape
+          (circle B.Cu 6000 0 0)
+        )
+        (attach off)
+      )
+    )
+    (network_out 
+      (net "/HE"
+        (wire
+          (path F.Cu 2000
+            208250 -91750
+            208250 -100000
+          )
+        )
+        (wire
+          (path F.Cu 2000
+            230000 -70000
+            208250 -91750
+          )
+        )
+        (wire
+          (path F.Cu 2000
+            118400 -105100
+            107166 -93866
+            107166 -80144
+            113899 -73411
+            189911 -73411
+            208250 -91750
+          )
+        )
+      )
+      (net "/GND"
+        (wire
+          (path F.Cu 2000
+            240000 -170000
+            272125 -170000
+            282125 -160000
+          )
+        )
+        (wire
+          (path F.Cu 2000
+            180529 -118023
+            232506 -170000
+            240000 -170000
+          )
+        )
+        (wire
+          (path F.Cu 2000
+            170000 -90500
+            180529 -101029
+            180529 -118023
+          )
+        )
+        (wire
+          (path F.Cu 2000
+            104017 -115300
+            106740 -118023
+            180529 -118023
+          )
+        )
+        (wire
+          (path F.Cu 2000
+            93000 -115300
+            104017 -115300
+          )
+        )
+        (wire
+          (path F.Cu 2000
+            350000 -92250
+            314375 -92250
+            272125 -50000
+          )
+        )
+      )
+      (net "/PWR_A"
+        (wire
+          (path F.Cu 2000
+            271189 -39795
+            277670 -39795
+            287875 -50000
+          )
+        )
+        (wire
+          (path F.Cu 1500
+            266742 -42240
+            268744 -42240
+            271189 -39795
+          )
+        )
+        (wire
+          (path F.Cu 2000
+            258250 -50000
+            266010 -42240
+            266742 -42240
+          )
+        )
+      )
+      (net "/3V3_SENSOR"
+        (wire
+          (path F.Cu 2000
+            280000 -90000
+            230308 -90000
+            212388 -107920
+            203702 -107920
+            199918 -104136
+            199918 -95705
+            186512 -82299
+            120801 -82299
+            118400 -84700
+          )
+        )
+        (wire
+          (path F.Cu 2000
+            400000 -87300
+            370450 -87300
+            350000 -107750
+          )
+        )
+        (wire
+          (path F.Cu 2000
+            297750 -107750
+            280000 -90000
+          )
+        )
+        (wire
+          (path F.Cu 2000
+            311750 -107750
+            297750 -107750
+          )
+        )
+        (wire
+          (path F.Cu 2000
+            240625 -129500
+            284307 -129500
+            290000 -123807
+            290000 -115500
+            297750 -107750
+          )
+        )
+        (wire
+          (path F.Cu 2000
+            350000 -107750
+            311750 -107750
+          )
+        )
+        (wire
+          (path F.Cu 2000
+            311750 -107750
+            311750 -120000
+          )
+        )
+        (wire
+          (path F.Cu 2000
+            118400 -84700
+            143200 -109500
+            170000 -109500
+          )
+        )
+        (wire
+          (path F.Cu 2000
+            280000 -90000
+            241750 -51750
+            241750 -50000
+          )
+        )
+      )
+      (net "/TRIG_A"
+        (wire
+          (path F.Cu 2000
+            298250 -120000
+            298250 -159625
+            297875 -160000
+          )
+        )
+      )
+      (net "/HALL_N"
+        (wire
+          (path F.Cu 2000
+            328250 -120000
+            328250 -142698
+            302829 -168119
+            292851 -168119
+            289525 -164793
+            289525 -154257
+            287493 -152225
+            248941 -152225
+            230083 -133367
+            230083 -112007
+          )
+        )
+        (wire
+          (path F.Cu 2000
+            230083 -112007
+            231590 -110500
+            240625 -110500
+          )
+        )
+        (wire
+          (path F.Cu 2000
+            191750 -100000
+            191750 -102130
+            201627 -112007
+            230083 -112007
+          )
+        )
+        (wire
+          (path F.Cu 2000
+            400000 -112700
+            400000 -121067
+          )
+        )
+        (wire
+          (path F.Cu 2000
+            400000 -121067
+            329317 -121067
+            328250 -120000
+          )
+        )
+      )
+      (net "/LED_SWITCHED"
+        (wire
+          (path F.Cu 2000
+            281750 -120000
+            259375 -120000
+          )
+        )
+      )
+    )
+  )
+)

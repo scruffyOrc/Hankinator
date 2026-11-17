@@ -1,0 +1,1 @@
+Run audit_design.py with the Python interpreter bundled with KiCad 10 (pcbnew required). It checks the saved PCB files and exported XML netlists. After changing schematics, regenerate the netlists and native ERC/DRC first. This is an automated same-author desk check, not independent physical signoff.

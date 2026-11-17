@@ -1,0 +1,327 @@
+# Electrical and orientation desk audit
+
+Passed: 317; failed: 0.
+
+Desk audit by same author using independent source representations; not an independent human signoff or physical plug continuity test.
+
+The end-to-end check uses KiCad-exported XML netlists, five board instances, contact-number-preserving cables and R4/R5 continuity. It does not treat the schematic generator manifest as the expected interface.
+
+All source-coordinate checks use the saved board footprint positions, not a diagram overlay.
+
+- PASS: breakout J1.1 = HX_SCK
+- PASS: breakout J1.2 = GND
+- PASS: breakout J1.3 = HX_FL
+- PASS: breakout J1.4 = 3V3_SENSOR
+- PASS: breakout J1.5 = NC
+- PASS: breakout J1.6 = HX_RL
+- PASS: breakout J1.7 = HX_FR
+- PASS: breakout J1.8 = HX_RR
+- PASS: breakout J2.1 = HX_FL
+- PASS: breakout J2.2 = HX_SCK
+- PASS: breakout J2.3 = 3V3_SENSOR
+- PASS: breakout J2.4 = GND
+- PASS: breakout J2.5 = NC
+- PASS: breakout J2.6 = HX_RL
+- PASS: breakout J3.1 = HX_FR
+- PASS: breakout J3.2 = HX_SCK
+- PASS: breakout J3.3 = 3V3_SENSOR
+- PASS: breakout J3.4 = GND
+- PASS: breakout J3.5 = NC
+- PASS: breakout J3.6 = HX_RR
+- PASS: breakout schematic/PCB net parity TP6.1
+- PASS: breakout schematic/PCB net parity TP5.1
+- PASS: breakout schematic/PCB net parity J2.1
+- PASS: breakout schematic/PCB net parity J2.2
+- PASS: breakout schematic/PCB net parity J2.3
+- PASS: breakout schematic/PCB net parity J2.4
+- PASS: breakout schematic/PCB net parity J2.5
+- PASS: breakout schematic/PCB net parity J2.6
+- PASS: breakout J2 pin 1: drawing to placed pad transform
+- PASS: breakout J2.1 0.90mm PTH
+- PASS: breakout J2 pin 2: drawing to placed pad transform
+- PASS: breakout J2.2 0.90mm PTH
+- PASS: breakout J2 pin 3: drawing to placed pad transform
+- PASS: breakout J2.3 0.90mm PTH
+- PASS: breakout J2 pin 4: drawing to placed pad transform
+- PASS: breakout J2.4 0.90mm PTH
+- PASS: breakout J2 pin 5: drawing to placed pad transform
+- PASS: breakout J2.5 0.90mm PTH
+- PASS: breakout J2 pin 6: drawing to placed pad transform
+- PASS: breakout J2.6 0.90mm PTH
+- PASS: breakout J2 mechanical holes match drawing
+- PASS: breakout schematic/PCB net parity TP2.1
+- PASS: breakout schematic/PCB net parity J1.1
+- PASS: breakout schematic/PCB net parity J1.2
+- PASS: breakout schematic/PCB net parity J1.3
+- PASS: breakout schematic/PCB net parity J1.4
+- PASS: breakout schematic/PCB net parity J1.5
+- PASS: breakout schematic/PCB net parity J1.6
+- PASS: breakout schematic/PCB net parity J1.7
+- PASS: breakout schematic/PCB net parity J1.8
+- PASS: breakout J1 pin 1: drawing to placed pad transform
+- PASS: breakout J1.1 0.90mm PTH
+- PASS: breakout J1 pin 2: drawing to placed pad transform
+- PASS: breakout J1.2 0.90mm PTH
+- PASS: breakout J1 pin 3: drawing to placed pad transform
+- PASS: breakout J1.3 0.90mm PTH
+- PASS: breakout J1 pin 4: drawing to placed pad transform
+- PASS: breakout J1.4 0.90mm PTH
+- PASS: breakout J1 pin 5: drawing to placed pad transform
+- PASS: breakout J1.5 0.90mm PTH
+- PASS: breakout J1 pin 6: drawing to placed pad transform
+- PASS: breakout J1.6 0.90mm PTH
+- PASS: breakout J1 pin 7: drawing to placed pad transform
+- PASS: breakout J1.7 0.90mm PTH
+- PASS: breakout J1 pin 8: drawing to placed pad transform
+- PASS: breakout J1.8 0.90mm PTH
+- PASS: breakout J1 mechanical holes match drawing
+- PASS: breakout schematic/PCB net parity TP4.1
+- PASS: breakout schematic/PCB net parity TP1.1
+- PASS: breakout schematic/PCB net parity TP7.1
+- PASS: breakout schematic/PCB net parity TP3.1
+- PASS: breakout schematic/PCB net parity J3.1
+- PASS: breakout schematic/PCB net parity J3.2
+- PASS: breakout schematic/PCB net parity J3.3
+- PASS: breakout schematic/PCB net parity J3.4
+- PASS: breakout schematic/PCB net parity J3.5
+- PASS: breakout schematic/PCB net parity J3.6
+- PASS: breakout J3 pin 1: drawing to placed pad transform
+- PASS: breakout J3.1 0.90mm PTH
+- PASS: breakout J3 pin 2: drawing to placed pad transform
+- PASS: breakout J3.2 0.90mm PTH
+- PASS: breakout J3 pin 3: drawing to placed pad transform
+- PASS: breakout J3.3 0.90mm PTH
+- PASS: breakout J3 pin 4: drawing to placed pad transform
+- PASS: breakout J3.4 0.90mm PTH
+- PASS: breakout J3 pin 5: drawing to placed pad transform
+- PASS: breakout J3.5 0.90mm PTH
+- PASS: breakout J3 pin 6: drawing to placed pad transform
+- PASS: breakout J3.6 0.90mm PTH
+- PASS: breakout J3 mechanical holes match drawing
+- PASS: breakout no routing or filled copper released
+- PASS: breakout outline dimensions (50, 44)mm (edge stroke included by API)
+- PASS: rear-smart-foot J1.1 = FRONT_DOUT
+- PASS: rear-smart-foot J1.2 = HX_SCK
+- PASS: rear-smart-foot J1.3 = 3V3_SENSOR
+- PASS: rear-smart-foot J1.4 = GND
+- PASS: rear-smart-foot J1.5 = NC
+- PASS: rear-smart-foot J1.6 = REAR_DOUT
+- PASS: rear-smart-foot J2.1 = FRONT_DOUT
+- PASS: rear-smart-foot J2.2 = HX_SCK
+- PASS: rear-smart-foot J2.3 = 3V3_SENSOR
+- PASS: rear-smart-foot J2.4 = GND
+- PASS: rear-smart-foot schematic/PCB net parity R5.1
+- PASS: rear-smart-foot schematic/PCB net parity R5.2
+- PASS: rear-smart-foot schematic/PCB net parity R6.1
+- PASS: rear-smart-foot schematic/PCB net parity R6.2
+- PASS: rear-smart-foot schematic/PCB net parity TP3.1
+- PASS: rear-smart-foot schematic/PCB net parity R2.1
+- PASS: rear-smart-foot schematic/PCB net parity R2.2
+- PASS: rear-smart-foot schematic/PCB net parity J2.1
+- PASS: rear-smart-foot schematic/PCB net parity J2.2
+- PASS: rear-smart-foot schematic/PCB net parity J2.3
+- PASS: rear-smart-foot schematic/PCB net parity J2.4
+- PASS: rear-smart-foot J2 pin 1: drawing to placed pad transform
+- PASS: rear-smart-foot J2.1 0.90mm PTH
+- PASS: rear-smart-foot J2 pin 2: drawing to placed pad transform
+- PASS: rear-smart-foot J2.2 0.90mm PTH
+- PASS: rear-smart-foot J2 pin 3: drawing to placed pad transform
+- PASS: rear-smart-foot J2.3 0.90mm PTH
+- PASS: rear-smart-foot J2 pin 4: drawing to placed pad transform
+- PASS: rear-smart-foot J2.4 0.90mm PTH
+- PASS: rear-smart-foot J2 mechanical holes match drawing
+- PASS: rear-smart-foot schematic/PCB net parity TP2.1
+- PASS: rear-smart-foot schematic/PCB net parity C4.1
+- PASS: rear-smart-foot schematic/PCB net parity C4.2
+- PASS: rear-smart-foot schematic/PCB net parity C1.1
+- PASS: rear-smart-foot schematic/PCB net parity C1.2
+- PASS: rear-smart-foot schematic/PCB net parity R3.1
+- PASS: rear-smart-foot schematic/PCB net parity R3.2
+- PASS: rear-smart-foot schematic/PCB net parity J1.1
+- PASS: rear-smart-foot schematic/PCB net parity J1.2
+- PASS: rear-smart-foot schematic/PCB net parity J1.3
+- PASS: rear-smart-foot schematic/PCB net parity J1.4
+- PASS: rear-smart-foot schematic/PCB net parity J1.5
+- PASS: rear-smart-foot schematic/PCB net parity J1.6
+- PASS: rear-smart-foot J1 pin 1: drawing to placed pad transform
+- PASS: rear-smart-foot J1.1 0.90mm PTH
+- PASS: rear-smart-foot J1 pin 2: drawing to placed pad transform
+- PASS: rear-smart-foot J1.2 0.90mm PTH
+- PASS: rear-smart-foot J1 pin 3: drawing to placed pad transform
+- PASS: rear-smart-foot J1.3 0.90mm PTH
+- PASS: rear-smart-foot J1 pin 4: drawing to placed pad transform
+- PASS: rear-smart-foot J1.4 0.90mm PTH
+- PASS: rear-smart-foot J1 pin 5: drawing to placed pad transform
+- PASS: rear-smart-foot J1.5 0.90mm PTH
+- PASS: rear-smart-foot J1 pin 6: drawing to placed pad transform
+- PASS: rear-smart-foot J1.6 0.90mm PTH
+- PASS: rear-smart-foot J1 mechanical holes match drawing
+- PASS: rear-smart-foot schematic/PCB net parity R4.1
+- PASS: rear-smart-foot schematic/PCB net parity R4.2
+- PASS: rear-smart-foot schematic/PCB net parity C3.1
+- PASS: rear-smart-foot schematic/PCB net parity C3.2
+- PASS: rear-smart-foot schematic/PCB net parity C2.1
+- PASS: rear-smart-foot schematic/PCB net parity C2.2
+- PASS: rear-smart-foot schematic/PCB net parity C5.1
+- PASS: rear-smart-foot schematic/PCB net parity C5.2
+- PASS: rear-smart-foot schematic/PCB net parity J3.1
+- PASS: rear-smart-foot schematic/PCB net parity J3.2
+- PASS: rear-smart-foot schematic/PCB net parity J3.3
+- PASS: rear-smart-foot schematic/PCB net parity J3.4
+- PASS: rear-smart-foot schematic/PCB net parity R1.1
+- PASS: rear-smart-foot schematic/PCB net parity R1.2
+- PASS: rear-smart-foot schematic/PCB net parity TP4.1
+- PASS: rear-smart-foot schematic/PCB net parity U1.1
+- PASS: rear-smart-foot schematic/PCB net parity U1.2
+- PASS: rear-smart-foot schematic/PCB net parity U1.3
+- PASS: rear-smart-foot schematic/PCB net parity U1.4
+- PASS: rear-smart-foot schematic/PCB net parity U1.5
+- PASS: rear-smart-foot schematic/PCB net parity U1.6
+- PASS: rear-smart-foot schematic/PCB net parity U1.7
+- PASS: rear-smart-foot schematic/PCB net parity U1.8
+- PASS: rear-smart-foot schematic/PCB net parity U1.9
+- PASS: rear-smart-foot schematic/PCB net parity U1.10
+- PASS: rear-smart-foot schematic/PCB net parity U1.11
+- PASS: rear-smart-foot schematic/PCB net parity U1.12
+- PASS: rear-smart-foot schematic/PCB net parity U1.13
+- PASS: rear-smart-foot schematic/PCB net parity U1.14
+- PASS: rear-smart-foot schematic/PCB net parity U1.15
+- PASS: rear-smart-foot schematic/PCB net parity U1.16
+- PASS: rear-smart-foot schematic/PCB net parity TP1.1
+- PASS: rear-smart-foot no routing or filled copper released
+- PASS: rear-smart-foot outline dimensions (72, 18)mm (edge stroke included by API)
+- PASS: rear-smart-foot HX711 pin 1 reference-circuit check
+- PASS: rear-smart-foot HX711 pin 2 reference-circuit check
+- PASS: rear-smart-foot HX711 pin 3 reference-circuit check
+- PASS: rear-smart-foot HX711 pin 4 reference-circuit check
+- PASS: rear-smart-foot HX711 pin 5 reference-circuit check
+- PASS: rear-smart-foot HX711 pin 6 reference-circuit check
+- PASS: rear-smart-foot HX711 pin 7 reference-circuit check
+- PASS: rear-smart-foot HX711 pin 8 reference-circuit check
+- PASS: rear-smart-foot HX711 pin 9 reference-circuit check
+- PASS: rear-smart-foot HX711 pin 10 reference-circuit check
+- PASS: rear-smart-foot HX711 pin 11 reference-circuit check
+- PASS: rear-smart-foot HX711 pin 12 reference-circuit check
+- PASS: rear-smart-foot HX711 pin 13 reference-circuit check
+- PASS: rear-smart-foot HX711 pin 14 reference-circuit check
+- PASS: rear-smart-foot HX711 pin 15 reference-circuit check
+- PASS: rear-smart-foot HX711 pin 16 reference-circuit check
+- PASS: rear-smart-foot bridge connector 1
+- PASS: rear-smart-foot bridge connector 2
+- PASS: rear-smart-foot bridge connector 3
+- PASS: rear-smart-foot bridge connector 4
+- PASS: rear FRONT_DOUT connects only J1.1 and J2.1; no local HX711 branch
+- PASS: front-smart-foot J1.1 = FRONT_DOUT
+- PASS: front-smart-foot J1.2 = HX_SCK
+- PASS: front-smart-foot J1.3 = 3V3_SENSOR
+- PASS: front-smart-foot J1.4 = GND
+- PASS: front-smart-foot schematic/PCB net parity J1.1
+- PASS: front-smart-foot schematic/PCB net parity J1.2
+- PASS: front-smart-foot schematic/PCB net parity J1.3
+- PASS: front-smart-foot schematic/PCB net parity J1.4
+- PASS: front-smart-foot J1 pin 1: drawing to placed pad transform
+- PASS: front-smart-foot J1.1 0.90mm PTH
+- PASS: front-smart-foot J1 pin 2: drawing to placed pad transform
+- PASS: front-smart-foot J1.2 0.90mm PTH
+- PASS: front-smart-foot J1 pin 3: drawing to placed pad transform
+- PASS: front-smart-foot J1.3 0.90mm PTH
+- PASS: front-smart-foot J1 pin 4: drawing to placed pad transform
+- PASS: front-smart-foot J1.4 0.90mm PTH
+- PASS: front-smart-foot J1 mechanical holes match drawing
+- PASS: front-smart-foot schematic/PCB net parity C1.1
+- PASS: front-smart-foot schematic/PCB net parity C1.2
+- PASS: front-smart-foot schematic/PCB net parity C3.1
+- PASS: front-smart-foot schematic/PCB net parity C3.2
+- PASS: front-smart-foot schematic/PCB net parity C2.1
+- PASS: front-smart-foot schematic/PCB net parity C2.2
+- PASS: front-smart-foot schematic/PCB net parity TP2.1
+- PASS: front-smart-foot schematic/PCB net parity R3.1
+- PASS: front-smart-foot schematic/PCB net parity R3.2
+- PASS: front-smart-foot schematic/PCB net parity C4.1
+- PASS: front-smart-foot schematic/PCB net parity C4.2
+- PASS: front-smart-foot schematic/PCB net parity J3.1
+- PASS: front-smart-foot schematic/PCB net parity J3.2
+- PASS: front-smart-foot schematic/PCB net parity J3.3
+- PASS: front-smart-foot schematic/PCB net parity J3.4
+- PASS: front-smart-foot schematic/PCB net parity R4.1
+- PASS: front-smart-foot schematic/PCB net parity R4.2
+- PASS: front-smart-foot schematic/PCB net parity TP3.1
+- PASS: front-smart-foot schematic/PCB net parity R5.1
+- PASS: front-smart-foot schematic/PCB net parity R5.2
+- PASS: front-smart-foot schematic/PCB net parity R2.1
+- PASS: front-smart-foot schematic/PCB net parity R2.2
+- PASS: front-smart-foot schematic/PCB net parity TP4.1
+- PASS: front-smart-foot schematic/PCB net parity U1.1
+- PASS: front-smart-foot schematic/PCB net parity U1.2
+- PASS: front-smart-foot schematic/PCB net parity U1.3
+- PASS: front-smart-foot schematic/PCB net parity U1.4
+- PASS: front-smart-foot schematic/PCB net parity U1.5
+- PASS: front-smart-foot schematic/PCB net parity U1.6
+- PASS: front-smart-foot schematic/PCB net parity U1.7
+- PASS: front-smart-foot schematic/PCB net parity U1.8
+- PASS: front-smart-foot schematic/PCB net parity U1.9
+- PASS: front-smart-foot schematic/PCB net parity U1.10
+- PASS: front-smart-foot schematic/PCB net parity U1.11
+- PASS: front-smart-foot schematic/PCB net parity U1.12
+- PASS: front-smart-foot schematic/PCB net parity U1.13
+- PASS: front-smart-foot schematic/PCB net parity U1.14
+- PASS: front-smart-foot schematic/PCB net parity U1.15
+- PASS: front-smart-foot schematic/PCB net parity U1.16
+- PASS: front-smart-foot schematic/PCB net parity R1.1
+- PASS: front-smart-foot schematic/PCB net parity R1.2
+- PASS: front-smart-foot schematic/PCB net parity TP1.1
+- PASS: front-smart-foot schematic/PCB net parity C5.1
+- PASS: front-smart-foot schematic/PCB net parity C5.2
+- PASS: front-smart-foot schematic/PCB net parity R6.1
+- PASS: front-smart-foot schematic/PCB net parity R6.2
+- PASS: front-smart-foot no routing or filled copper released
+- PASS: front-smart-foot outline dimensions (56, 18)mm (edge stroke included by API)
+- PASS: front-smart-foot HX711 pin 1 reference-circuit check
+- PASS: front-smart-foot HX711 pin 2 reference-circuit check
+- PASS: front-smart-foot HX711 pin 3 reference-circuit check
+- PASS: front-smart-foot HX711 pin 4 reference-circuit check
+- PASS: front-smart-foot HX711 pin 5 reference-circuit check
+- PASS: front-smart-foot HX711 pin 6 reference-circuit check
+- PASS: front-smart-foot HX711 pin 7 reference-circuit check
+- PASS: front-smart-foot HX711 pin 8 reference-circuit check
+- PASS: front-smart-foot HX711 pin 9 reference-circuit check
+- PASS: front-smart-foot HX711 pin 10 reference-circuit check
+- PASS: front-smart-foot HX711 pin 11 reference-circuit check
+- PASS: front-smart-foot HX711 pin 12 reference-circuit check
+- PASS: front-smart-foot HX711 pin 13 reference-circuit check
+- PASS: front-smart-foot HX711 pin 14 reference-circuit check
+- PASS: front-smart-foot HX711 pin 15 reference-circuit check
+- PASS: front-smart-foot HX711 pin 16 reference-circuit check
+- PASS: front-smart-foot bridge connector 1
+- PASS: front-smart-foot bridge connector 2
+- PASS: front-smart-foot bridge connector 3
+- PASS: front-smart-foot bridge connector 4
+- PASS: Harness DOUT FL: HX711.12 -> split J1.3
+- PASS: FL DOUT isolated from RL
+- PASS: FL DOUT isolated from RR
+- PASS: FL DOUT isolated from FR
+- PASS: FL common SCK reaches HX711.11 through local R5
+- PASS: FL supply reaches DVDD
+- PASS: FL ground reaches AGND
+- PASS: Harness DOUT RL: HX711.12 -> split J1.6
+- PASS: RL DOUT isolated from RR
+- PASS: RL DOUT isolated from FL
+- PASS: RL DOUT isolated from FR
+- PASS: RL common SCK reaches HX711.11 through local R5
+- PASS: RL supply reaches DVDD
+- PASS: RL ground reaches AGND
+- PASS: Harness DOUT FR: HX711.12 -> split J1.7
+- PASS: FR DOUT isolated from RL
+- PASS: FR DOUT isolated from RR
+- PASS: FR DOUT isolated from FL
+- PASS: FR common SCK reaches HX711.11 through local R5
+- PASS: FR supply reaches DVDD
+- PASS: FR ground reaches AGND
+- PASS: Harness DOUT RR: HX711.12 -> split J1.8
+- PASS: RR DOUT isolated from RL
+- PASS: RR DOUT isolated from FL
+- PASS: RR DOUT isolated from FR
+- PASS: RR common SCK reaches HX711.11 through local R5
+- PASS: RR supply reaches DVDD
+- PASS: RR ground reaches AGND
+- PASS: 8P8C pin 5 reserved isolated

@@ -1,0 +1,11 @@
+Hand/wave solder after SMD assembly:
+U1 Pico sockets/module
+U2 TMC2209 sockets/module
+J1 EXP1
+J2 EXP2
+J3 DC jack
+J4 motor header
+J5 TMC VREF/DIAG socket
+J6 expansion header
+J8 HX711 smart-foot header
+TP1-TP11 optional test posts

@@ -1,0 +1,1275 @@
+{
+  "checks_passed": 317,
+  "checks_failed": 0,
+  "checks": [
+    {
+      "pass": true,
+      "check": "breakout J1.1 = HX_SCK"
+    },
+    {
+      "pass": true,
+      "check": "breakout J1.2 = GND"
+    },
+    {
+      "pass": true,
+      "check": "breakout J1.3 = HX_FL"
+    },
+    {
+      "pass": true,
+      "check": "breakout J1.4 = 3V3_SENSOR"
+    },
+    {
+      "pass": true,
+      "check": "breakout J1.5 = NC"
+    },
+    {
+      "pass": true,
+      "check": "breakout J1.6 = HX_RL"
+    },
+    {
+      "pass": true,
+      "check": "breakout J1.7 = HX_FR"
+    },
+    {
+      "pass": true,
+      "check": "breakout J1.8 = HX_RR"
+    },
+    {
+      "pass": true,
+      "check": "breakout J2.1 = HX_FL"
+    },
+    {
+      "pass": true,
+      "check": "breakout J2.2 = HX_SCK"
+    },
+    {
+      "pass": true,
+      "check": "breakout J2.3 = 3V3_SENSOR"
+    },
+    {
+      "pass": true,
+      "check": "breakout J2.4 = GND"
+    },
+    {
+      "pass": true,
+      "check": "breakout J2.5 = NC"
+    },
+    {
+      "pass": true,
+      "check": "breakout J2.6 = HX_RL"
+    },
+    {
+      "pass": true,
+      "check": "breakout J3.1 = HX_FR"
+    },
+    {
+      "pass": true,
+      "check": "breakout J3.2 = HX_SCK"
+    },
+    {
+      "pass": true,
+      "check": "breakout J3.3 = 3V3_SENSOR"
+    },
+    {
+      "pass": true,
+      "check": "breakout J3.4 = GND"
+    },
+    {
+      "pass": true,
+      "check": "breakout J3.5 = NC"
+    },
+    {
+      "pass": true,
+      "check": "breakout J3.6 = HX_RR"
+    },
+    {
+      "pass": true,
+      "check": "breakout schematic/PCB net parity TP6.1"
+    },
+    {
+      "pass": true,
+      "check": "breakout schematic/PCB net parity TP5.1"
+    },
+    {
+      "pass": true,
+      "check": "breakout schematic/PCB net parity J2.1"
+    },
+    {
+      "pass": true,
+      "check": "breakout schematic/PCB net parity J2.2"
+    },
+    {
+      "pass": true,
+      "check": "breakout schematic/PCB net parity J2.3"
+    },
+    {
+      "pass": true,
+      "check": "breakout schematic/PCB net parity J2.4"
+    },
+    {
+      "pass": true,
+      "check": "breakout schematic/PCB net parity J2.5"
+    },
+    {
+      "pass": true,
+      "check": "breakout schematic/PCB net parity J2.6"
+    },
+    {
+      "pass": true,
+      "check": "breakout J2 pin 1: drawing to placed pad transform"
+    },
+    {
+      "pass": true,
+      "check": "breakout J2.1 0.90mm PTH"
+    },
+    {
+      "pass": true,
+      "check": "breakout J2 pin 2: drawing to placed pad transform"
+    },
+    {
+      "pass": true,
+      "check": "breakout J2.2 0.90mm PTH"
+    },
+    {
+      "pass": true,
+      "check": "breakout J2 pin 3: drawing to placed pad transform"
+    },
+    {
+      "pass": true,
+      "check": "breakout J2.3 0.90mm PTH"
+    },
+    {
+      "pass": true,
+      "check": "breakout J2 pin 4: drawing to placed pad transform"
+    },
+    {
+      "pass": true,
+      "check": "breakout J2.4 0.90mm PTH"
+    },
+    {
+      "pass": true,
+      "check": "breakout J2 pin 5: drawing to placed pad transform"
+    },
+    {
+      "pass": true,
+      "check": "breakout J2.5 0.90mm PTH"
+    },
+    {
+      "pass": true,
+      "check": "breakout J2 pin 6: drawing to placed pad transform"
+    },
+    {
+      "pass": true,
+      "check": "breakout J2.6 0.90mm PTH"
+    },
+    {
+      "pass": true,
+      "check": "breakout J2 mechanical holes match drawing"
+    },
+    {
+      "pass": true,
+      "check": "breakout schematic/PCB net parity TP2.1"
+    },
+    {
+      "pass": true,
+      "check": "breakout schematic/PCB net parity J1.1"
+    },
+    {
+      "pass": true,
+      "check": "breakout schematic/PCB net parity J1.2"
+    },
+    {
+      "pass": true,
+      "check": "breakout schematic/PCB net parity J1.3"
+    },
+    {
+      "pass": true,
+      "check": "breakout schematic/PCB net parity J1.4"
+    },
+    {
+      "pass": true,
+      "check": "breakout schematic/PCB net parity J1.5"
+    },
+    {
+      "pass": true,
+      "check": "breakout schematic/PCB net parity J1.6"
+    },
+    {
+      "pass": true,
+      "check": "breakout schematic/PCB net parity J1.7"
+    },
+    {
+      "pass": true,
+      "check": "breakout schematic/PCB net parity J1.8"
+    },
+    {
+      "pass": true,
+      "check": "breakout J1 pin 1: drawing to placed pad transform"
+    },
+    {
+      "pass": true,
+      "check": "breakout J1.1 0.90mm PTH"
+    },
+    {
+      "pass": true,
+      "check": "breakout J1 pin 2: drawing to placed pad transform"
+    },
+    {
+      "pass": true,
+      "check": "breakout J1.2 0.90mm PTH"
+    },
+    {
+      "pass": true,
+      "check": "breakout J1 pin 3: drawing to placed pad transform"
+    },
+    {
+      "pass": true,
+      "check": "breakout J1.3 0.90mm PTH"
+    },
+    {
+      "pass": true,
+      "check": "breakout J1 pin 4: drawing to placed pad transform"
+    },
+    {
+      "pass": true,
+      "check": "breakout J1.4 0.90mm PTH"
+    },
+    {
+      "pass": true,
+      "check": "breakout J1 pin 5: drawing to placed pad transform"
+    },
+    {
+      "pass": true,
+      "check": "breakout J1.5 0.90mm PTH"
+    },
+    {
+      "pass": true,
+      "check": "breakout J1 pin 6: drawing to placed pad transform"
+    },
+    {
+      "pass": true,
+      "check": "breakout J1.6 0.90mm PTH"
+    },
+    {
+      "pass": true,
+      "check": "breakout J1 pin 7: drawing to placed pad transform"
+    },
+    {
+      "pass": true,
+      "check": "breakout J1.7 0.90mm PTH"
+    },
+    {
+      "pass": true,
+      "check": "breakout J1 pin 8: drawing to placed pad transform"
+    },
+    {
+      "pass": true,
+      "check": "breakout J1.8 0.90mm PTH"
+    },
+    {
+      "pass": true,
+      "check": "breakout J1 mechanical holes match drawing"
+    },
+    {
+      "pass": true,
+      "check": "breakout schematic/PCB net parity TP4.1"
+    },
+    {
+      "pass": true,
+      "check": "breakout schematic/PCB net parity TP1.1"
+    },
+    {
+      "pass": true,
+      "check": "breakout schematic/PCB net parity TP7.1"
+    },
+    {
+      "pass": true,
+      "check": "breakout schematic/PCB net parity TP3.1"
+    },
+    {
+      "pass": true,
+      "check": "breakout schematic/PCB net parity J3.1"
+    },
+    {
+      "pass": true,
+      "check": "breakout schematic/PCB net parity J3.2"
+    },
+    {
+      "pass": true,
+      "check": "breakout schematic/PCB net parity J3.3"
+    },
+    {
+      "pass": true,
+      "check": "breakout schematic/PCB net parity J3.4"
+    },
+    {
+      "pass": true,
+      "check": "breakout schematic/PCB net parity J3.5"
+    },
+    {
+      "pass": true,
+      "check": "breakout schematic/PCB net parity J3.6"
+    },
+    {
+      "pass": true,
+      "check": "breakout J3 pin 1: drawing to placed pad transform"
+    },
+    {
+      "pass": true,
+      "check": "breakout J3.1 0.90mm PTH"
+    },
+    {
+      "pass": true,
+      "check": "breakout J3 pin 2: drawing to placed pad transform"
+    },
+    {
+      "pass": true,
+      "check": "breakout J3.2 0.90mm PTH"
+    },
+    {
+      "pass": true,
+      "check": "breakout J3 pin 3: drawing to placed pad transform"
+    },
+    {
+      "pass": true,
+      "check": "breakout J3.3 0.90mm PTH"
+    },
+    {
+      "pass": true,
+      "check": "breakout J3 pin 4: drawing to placed pad transform"
+    },
+    {
+      "pass": true,
+      "check": "breakout J3.4 0.90mm PTH"
+    },
+    {
+      "pass": true,
+      "check": "breakout J3 pin 5: drawing to placed pad transform"
+    },
+    {
+      "pass": true,
+      "check": "breakout J3.5 0.90mm PTH"
+    },
+    {
+      "pass": true,
+      "check": "breakout J3 pin 6: drawing to placed pad transform"
+    },
+    {
+      "pass": true,
+      "check": "breakout J3.6 0.90mm PTH"
+    },
+    {
+      "pass": true,
+      "check": "breakout J3 mechanical holes match drawing"
+    },
+    {
+      "pass": true,
+      "check": "breakout no routing or filled copper released"
+    },
+    {
+      "pass": true,
+      "check": "breakout outline dimensions (50, 44)mm (edge stroke included by API)"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot J1.1 = FRONT_DOUT"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot J1.2 = HX_SCK"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot J1.3 = 3V3_SENSOR"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot J1.4 = GND"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot J1.5 = NC"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot J1.6 = REAR_DOUT"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot J2.1 = FRONT_DOUT"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot J2.2 = HX_SCK"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot J2.3 = 3V3_SENSOR"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot J2.4 = GND"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity R5.1"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity R5.2"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity R6.1"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity R6.2"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity TP3.1"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity R2.1"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity R2.2"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity J2.1"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity J2.2"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity J2.3"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity J2.4"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot J2 pin 1: drawing to placed pad transform"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot J2.1 0.90mm PTH"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot J2 pin 2: drawing to placed pad transform"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot J2.2 0.90mm PTH"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot J2 pin 3: drawing to placed pad transform"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot J2.3 0.90mm PTH"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot J2 pin 4: drawing to placed pad transform"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot J2.4 0.90mm PTH"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot J2 mechanical holes match drawing"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity TP2.1"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity C4.1"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity C4.2"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity C1.1"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity C1.2"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity R3.1"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity R3.2"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity J1.1"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity J1.2"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity J1.3"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity J1.4"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity J1.5"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity J1.6"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot J1 pin 1: drawing to placed pad transform"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot J1.1 0.90mm PTH"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot J1 pin 2: drawing to placed pad transform"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot J1.2 0.90mm PTH"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot J1 pin 3: drawing to placed pad transform"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot J1.3 0.90mm PTH"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot J1 pin 4: drawing to placed pad transform"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot J1.4 0.90mm PTH"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot J1 pin 5: drawing to placed pad transform"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot J1.5 0.90mm PTH"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot J1 pin 6: drawing to placed pad transform"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot J1.6 0.90mm PTH"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot J1 mechanical holes match drawing"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity R4.1"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity R4.2"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity C3.1"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity C3.2"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity C2.1"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity C2.2"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity C5.1"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity C5.2"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity J3.1"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity J3.2"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity J3.3"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity J3.4"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity R1.1"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity R1.2"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity TP4.1"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity U1.1"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity U1.2"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity U1.3"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity U1.4"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity U1.5"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity U1.6"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity U1.7"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity U1.8"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity U1.9"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity U1.10"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity U1.11"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity U1.12"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity U1.13"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity U1.14"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity U1.15"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity U1.16"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot schematic/PCB net parity TP1.1"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot no routing or filled copper released"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot outline dimensions (72, 18)mm (edge stroke included by API)"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot HX711 pin 1 reference-circuit check"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot HX711 pin 2 reference-circuit check"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot HX711 pin 3 reference-circuit check"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot HX711 pin 4 reference-circuit check"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot HX711 pin 5 reference-circuit check"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot HX711 pin 6 reference-circuit check"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot HX711 pin 7 reference-circuit check"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot HX711 pin 8 reference-circuit check"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot HX711 pin 9 reference-circuit check"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot HX711 pin 10 reference-circuit check"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot HX711 pin 11 reference-circuit check"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot HX711 pin 12 reference-circuit check"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot HX711 pin 13 reference-circuit check"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot HX711 pin 14 reference-circuit check"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot HX711 pin 15 reference-circuit check"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot HX711 pin 16 reference-circuit check"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot bridge connector 1"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot bridge connector 2"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot bridge connector 3"
+    },
+    {
+      "pass": true,
+      "check": "rear-smart-foot bridge connector 4"
+    },
+    {
+      "pass": true,
+      "check": "rear FRONT_DOUT connects only J1.1 and J2.1; no local HX711 branch"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot J1.1 = FRONT_DOUT"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot J1.2 = HX_SCK"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot J1.3 = 3V3_SENSOR"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot J1.4 = GND"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity J1.1"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity J1.2"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity J1.3"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity J1.4"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot J1 pin 1: drawing to placed pad transform"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot J1.1 0.90mm PTH"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot J1 pin 2: drawing to placed pad transform"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot J1.2 0.90mm PTH"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot J1 pin 3: drawing to placed pad transform"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot J1.3 0.90mm PTH"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot J1 pin 4: drawing to placed pad transform"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot J1.4 0.90mm PTH"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot J1 mechanical holes match drawing"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity C1.1"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity C1.2"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity C3.1"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity C3.2"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity C2.1"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity C2.2"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity TP2.1"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity R3.1"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity R3.2"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity C4.1"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity C4.2"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity J3.1"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity J3.2"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity J3.3"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity J3.4"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity R4.1"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity R4.2"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity TP3.1"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity R5.1"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity R5.2"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity R2.1"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity R2.2"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity TP4.1"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity U1.1"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity U1.2"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity U1.3"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity U1.4"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity U1.5"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity U1.6"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity U1.7"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity U1.8"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity U1.9"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity U1.10"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity U1.11"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity U1.12"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity U1.13"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity U1.14"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity U1.15"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity U1.16"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity R1.1"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity R1.2"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity TP1.1"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity C5.1"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity C5.2"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity R6.1"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot schematic/PCB net parity R6.2"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot no routing or filled copper released"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot outline dimensions (56, 18)mm (edge stroke included by API)"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot HX711 pin 1 reference-circuit check"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot HX711 pin 2 reference-circuit check"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot HX711 pin 3 reference-circuit check"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot HX711 pin 4 reference-circuit check"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot HX711 pin 5 reference-circuit check"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot HX711 pin 6 reference-circuit check"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot HX711 pin 7 reference-circuit check"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot HX711 pin 8 reference-circuit check"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot HX711 pin 9 reference-circuit check"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot HX711 pin 10 reference-circuit check"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot HX711 pin 11 reference-circuit check"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot HX711 pin 12 reference-circuit check"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot HX711 pin 13 reference-circuit check"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot HX711 pin 14 reference-circuit check"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot HX711 pin 15 reference-circuit check"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot HX711 pin 16 reference-circuit check"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot bridge connector 1"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot bridge connector 2"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot bridge connector 3"
+    },
+    {
+      "pass": true,
+      "check": "front-smart-foot bridge connector 4"
+    },
+    {
+      "pass": true,
+      "check": "Harness DOUT FL: HX711.12 -> split J1.3"
+    },
+    {
+      "pass": true,
+      "check": "FL DOUT isolated from RL"
+    },
+    {
+      "pass": true,
+      "check": "FL DOUT isolated from RR"
+    },
+    {
+      "pass": true,
+      "check": "FL DOUT isolated from FR"
+    },
+    {
+      "pass": true,
+      "check": "FL common SCK reaches HX711.11 through local R5"
+    },
+    {
+      "pass": true,
+      "check": "FL supply reaches DVDD"
+    },
+    {
+      "pass": true,
+      "check": "FL ground reaches AGND"
+    },
+    {
+      "pass": true,
+      "check": "Harness DOUT RL: HX711.12 -> split J1.6"
+    },
+    {
+      "pass": true,
+      "check": "RL DOUT isolated from RR"
+    },
+    {
+      "pass": true,
+      "check": "RL DOUT isolated from FL"
+    },
+    {
+      "pass": true,
+      "check": "RL DOUT isolated from FR"
+    },
+    {
+      "pass": true,
+      "check": "RL common SCK reaches HX711.11 through local R5"
+    },
+    {
+      "pass": true,
+      "check": "RL supply reaches DVDD"
+    },
+    {
+      "pass": true,
+      "check": "RL ground reaches AGND"
+    },
+    {
+      "pass": true,
+      "check": "Harness DOUT FR: HX711.12 -> split J1.7"
+    },
+    {
+      "pass": true,
+      "check": "FR DOUT isolated from RL"
+    },
+    {
+      "pass": true,
+      "check": "FR DOUT isolated from RR"
+    },
+    {
+      "pass": true,
+      "check": "FR DOUT isolated from FL"
+    },
+    {
+      "pass": true,
+      "check": "FR common SCK reaches HX711.11 through local R5"
+    },
+    {
+      "pass": true,
+      "check": "FR supply reaches DVDD"
+    },
+    {
+      "pass": true,
+      "check": "FR ground reaches AGND"
+    },
+    {
+      "pass": true,
+      "check": "Harness DOUT RR: HX711.12 -> split J1.8"
+    },
+    {
+      "pass": true,
+      "check": "RR DOUT isolated from RL"
+    },
+    {
+      "pass": true,
+      "check": "RR DOUT isolated from FL"
+    },
+    {
+      "pass": true,
+      "check": "RR DOUT isolated from FR"
+    },
+    {
+      "pass": true,
+      "check": "RR common SCK reaches HX711.11 through local R5"
+    },
+    {
+      "pass": true,
+      "check": "RR supply reaches DVDD"
+    },
+    {
+      "pass": true,
+      "check": "RR ground reaches AGND"
+    },
+    {
+      "pass": true,
+      "check": "8P8C pin 5 reserved isolated"
+    }
+  ],
+  "limit": "Desk audit by same author using independent source representations; not an independent human signoff or physical plug continuity test."
+}

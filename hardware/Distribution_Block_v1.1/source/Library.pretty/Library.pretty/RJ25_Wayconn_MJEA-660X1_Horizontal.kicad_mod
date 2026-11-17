@@ -1,0 +1,353 @@
+(footprint "RJ25_Wayconn_MJEA-660X1_Horizontal"
+	(version 20260206)
+	(generator "pcbnew")
+	(generator_version "10.0")
+	(layer "F.Cu")
+	(descr "RJ25 6P6C Socket 90 degrees, https://wayconn.com/wp-content/themes/way/datasheet/MJEA-660X1XXX_RJ25_6P6C_PCB_RA.pdf")
+	(tags "RJ12 RJ18 RJ25 jack connector 6P6C")
+	(property "Reference" "J9"
+		(at -6.985 -3.175 0)
+		(layer "F.SilkS")
+		(uuid "6451a071-d87e-4aff-92d5-ccfb12696add")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "RJ12"
+		(at 0.45 -3.66 0)
+		(layer "F.Fab")
+		(uuid "fca4d0a0-9642-4b22-8feb-6b8a3353c9f3")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "e3c0fdf8-99f9-438a-9119-76b87d8a7638")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" "Connector_RJ:RJ25_Wayconn_MJEA-660X1_Horizontal"
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "c8270bdd-f6f5-4bd7-b109-c05cde8d0210")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(attr through_hole)
+	(duplicate_pad_numbers_are_jumpers no)
+	(fp_line
+		(start -8.76 -2.27)
+		(end -8.76 3.47)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "f6bbd698-dd31-48cb-a2f3-c42ed3c2592d")
+	)
+	(fp_line
+		(start -8.76 -2.27)
+		(end 3.66 -2.27)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "792c7168-77b4-4a21-8e39-6710a25affa6")
+	)
+	(fp_line
+		(start -8.76 6.22)
+		(end -8.76 7.5)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "2fdaea9a-47dc-42ba-be88-33752aba2be1")
+	)
+	(fp_line
+		(start 3.66 -2.27)
+		(end 3.66 3.47)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "967aeac7-7d4d-4e36-bfac-350ca28047ed")
+	)
+	(fp_line
+		(start 3.66 6.22)
+		(end 3.66 7.5)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "1030f10c-6322-4598-9364-3b5f9bedd5ae")
+	)
+	(fp_line
+		(start 3.82 0)
+		(end 4.32 0.5)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "9cd129c0-f9bf-4ca9-b507-e262cd23523e")
+	)
+	(fp_line
+		(start 4.32 -0.5)
+		(end 3.82 0)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "571efa55-e358-4f89-ab82-8117d4605114")
+	)
+	(fp_line
+		(start 4.32 -0.5)
+		(end 4.32 0.5)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "31b08f03-993c-4ed5-9ae4-e79248f2a62a")
+	)
+	(fp_line
+		(start -10.2 -2.66)
+		(end -10.2 11)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "bd2732fb-fb4c-4317-bf21-92060b30bce3")
+	)
+	(fp_line
+		(start -10.2 -2.66)
+		(end 5.1 -2.66)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "05255aa2-a651-40c0-a744-a186381897df")
+	)
+	(fp_line
+		(start 5.1 11)
+		(end -10.2 11)
+		(stroke
+			(width 0.05)
+			(type default)
+		)
+		(layer "F.CrtYd")
+		(uuid "106b7d8c-c2ed-4002-9462-f4d3f712250e")
+	)
+	(fp_line
+		(start 5.1 11)
+		(end 5.1 -2.66)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "0bbd6767-bc4d-4b22-9784-1fd4d6897ed0")
+	)
+	(fp_line
+		(start -8.65 -2.16)
+		(end -8.65 3.47)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "70f42f31-de34-436f-abf4-3d8c69868952")
+	)
+	(fp_line
+		(start -8.65 -2.16)
+		(end 3.55 -2.16)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "2dfca690-17ad-48bd-b5b5-9c41145d3f85")
+	)
+	(fp_line
+		(start -8.65 6.22)
+		(end -8.65 10.5)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "c72fdb97-6c99-4dd1-9ecf-274b656af985")
+	)
+	(fp_line
+		(start -8.65 10.5)
+		(end 3.55 10.5)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(layer "F.Fab")
+		(uuid "78ea7e4b-e3cc-43f4-b8cf-475cb2cbcc64")
+	)
+	(fp_line
+		(start 3.05 0)
+		(end 3.55 0.5)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "2494e478-49b3-4e18-8cfb-eb2392cbbf22")
+	)
+	(fp_line
+		(start 3.55 -2.16)
+		(end 3.55 -0.5)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "a7bd88ae-37ff-422c-9108-dd37eaeb4cb7")
+	)
+	(fp_line
+		(start 3.55 -0.5)
+		(end 3.05 0)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "d1c7cbc6-bd55-40ec-91e2-079e1b48bcf8")
+	)
+	(fp_line
+		(start 3.55 0.5)
+		(end 3.55 3.47)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "e713db02-23f6-4183-bc6e-9b9c54c7b0fa")
+	)
+	(fp_line
+		(start 3.55 6.22)
+		(end 3.55 10.5)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "831c37fb-67fb-47fb-a35c-2ecae0844f4f")
+	)
+	(fp_text user "${REFERENCE}"
+		(at -2.55 4.445 0)
+		(layer "F.Fab")
+		(uuid "47259bed-62ed-400b-a437-d515883a3c09")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(pad "" np_thru_hole circle
+		(at -8.55 4.84)
+		(size 2.3 2.3)
+		(drill 2.3)
+		(layers "*.Cu" "*.Mask")
+		(uuid "9c239c0c-0e5b-4e07-89e0-b8b6ccbb7049")
+	)
+	(pad "" np_thru_hole circle
+		(at 3.45 4.84)
+		(size 2.3 2.3)
+		(drill 2.3)
+		(layers "*.Cu" "*.Mask")
+		(uuid "2b59ec7f-17dd-42ac-aa2b-0f070fc7ea35")
+	)
+	(pad "1" thru_hole rect
+		(at 0 0)
+		(size 1.52 1.52)
+		(drill 0.9)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "efe77b3e-451c-454e-ab4c-b4495b8d85f6")
+	)
+	(pad "2" thru_hole circle
+		(at -1.02 2.54)
+		(size 1.52 1.52)
+		(drill 0.9)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "5f2425ec-1c10-43a1-bf73-3473175b2a39")
+	)
+	(pad "3" thru_hole circle
+		(at -2.04 0)
+		(size 1.52 1.52)
+		(drill 0.9)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "6c2f3ffd-fe5d-4d07-919f-341cd1219f65")
+	)
+	(pad "4" thru_hole circle
+		(at -3.06 2.54)
+		(size 1.52 1.52)
+		(drill 0.9)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "ea1740a4-02a0-4dff-9c7b-d9cdd20b9bbf")
+	)
+	(pad "5" thru_hole circle
+		(at -4.08 0)
+		(size 1.52 1.52)
+		(drill 0.9)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "b20da763-5107-4d6e-912d-2d8e79d47c8a")
+	)
+	(pad "6" thru_hole circle
+		(at -5.1 2.54)
+		(size 1.52 1.52)
+		(drill 0.9)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "9514a86c-b5a6-4ec3-8f08-e83e7ff03f6f")
+	)
+	(embedded_fonts no)
+	(model "${KICAD10_3DMODEL_DIR}/Connector_RJ.3dshapes/RJ25_Wayconn_MJEA-660X1_Horizontal.step"
+		(offset
+			(xyz 0 0 0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 0)
+		)
+	)
+)

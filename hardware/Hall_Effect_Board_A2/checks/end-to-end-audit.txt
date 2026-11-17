@@ -1,0 +1,7 @@
+PASS: J1 physical pad coordinates relative to anchor match DH J11 exactly, same rotation.
+PASS: cable pin n -> n: 1 GND, 2 HE, 3 NC, 4 3V3.
+PASS: every numbered PCB pad matches schematic XML net.
+Trace widths mm: [0.2, 0.25]
+Mount holes: 3.2 mm NPTH at (18.5,3.5), (18.5,16.5).
+Copper thickness assumed 35 um. Maximum operating budget 10 mA.
+Physical first-article cable continuity and magnet gap not tested.

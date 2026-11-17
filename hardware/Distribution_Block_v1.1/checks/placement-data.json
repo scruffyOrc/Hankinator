@@ -1,0 +1,68 @@
+[
+  {
+    "ref": "J8",
+    "fp": "JST_XH_B8B-XH-A_1x08_P2.50mm_Vertical",
+    "x": 26.0,
+    "y": 4.975,
+    "rotation": 0.0,
+    "pin1": [
+      17.25,
+      5.5
+    ]
+  },
+  {
+    "ref": "S2",
+    "fp": "JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical",
+    "x": 21.525,
+    "y": 38.75,
+    "rotation": 90.0,
+    "pin1": [
+      21.0,
+      35.0
+    ]
+  },
+  {
+    "ref": "S1",
+    "fp": "JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical",
+    "x": 33.525,
+    "y": 38.75,
+    "rotation": 90.0,
+    "pin1": [
+      33.0,
+      35.0
+    ]
+  },
+  {
+    "ref": "J11",
+    "fp": "RJ9_Evercom_5501-4P4C-13MM_Horizontal",
+    "x": 4.5,
+    "y": 15.0,
+    "rotation": 270.0,
+    "pin1": [
+      6.3,
+      13.47
+    ]
+  },
+  {
+    "ref": "J9",
+    "fp": "RJ25_Wayconn_MJEA-660X1_Horizontal",
+    "x": 46.83,
+    "y": 18.0,
+    "rotation": 90.0,
+    "pin1": [
+      42.66,
+      20.55
+    ]
+  },
+  {
+    "ref": "J10",
+    "fp": "RJ25_Wayconn_MJEA-660X1_Horizontal",
+    "x": 4.33,
+    "y": 31.0,
+    "rotation": 270.0,
+    "pin1": [
+      8.5,
+      28.45
+    ]
+  }
+]

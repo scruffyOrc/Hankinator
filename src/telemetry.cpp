@@ -94,7 +94,15 @@ void dump(Print& output){
 void clear(Print& output){if(fsReady&&LittleFS.exists(LogPath))LittleFS.remove(LogPath);output.println("Telemetry cleared");}
 }
 
-void Telemetry::begin(){fsReady=LittleFS.begin();Serial.println(fsReady?"Telemetry commands: LOG DUMP, LOG CLEAR, LOG HELP, START WEIGHT, STOP WEIGHT, MARK <label>, MOTION PROBE SWEEP START, MOTION HOLD":"Telemetry storage mount failed");}
+void Telemetry::begin()
+{
+ fsReady=LittleFS.begin();
+ if(!fsReady){Serial.println("Telemetry storage mount failed");return;}
+ Serial.println("Telemetry commands: LOG DUMP, LOG CLEAR, LOG HELP, START WEIGHT, STOP WEIGHT, MARK <label>");
+#if HANK_ENABLE_ENGINEERING_DIAGNOSTICS
+ Serial.println("Engineering diagnostics: ARM PROBE, MOTION PROBE SWEEP START, MOTION HOLD");
+#endif
+}
 void Telemetry::diagnosticPoll(uint8_t screen){
  // Screen diagnostics deliberately do not start a terminal stream. Use
  // START WEIGHT / STOP WEIGHT to make a bounded, clean capture instead.
@@ -128,7 +136,13 @@ void Telemetry::executeCommand(const char* command,Print& output,bool logAccessA
   output.print(",active,");output.print(HallSensor::activeLevel()?1:0);output.print(",pulses,");output.print(HallSensor::pulseCount());
   output.print(",correction_steps,");output.println(HallSensor::correctionSteps());return;
  }
- if(c=="LOG HELP"){output.println("LOG DUMP | LOG CLEAR | LOG HELP | LOAD CELLS | TARE | ARM PROBE | MOTION PROBE SWEEP START | MOTION HOLD | HALL STATUS | START WEIGHT | STOP WEIGHT | MARK <label> | WEIGHT TARGET <grams> | WEIGHT OFF | CONTROL STATUS");return;}
+ if(c=="LOG HELP"){
+  output.println("LOG DUMP | LOG CLEAR | LOG HELP | LOAD CELLS | TARE | HALL STATUS | START WEIGHT | STOP WEIGHT | MARK <label> | WEIGHT TARGET <grams> | WEIGHT OFF | CONTROL STATUS");
+#if HANK_ENABLE_ENGINEERING_DIAGNOSTICS
+  output.println("Engineering: ARM PROBE | MOTION PROBE SWEEP START | MOTION HOLD");
+#endif
+  return;
+ }
  if(c=="CONTROL STATUS"){
   const RunSupervisorSnapshot control=RunSupervisor::snapshot();
   output.print("CONTROL,stall,");output.print(RunSupervisor::stallStateName(control.stallState));output.print(",sg,");output.print(control.sgResult);output.print(",sg_baseline,");output.print(control.sgBaseline);

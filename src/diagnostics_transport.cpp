@@ -36,6 +36,7 @@ Print* wifiSetupOutput=nullptr;
 bool wifiSetupOverBluetooth=false;
 Print* wifiUpdateOutput=nullptr;
 
+#if HANK_ENABLE_ENGINEERING_DIAGNOSTICS
 // A deliberately non-persistent characterization tool. This lets us inspect
 // the arm load-path vectors before deciding whether they are suitable
 // evidence for a future commissioning model. It never changes calibration.
@@ -477,6 +478,7 @@ bool handleMotionHoldCommand(const char* command,Print& output,const bool allowe
     output.println("MOTION_HOLD_UNKNOWN,send MOTION HOLD HELP");
     return true;
 }
+#endif
 
 enum class BluetoothEvent:uint8_t {
     StackState,
@@ -810,6 +812,7 @@ void consume(Stream& input,Print& output,CommandBuffer& command)
                 command.data[command.length]='\0';
                 const bool logAccessAllowed=uiState!=UiState::WINDING&&uiState!=UiState::HALL_SEEK&&!motionActive&&!auxiliaryMotionActive();
                 String normalized(command.data);normalized.trim();normalized.toUpperCase();
+#if HANK_ENABLE_ENGINEERING_DIAGNOSTICS
                 if(handleMotionHoldCommand(command.data,output,logAccessAllowed))
                 {
                     // The hold probe owns its tare and capture lifecycle.
@@ -822,7 +825,9 @@ void consume(Stream& input,Print& output,CommandBuffer& command)
                 {
                     // The arm probe owns its own tare and capture lifecycle.
                 }
-                else if(normalized=="TARE")
+                else
+#endif
+                if(normalized=="TARE")
                 {
                     if(!logAccessAllowed)output.println("BUSY: TARE is available while idle");
                     else if(!weightCapabilityEnabled)output.println("ERROR: load-cell capability unavailable");
@@ -849,9 +854,11 @@ void DiagnosticsTransport::begin()
 
 void DiagnosticsTransport::poll()
 {
+#if HANK_ENABLE_ENGINEERING_DIAGNOSTICS
     serviceMotionHold();
     serviceMotionProbe();
     serviceArmProbe();
+#endif
     consume(Serial,Serial,usbCommand);
     printBluetoothEvents();
     if(pairingDeadline&&int32_t(millis()-pairingDeadline)>=0)closePairingWindow();
@@ -859,7 +866,10 @@ void DiagnosticsTransport::poll()
     if(connected&&!bluetoothConnected) {
         Serial.println("Bluetooth diagnostics client connected");
         SerialBT.println("HankWinder diagnostics connected");
-        SerialBT.println("LOG DUMP | LOG CLEAR | LOG HELP | LOAD CELLS | TARE | ARM PROBE | MOTION PROBE SWEEP START | MOTION HOLD | START WEIGHT | STOP WEIGHT | MARK <label> | WIFI SETUP | WIFI UPDATE");
+        SerialBT.println("LOG DUMP | LOG CLEAR | LOG HELP | LOAD CELLS | TARE | START WEIGHT | STOP WEIGHT | MARK <label> | WIFI SETUP | WIFI UPDATE");
+#if HANK_ENABLE_ENGINEERING_DIAGNOSTICS
+        SerialBT.println("Engineering: ARM PROBE | MOTION PROBE SWEEP START | MOTION HOLD");
+#endif
     }
     if(!connected&&bluetoothConnected) {
         Serial.println("Bluetooth diagnostics client disconnected");

@@ -1,6 +1,13 @@
 #pragma once
 #include <Arduino.h>
 
+// Engineering-only console tools can intentionally run unattended motion and
+// characterization captures. Keep them out of normal product firmware; set
+// this build define to 1 only for service or development builds.
+#ifndef HANK_ENABLE_ENGINEERING_DIAGNOSTICS
+#define HANK_ENABLE_ENGINEERING_DIAGNOSTICS 0
+#endif
+
 namespace Pins {
 constexpr uint8_t Step=2, Dir=3, Enable=4, Stop=6, Diag=7;
 // Temporary V1A touch-panel backlight control.  This drives the gate of the
@@ -17,6 +24,7 @@ constexpr uint8_t Heartbeat=LED_BUILTIN;
 }
 
 namespace Config {
+constexpr bool EnableEngineeringDiagnostics=HANK_ENABLE_ENGINEERING_DIAGNOSTICS!=0;
 constexpr char FirmwareVersion[]="1.0";
 constexpr char FirmwareUpdateSsid[]="Hankinator-Update";
 constexpr char FirmwareUpdatePassword[]="hankinator";

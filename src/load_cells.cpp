@@ -58,12 +58,17 @@ void readReadyChannels(uint8_t readyMask)
             if(readyMask&(1u<<channel))values[channel]=(values[channel]<<1)|((inputs>>Pins::LoadCellData[channel])&1u);
     }
 
-    // Pulse 25 selects channel A, gain 128 for the next conversion.
+    // 24 data pulses plus three selection pulses chooses HX711 Channel A at
+    // 64x gain for the next conversion. (Two selection pulses would choose
+    // Channel B at 32x, not Channel A at 64x.)
     noInterrupts();
-    gpio_put(Pins::LoadCellClock,true);
-    busy_wait_us_32(activeSampleDelay);
-    gpio_put(Pins::LoadCellClock,false);
-    busy_wait_us_32(activeSampleDelay);
+    for(uint8_t pulse=0;pulse<Config::LoadCellGainSelectionPulses;pulse++)
+    {
+        gpio_put(Pins::LoadCellClock,true);
+        busy_wait_us_32(activeSampleDelay);
+        gpio_put(Pins::LoadCellClock,false);
+        busy_wait_us_32(activeSampleDelay);
+    }
     interrupts();
 
     const uint32_t now=millis();
@@ -377,10 +382,16 @@ float LoadCells::weightGrams(const LoadCellSnapshot& value)
     if(!tareValid())return NAN;
     const uint8_t requiredMask=uint8_t((1u<<Config::LoadCellChannelCount)-1u);
     if((value.healthyMask&requiredMask)!=requiredMask)return NAN;
+    int32_t delta[Config::LoadCellChannelCount]{};
+    for(uint8_t channel=0;channel<Config::LoadCellChannelCount;channel++)delta[channel]=value.raw[channel]-currentTare.offset[channel];
     float grams=0.0f;
     for(uint8_t channel=0;channel<Config::LoadCellChannelCount;channel++)
-        grams+=(value.raw[channel]-currentTare.offset[channel])*runtimeCalibration[channel];
-    return grams*settings.loadCellHubGain;
+        grams+=delta[channel]*runtimeCalibration[channel];
+    // The production model is deliberately the direct, signed four-leg sum.
+    // Position-aware arm interpolation and global hub gain experiments are
+    // retained in persisted settings only for migration compatibility; neither
+    // may alter a live weight reading.
+    return grams;
 }
 
 float LoadCells::weightGrams(){return weightGrams(snapshot());}
@@ -396,9 +407,49 @@ float LoadCells::profileWeightGrams(const LoadCellSnapshot& value,uint32_t hubSt
     const uint8_t requiredMask=uint8_t((1u<<Config::LoadCellChannelCount)-1u);
     if((value.healthyMask&requiredMask)!=requiredMask)return NAN;
     const uint8_t bin=min<uint32_t>(Config::LoadCellProfileBins-1,uint64_t(hubStep%Config::StepsPerHubRev)*Config::LoadCellProfileBins/Config::StepsPerHubRev);
+    int32_t delta[Config::LoadCellChannelCount]{};
+    for(uint8_t channel=0;channel<Config::LoadCellChannelCount;channel++)delta[channel]=value.raw[channel]-profileTare.raw[bin][channel];
     float grams=0.0f;
-    for(uint8_t channel=0;channel<Config::LoadCellChannelCount;channel++)grams+=(value.raw[channel]-profileTare.raw[bin][channel])*runtimeCalibration[channel];
-    return grams*settings.loadCellHubGain;
+    for(uint8_t channel=0;channel<Config::LoadCellChannelCount;channel++)grams+=delta[channel]*runtimeCalibration[channel];
+    return grams;
+}
+
+float LoadCells::estimateArmModelWeight(const int32_t delta[Config::LoadCellChannelCount],const float response[Config::CommissioningArmPositionCount][Config::LoadCellChannelCount],float* effectivePosition)
+{
+    float deltaNorm=0.0f;
+    for(uint8_t channel=0;channel<Config::LoadCellChannelCount;channel++)
+    {
+        if(!isfinite(response[0][channel])||!isfinite(response[1][channel])||!isfinite(response[2][channel]))return NAN;
+        deltaNorm+=float(delta[channel])*float(delta[channel]);
+    }
+    if(deltaNorm<1.0f)return 0.0f;
+
+    float bestResidual=INFINITY,bestWeight=NAN,bestPosition=0.0f;
+    for(uint8_t step=0;step<=Config::CommissioningArmInterpolationSteps;step++)
+    {
+        const float position=float(step)/float(Config::CommissioningArmInterpolationSteps);
+        const uint8_t lower=position<=0.5f?0:1;
+        const uint8_t upper=uint8_t(lower+1);
+        const float blend=position<=0.5f?position*2.0f:(position-0.5f)*2.0f;
+        float dot=0.0f,responseNorm=0.0f,responseVector[Config::LoadCellChannelCount]{};
+        for(uint8_t channel=0;channel<Config::LoadCellChannelCount;channel++)
+        {
+            responseVector[channel]=response[lower][channel]+(response[upper][channel]-response[lower][channel])*blend;
+            dot+=float(delta[channel])*responseVector[channel];
+            responseNorm+=responseVector[channel]*responseVector[channel];
+        }
+        if(responseNorm<1.0f)continue;
+        const float grams=dot/responseNorm;
+        float residual=0.0f;
+        for(uint8_t channel=0;channel<Config::LoadCellChannelCount;channel++)
+        {
+            const float error=float(delta[channel])-grams*responseVector[channel];
+            residual+=error*error;
+        }
+        if(residual<bestResidual){bestResidual=residual;bestWeight=grams;bestPosition=position;}
+    }
+    if(effectivePosition)*effectivePosition=bestPosition;
+    return isfinite(bestWeight)?bestWeight:NAN;
 }
 
 void LoadCells::setCalibration(const float coefficients[Config::LoadCellChannelCount])

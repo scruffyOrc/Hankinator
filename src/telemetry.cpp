@@ -24,6 +24,11 @@ Sample ram[Capacity];
 uint16_t count=0; uint32_t totalCount=0,started=0,last=0; bool fsReady=false;
 uint8_t diagnosticScreen=0;
 uint32_t diagnosticStart=0,diagnosticLast=0,diagnosticTotal=0;
+// LC_DATA used to follow the diagnostics screens automatically. That made it
+// hard to capture a clean before/after experiment, so the console now owns an
+// explicit, opt-in capture session instead.
+Print* weightCaptureOutput=nullptr;
+uint32_t weightCaptureStarted=0,weightCaptureLast=0,weightCaptureRows=0,weightCaptureQuietUntil=0;
 
 void diagnosticSend(const char* line){
  const size_t n=strlen(line);
@@ -36,6 +41,29 @@ void diagnosticFormat(char* line,size_t size,const DiagnosticSample& s){
   s.healthy,s.missing,s.jumpMask,s.expected,(unsigned long)s.jumps,(unsigned long)s.timeouts,s.tare,(long)s.weight,s.weightValid,s.required);
 }
 const char* diagnosticColumns="LC_COLUMNS,elapsed_ms,sequence,sample_us,FL,FR,RL,RR,healthy_mask,missing_mask,jump_mask,expected_mask,jumps_total,timeouts_total,tare_state,weight_centigrams,weight_valid,required\n";
+
+DiagnosticSample diagnosticSnapshot(uint32_t elapsedMs){
+ const auto cells=LoadCells::snapshot();DiagnosticSample s{};
+ s.ms=elapsedMs;s.sequence=cells.sequence;s.delay=LoadCells::sampleDelayUs();memcpy(s.raw,cells.raw,sizeof(s.raw));s.healthy=cells.healthyMask;
+ s.missing=LoadCells::missingReadyMask();s.jumpMask=LoadCells::suspiciousMask();s.jumps=LoadCells::suspiciousCount();s.timeouts=LoadCells::syncTimeoutCount();s.expected=LoadCells::detectedMask();s.required=Config::RequiredLoadCells;
+ s.tare=uint8_t(LoadCells::tareStatus());const float weight=LoadCells::weightGrams(cells);s.weightValid=!isnan(weight);s.weight=s.weightValid?int32_t(lroundf(weight*100.0f)):0;
+ return s;
+}
+void serviceWeightCapture(){
+ if(!weightCaptureOutput||int32_t(millis()-weightCaptureQuietUntil)<0||millis()-weightCaptureLast<Config::TelemetryIntervalMs)return;
+ weightCaptureLast=millis();
+ const DiagnosticSample s=diagnosticSnapshot(millis()-weightCaptureStarted);
+ char line[256];diagnosticFormat(line,sizeof(line),s);weightCaptureOutput->print(line);
+ ++weightCaptureRows;
+}
+void stopWeightCapture(const char* reason=nullptr){
+ if(!weightCaptureOutput)return;
+ weightCaptureOutput->print("WEIGHT_END,rows,");weightCaptureOutput->print(weightCaptureRows);
+ weightCaptureOutput->print(",duration_ms,");weightCaptureOutput->print(millis()-weightCaptureStarted);
+ if(reason){weightCaptureOutput->print(",reason,");weightCaptureOutput->print(reason);}
+ weightCaptureOutput->println();
+ weightCaptureOutput=nullptr;
+}
 constexpr uint8_t WeightWindowSize=10;
 int32_t weightWindow[WeightWindowSize]{};uint8_t weightWindowCount=0,weightWindowWrite=0;
 
@@ -66,32 +94,16 @@ void dump(Print& output){
 void clear(Print& output){if(fsReady&&LittleFS.exists(LogPath))LittleFS.remove(LogPath);output.println("Telemetry cleared");}
 }
 
-void Telemetry::begin(){fsReady=LittleFS.begin();Serial.println(fsReady?"Telemetry commands: LOG DUMP, LOG CLEAR, LOG HELP, MARK <label>":"Telemetry storage mount failed");}
+void Telemetry::begin(){fsReady=LittleFS.begin();Serial.println(fsReady?"Telemetry commands: LOG DUMP, LOG CLEAR, LOG HELP, START WEIGHT, STOP WEIGHT, MARK <label>, MOTION PROBE SWEEP START, MOTION HOLD":"Telemetry storage mount failed");}
 void Telemetry::diagnosticPoll(uint8_t screen){
- if(screen!=diagnosticScreen){
-  if(diagnosticScreen){
-   char line[96];snprintf(line,sizeof(line),"LC_END,rows,%lu,duration_ms,%lu\n",(unsigned long)diagnosticTotal,(unsigned long)(millis()-diagnosticStart));diagnosticSend(line);
-  }
-  diagnosticScreen=screen;
-  if(screen){diagnosticStart=millis();diagnosticLast=millis()-Config::TelemetryIntervalMs;diagnosticTotal=0;
-   char line[96];snprintf(line,sizeof(line),"LC_BEGIN,boot_ms,%lu,screen,%u\n",(unsigned long)diagnosticStart,screen);diagnosticSend(line);diagnosticSend(diagnosticColumns);
-  }
- }
- if(!screen||millis()-diagnosticLast<Config::TelemetryIntervalMs)return;
- // Repeat schema/context so a terminal connected mid-session can decode it.
- if(diagnosticTotal&&diagnosticTotal%50==0){
-  char context[96];snprintf(context,sizeof(context),"LC_CONTEXT,boot_ms,%lu,screen,%u\n",(unsigned long)diagnosticStart,screen);
-  diagnosticSend(context);diagnosticSend(diagnosticColumns);
- }
- diagnosticLast=millis();const auto cells=LoadCells::snapshot();DiagnosticSample s{};
- s.ms=millis()-diagnosticStart;s.sequence=cells.sequence;s.delay=LoadCells::sampleDelayUs();memcpy(s.raw,cells.raw,sizeof(s.raw));s.healthy=cells.healthyMask;
- s.missing=LoadCells::missingReadyMask();s.jumpMask=LoadCells::suspiciousMask();s.jumps=LoadCells::suspiciousCount();s.timeouts=LoadCells::syncTimeoutCount();s.expected=LoadCells::detectedMask();s.required=Config::RequiredLoadCells;
- s.tare=uint8_t(LoadCells::tareStatus());const float weight=LoadCells::weightGrams(cells);s.weightValid=!isnan(weight);s.weight=s.weightValid?int32_t(lroundf(weight*100)):0;
- ++diagnosticTotal;
- char line[256];diagnosticFormat(line,sizeof(line),s);diagnosticSend(line);
+ // Screen diagnostics deliberately do not start a terminal stream. Use
+ // START WEIGHT / STOP WEIGHT to make a bounded, clean capture instead.
+ diagnosticScreen=screen;
+ serviceWeightCapture();
 }
 void Telemetry::start()
 {
+ stopWeightCapture("winding_started");
  count=0;totalCount=0;started=millis();last=0;weightWindowCount=0;weightWindowWrite=0;
  if constexpr(Config::EnableBluetoothLiveTelemetry)
  {
@@ -108,6 +120,7 @@ void Telemetry::finish(RunEnd end){
  Serial.print("Telemetry saved: ");Serial.print(count);Serial.print(" samples (");Serial.print(end==RunEnd::Complete?"complete":"abort");Serial.println(')');count=0;
 }
 void Telemetry::event(const char* label){Serial.print("EVENT,");Serial.print(millis()-started);Serial.print(',');Serial.println(label);DiagnosticsTransport::streamEvent(millis()-started,label);}
+void Telemetry::noteConsoleInput(){weightCaptureQuietUntil=millis()+750;}
 void Telemetry::executeCommand(const char* command,Print& output,bool logAccessAllowed){
  String c(command);c.trim();c.toUpperCase();
  if(c=="HALL STATUS") {
@@ -115,7 +128,7 @@ void Telemetry::executeCommand(const char* command,Print& output,bool logAccessA
   output.print(",active,");output.print(HallSensor::activeLevel()?1:0);output.print(",pulses,");output.print(HallSensor::pulseCount());
   output.print(",correction_steps,");output.println(HallSensor::correctionSteps());return;
  }
- if(c=="LOG HELP"){output.println("LOG DUMP | LOG CLEAR | LOG HELP | LOAD CELLS | HALL STATUS | MARK <label> | WEIGHT TARGET <grams> | WEIGHT OFF | CONTROL STATUS");return;}
+ if(c=="LOG HELP"){output.println("LOG DUMP | LOG CLEAR | LOG HELP | LOAD CELLS | TARE | ARM PROBE | MOTION PROBE SWEEP START | MOTION HOLD | HALL STATUS | START WEIGHT | STOP WEIGHT | MARK <label> | WEIGHT TARGET <grams> | WEIGHT OFF | CONTROL STATUS");return;}
  if(c=="CONTROL STATUS"){
   const RunSupervisorSnapshot control=RunSupervisor::snapshot();
   output.print("CONTROL,stall,");output.print(RunSupervisor::stallStateName(control.stallState));output.print(",sg,");output.print(control.sgResult);output.print(",sg_baseline,");output.print(control.sgBaseline);
@@ -150,11 +163,34 @@ void Telemetry::executeCommand(const char* command,Print& output,bool logAccessA
   for(uint8_t channel=0;channel<Config::LoadCellChannelCount;channel++){output.print(channel+1);output.print(',');output.print(loadCells.raw[channel]);output.print(',');output.print((loadCells.healthyMask&(1u<<channel))?1:0);output.print(",tare,");output.print(tare.offset[channel]);output.print(",spread,");output.println(tare.spread[channel]);}
   output.print("weight_g,");output.print(LoadCells::weightGrams(loadCells),2);output.print(",tare_status,");output.print(LoadCells::tareStatusName(tare.status));output.print(",profile_tare,");output.println(LoadCells::profileTareValid()?1:0);return;
  }
+ if(c=="START WEIGHT"){
+  if(!logAccessAllowed){output.println("BUSY: START WEIGHT is available while idle");return;}
+  if(weightCaptureOutput){output.println("WEIGHT_CAPTURE_ALREADY_ACTIVE");return;}
+  weightCaptureOutput=&output;weightCaptureStarted=millis();weightCaptureLast=weightCaptureStarted-Config::TelemetryIntervalMs;weightCaptureRows=0;
+  output.print("WEIGHT_BEGIN,boot_ms,");output.print(weightCaptureStarted);
+  output.print(",sample_us,");output.println(LoadCells::sampleDelayUs());
+  output.print(diagnosticColumns);
+  serviceWeightCapture();
+  return;
+ }
+ if(c=="STOP WEIGHT"){
+  if(!weightCaptureOutput){output.println("WEIGHT_CAPTURE_IDLE");return;}
+  stopWeightCapture();return;
+ }
  if(c=="MARK"||c.startsWith("MARK ")){
-  if(logAccessAllowed){output.println("IDLE: MARK is available while winding");return;}
   String label=String(command).substring(4);label.trim();if(!label.length()){output.println("MARK requires a label");return;}
   char clean[33]{};size_t n=0;for(size_t i=0;i<label.length()&&n<32;i++){char ch=label[i];if(ch==','||ch=='\r'||ch=='\n')ch='_';if(isPrintable(ch))clean[n++]=ch;}
-  DiagnosticsTransport::streamEvent(millis()-started,clean);output.print("MARKED,");output.println(clean);return;
+  if(weightCaptureOutput){
+   weightCaptureOutput->print("MARK,elapsed_ms,");weightCaptureOutput->print(millis()-weightCaptureStarted);
+   weightCaptureOutput->print(",label,");weightCaptureOutput->println(clean);
+  }else if(!logAccessAllowed){
+   DiagnosticsTransport::streamEvent(millis()-started,clean);
+   output.print("MARK,elapsed_ms,");output.print(millis()-started);output.print(",label,");output.println(clean);
+  }else{
+   output.print("MARK,boot_ms,");output.print(millis());output.print(",label,");output.println(clean);
+  }
+  if(&output!=weightCaptureOutput){output.print("MARKED,");output.println(clean);}
+  return;
  }
  if(c!="LOG DUMP"&&c!="LOG CLEAR")return;
  if(!logAccessAllowed){output.println("BUSY: log access available while idle");return;}

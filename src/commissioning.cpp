@@ -18,8 +18,6 @@ int32_t directLegDeltas[Config::CommissioningDirectSampleCount][Config::LoadCell
 int32_t captureDeltas[Config::LoadCellChannelCount]{};
 float fitted[Config::LoadCellChannelCount]{};
 float firstValidation=NAN,secondValidation=NAN;
-float centerHubMeasured[Config::CommissioningReferenceMassCount]{};
-float calculatedHubGain=1.0f;
 char statusMessage[48]="Click to commission";
 
 const uint8_t requiredMask=uint8_t((1u<<Config::LoadCellChannelCount)-1u);
@@ -80,26 +78,21 @@ bool coefficientsPlausible()
 bool validationPasses(float measured)
 {
     const float expected=Commissioning::expectedTotalGrams();
-    return isfinite(measured)&&fabsf(measured-expected)<=max(Config::CommissioningValidationMinimumGrams,expected*Config::CommissioningValidationFraction);
+    // A commissioning model may under-read a little (which safely leads to a
+    // slight overfill), but may not over-read a known mass and risk an
+    // underweight hank.
+    const float allowedUnderread=max(Config::CommissioningValidationMinimumGrams,expected*Config::CommissioningValidationFraction);
+    return isfinite(measured)&&measured<=expected+Config::CommissioningValidationMaximumOverreadGrams&&measured>=expected-allowedUnderread;
 }
 
-bool fitCenterHubGain()
+void logValidationOutcome(const char* name,float measured)
 {
-    // A least-squares fit through zero is appropriate because the empty-hub
-    // tare removes offset. The direct-leg model supplies the shape; this is a
-    // single scalar correction for its center-hub gain.
-    float numerator=0.0f,denominator=0.0f;
-    for(uint8_t index=0;index<Config::CommissioningReferenceMassCount;index++)
-    {
-        const float actual=Commissioning::referenceMassGrams(index);
-        const float measured=centerHubMeasured[index];
-        if(!isfinite(measured)||fabsf(measured)<Config::CommissioningValidationMinimumGrams)return false;
-        numerator+=actual*measured;
-        denominator+=measured*measured;
-    }
-    if(denominator<=0.0f)return false;
-    calculatedHubGain=numerator/denominator;
-    return isfinite(calculatedHubGain)&&calculatedHubGain>=Config::CommissioningMinimumHubGain&&calculatedHubGain<=Config::CommissioningMaximumHubGain;
+    const float expected=Commissioning::expectedTotalGrams();
+    char line[128]{};
+    snprintf(line,sizeof(line),"COMMISSION_VALIDATION_%s,mode,observational,result,%s,target_cg,%ld,measured_cg,%ld,error_cg,%ld\n",
+        name,validationPasses(measured)?"PASS":"OUT_OF_RANGE",long(lroundf(expected*100.0f)),
+        long(lroundf(measured*100.0f)),long(lroundf((measured-expected)*100.0f)));
+    emitDiagnostic(line);
 }
 
 void logCapture(const char* name,const int32_t delta[Config::LoadCellChannelCount],float target,float grams)
@@ -145,11 +138,11 @@ void Commissioning::begin()
     const LoadCellSnapshot value=LoadCells::snapshot();
     if(!settings.hallEnabled){current=State::Failed;setMessage("Enable Hall feedback");return;}
     if(!healthy(value)){current=State::Failed;setMessage("All load cells needed");return;}
-    leg=0;reference=0;samples=0;firstValidation=NAN;secondValidation=NAN;calculatedHubGain=1.0f;
-    memset(directLegDeltas,0,sizeof(directLegDeltas));memset(centerHubMeasured,0,sizeof(centerHubMeasured));
+    leg=0;reference=0;samples=0;firstValidation=NAN;secondValidation=NAN;
+    memset(directLegDeltas,0,sizeof(directLegDeltas));
     enableMotor();HallSensor::startCommissioningIndex();current=State::Indexing;setMessage("Finding double magnet");
     char line[160]{};
-    size_t used=snprintf(line,sizeof(line),"COMMISSION_START");
+    size_t used=snprintf(line,sizeof(line),"COMMISSION_START,model,direct_four_leg");
     for(uint8_t sample=0;sample<Config::CommissioningReferenceMassCount&&used<sizeof(line);sample++)
         used+=snprintf(line+used,sizeof(line)-used,",reference_%u_cg,%u",unsigned(sample+1),unsigned(Config::CommissioningReferenceMassCentiGrams[sample]));
     snprintf(line+used,sizeof(line)-used,",collar_total_cg,%ld\n",long(lroundf(expectedTotalGrams()*100.0f)));
@@ -219,34 +212,6 @@ void Commissioning::service()
                 {
                     current=State::Failed;setMessage("Calibration fit invalid");break;
                 }
-                reference=0;current=State::PromptHubReference;setMessage("Place 79.43g at hub center");
-            }
-            break;
-        }
-
-        case State::CapturingHubReference:
-        {
-            if(!captureComplete())break;
-            const float measured=CommissioningFit::predict(captureDeltas,fitted);
-            if(!isfinite(measured)||fabsf(measured)<Config::CommissioningValidationMinimumGrams)
-            {
-                current=State::Failed;setMessage("Hub weight not detected");break;
-            }
-            centerHubMeasured[reference]=measured;
-            char event[24]{};snprintf(event,sizeof(event),"HUB_REF_%u",unsigned(reference+1));
-            logCapture(event,captureDeltas,referenceMassGrams(reference),measured);
-            if(++reference<Config::CommissioningReferenceMassCount)
-            {
-                char prompt[48]{};const uint16_t cg=Config::CommissioningReferenceMassCentiGrams[reference];
-                snprintf(prompt,sizeof(prompt),"Place %u.%02ug at hub center",cg/100,cg%100);setMessage(prompt);current=State::PromptHubReference;
-            }
-            else if(!fitCenterHubGain())
-            {
-                current=State::Failed;setMessage("Hub gain fit invalid");
-            }
-            else
-            {
-                char line[96]{};snprintf(line,sizeof(line),"COMMISSION_HUB_GAIN,gain,%.7f\n",double(calculatedHubGain));emitDiagnostic(line);
                 current=State::PromptAllFirst;setMessage("Place all collars; click");
             }
             break;
@@ -254,15 +219,16 @@ void Commissioning::service()
 
         case State::CapturingAllFirst:
             if(!captureComplete())break;
-            firstValidation=CommissioningFit::predict(captureDeltas,fitted)*calculatedHubGain;logCapture("VALIDATE_0",captureDeltas,expectedTotalGrams(),firstValidation);
-            if(!validationPasses(firstValidation)){current=State::Failed;setMessage("First validation failed");break;}
+            firstValidation=CommissioningFit::predict(captureDeltas,fitted);logCapture("VALIDATE_0",captureDeltas,expectedTotalGrams(),firstValidation);
+            logValidationOutcome("0",firstValidation);
+            if(Config::CommissioningValidationBlocksSave&&!validationPasses(firstValidation)){current=State::Failed;setMessage("First validation failed");break;}
             current=State::PromptRotate;setMessage("Remove weights; click rotate");
             break;
 
         case State::Rotating:
             if(!auxiliaryMotionActive()&&consumeAuxiliaryMotionComplete())
             {
-                current=State::PromptAllSecond;setMessage("All weights fixed positions");
+                current=State::PromptAllSecond;setMessage("All collars at middle, 180 deg");
                 emitDiagnostic("COMMISSION_ROTATE_180_COMPLETE\n");
             }
             break;
@@ -270,13 +236,18 @@ void Commissioning::service()
         case State::CapturingAllSecond:
         {
             if(!captureComplete())break;
-            secondValidation=CommissioningFit::predict(captureDeltas,fitted)*calculatedHubGain;logCapture("VALIDATE_180",captureDeltas,expectedTotalGrams(),secondValidation);
-            if(!validationPasses(secondValidation)){current=State::Failed;setMessage("180 validation failed");break;}
+            secondValidation=CommissioningFit::predict(captureDeltas,fitted);logCapture("VALIDATE_180",captureDeltas,expectedTotalGrams(),secondValidation);
+            logValidationOutcome("180",secondValidation);
+            if(Config::CommissioningValidationBlocksSave&&!validationPasses(secondValidation)){current=State::Failed;setMessage("180 validation failed");break;}
             for(uint8_t channel=0;channel<Config::LoadCellChannelCount;channel++)settings.loadCellGramsPerCount[channel]=fitted[channel];
-            settings.loadCellCalibrationValid=1;settings.loadCellHubGain=calculatedHubGain;LoadCells::setCalibration(fitted);saveSettings();
+            // Direct four-leg coefficients are the only active model. Clear
+            // experimental position-aware data so it cannot be revived by a
+            // later firmware change without a new commissioning run.
+            memset(settings.loadCellArmCountsPerGram,0,sizeof(settings.loadCellArmCountsPerGram));
+            settings.loadCellArmModelValid=0;settings.loadCellCalibrationValid=1;settings.loadCellHubGain=1.0f;LoadCells::setCalibration(fitted);saveSettings();
             current=State::Complete;setMessage("Calibration saved");disableMotor();HallSensor::cancel();
             char line[96]{};
-            snprintf(line,sizeof(line),"COMMISSION_COMPLETE,hub_gain,%.7f,first_cg,%ld,second_cg,%ld\n",double(calculatedHubGain),long(lroundf(firstValidation*100.0f)),long(lroundf(secondValidation*100.0f)));
+            snprintf(line,sizeof(line),"COMMISSION_COMPLETE,model,direct_four_leg,first_cg,%ld,second_cg,%ld\n",long(lroundf(firstValidation*100.0f)),long(lroundf(secondValidation*100.0f)));
             emitDiagnostic(line);
             break;
         }
@@ -291,7 +262,6 @@ void Commissioning::confirm()
     {
         case State::Ready:begin();break;
         case State::PromptLeg:startCapture(State::CapturingLeg);break;
-        case State::PromptHubReference:startCapture(State::CapturingHubReference);break;
         case State::PromptAllFirst:startCapture(State::CapturingAllFirst);break;
         case State::PromptRotate:
             if(startAuxiliaryHubMotion(true,Config::StepsPerHubRev/2,Config::CommissioningIndexMotorRps)){current=State::Rotating;setMessage("Rotating 180 deg");}
@@ -305,6 +275,7 @@ void Commissioning::confirm()
 Commissioning::State Commissioning::state(){return current;}
 uint8_t Commissioning::currentLeg(){return leg;}
 uint8_t Commissioning::currentReferenceMass(){return reference;}
+uint8_t Commissioning::currentArmPosition(){return 0;}
 uint8_t Commissioning::samplesCollected(){return samples;}
 uint8_t Commissioning::samplesRequired(){return Config::CommissioningSamples;}
 float Commissioning::referenceMassGrams(uint8_t sample){return sample<Config::CommissioningReferenceMassCount?Config::CommissioningReferenceMassCentiGrams[sample]/100.0f:NAN;}
@@ -312,6 +283,6 @@ float Commissioning::collarMassGrams(uint8_t collar){return collar<Config::LoadC
 float Commissioning::expectedTotalGrams(){float total=0;for(uint8_t collar=0;collar<Config::LoadCellChannelCount;collar++)total+=collarMassGrams(collar);return total;}
 float Commissioning::firstValidationGrams(){return firstValidation;}
 float Commissioning::secondValidationGrams(){return secondValidation;}
-float Commissioning::hubGain(){return calculatedHubGain;}
+float Commissioning::armCorrectionGain(){return 1.0f;}
 const char* Commissioning::message(){return statusMessage;}
 bool Commissioning::active(){return current!=State::Ready&&current!=State::Complete&&current!=State::Failed;}

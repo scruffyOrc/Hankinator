@@ -5,8 +5,8 @@
 using namespace StallRecovery;
 Settings settings(){return {Config::StallReducedMotorRps,Config::StallSlowdownRate,Config::StallRecoveryRampRate,Config::StallRecoveryMinimumRps,
     Config::StallConfirmMs,Config::StallSevereMs,Config::StallPersistentMs,Config::StallInvalidMs,Config::StallStableMs,
-    Config::StallProofTimeoutMs,Config::StepsPerHubRev,{Config::StallSpeedFloors[0],Config::StallSpeedFloors[1],Config::StallSpeedFloors[2]},
-    Config::StallSevereSg,Config::StallHealthyHysteresis,Config::StallMaxHolds};}
+    Config::StallProofTimeoutMs,Config::StepsPerHubRev,Config::StallRecoveryProofTurns,{Config::StallSpeedFloors[0],Config::StallSpeedFloors[1],Config::StallSpeedFloors[2]},
+    Config::StallSevereSg,Config::StallHealthyHysteresis,2};}
 struct Rig {
     Controller c{settings()};uint32_t now=0,step=0;
     Rig(){c.reset(3,now);}

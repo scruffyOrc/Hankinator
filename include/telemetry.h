@@ -9,5 +9,8 @@ void start();
 void sample(float rps,uint32_t steps,PauseState pause);
 void finish(RunEnd end);
 void event(const char* label);
+// Keeps a live diagnostic stream from visually interleaving with a command
+// being typed into the same terminal.
+void noteConsoleInput();
 void executeCommand(const char* command,Print& output,bool logAccessAllowed);
 }

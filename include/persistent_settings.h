@@ -19,7 +19,14 @@ struct PersistentSettings {
     uint8_t touchDisplaySleepEnabled;
     uint8_t touchDisplaySleepMinutes;
     uint8_t touchDisplayDarkMode;
-    // Final center-hub correction learned during commissioning. Applied after
-    // the direct-leg model so every weight consumer uses the same scale.
+    // Arm-use correction fitted after the direct-leg model using the three
+    // reference masses at front/middle/rear arm positions.
     float loadCellHubGain;
+    // Experimental distributed-payload model. Rows are front, middle, rear
+    // collar positions across all four arms; columns are FL, FR, RL, RR
+    // signed counts per gram.
+    float loadCellArmCountsPerGram[3][4];
+    uint8_t loadCellArmModelValid;
+    // 0 = unlimited user-cleared recovery restarts for the current run.
+    uint8_t stallRestartLimit;
 };

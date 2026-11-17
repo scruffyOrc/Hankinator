@@ -1,0 +1,61 @@
+{
+  "profile": {
+    "id": "e229fa34-8d18-4b73-b8b1-89e2170a42e3",
+    "email": "",
+    "allow_telemetry": true,
+    "allow_contact": true
+  },
+  "gui": {
+    "enabled": true,
+    "input_directory": "",
+    "dialog_confirmation_timeout": 5
+  },
+  "router": {
+    "optimizer": {},
+    "scoring": {}
+  },
+  "drc": {
+    "include_warnings": true,
+    "include_errors": true
+  },
+  "usage_and_diagnostic_data": {
+    "disable_analytics": false
+  },
+  "feature_flags": {
+    "multi_threading": true,
+    "inspection_mode": false,
+    "other_menu": false,
+    "save_jobs": false
+  },
+  "api_server": {
+    "enabled": false,
+    "http_allowed": true,
+    "endpoints": [
+      "http://127.0.0.1:37864"
+    ],
+    "authentication": {
+      "enabled": true,
+      "providers": "",
+      "google_sheets": {}
+    },
+    "cors_origins": ""
+  },
+  "statistics": {
+    "start_time": "2026-11-06 15:20:11",
+    "sessions_total": 0,
+    "jobs_started": 0,
+    "jobs_completed": 0
+  },
+  "logging": {
+    "console": {
+      "enabled": true,
+      "level": "INFO"
+    },
+    "file": {
+      "enabled": true,
+      "level": "INFO",
+      "location": "C:\\Users\\crisd\\SkeinWinder\\Hankinator\\hardware\\Hank_Touchscreen_Adapter\\routing\\freerouting_user\\freerouting.log"
+    }
+  },
+  "version": "2.2.4"
+}

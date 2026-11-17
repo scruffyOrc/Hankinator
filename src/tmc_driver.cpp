@@ -68,5 +68,10 @@ TmcDriver::Sample TmcDriver::sample() {
 }
 bool TmcDriver::consumeDiag() {
     noInterrupts();const bool seen=diagSeen;diagSeen=false;interrupts();
-    return seen||digitalRead(Pins::Diag)==HIGH;
+    // The TMC2209 DIAG/INDEX output on the current module is held HIGH while
+    // idle.  Treating its static level as a stall turns every normal run into
+    // a false bind once the supervisor reaches its monitored-speed window.
+    // Only an actual rising edge is actionable here.  The raw level remains
+    // available in telemetry for hardware diagnosis.
+    return seen;
 }

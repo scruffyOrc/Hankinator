@@ -30,7 +30,7 @@ struct Network {char name[33];bool secure;};
 Network networks[Config::WifiMaxNetworks]{};
 uint8_t networksFound=0;
 int characterChoice=0; // Connect, Delete, then printable ASCII.
-constexpr uint8_t UpdateStorageMountError=250,UpdateStorageRemoveError=251;
+constexpr uint8_t UpdateStorageMountError=250,UpdateStorageRemoveError=251,UpdateStorageFormatError=252;
 
 const char* updateErrorText(uint8_t error)
 {
@@ -47,6 +47,7 @@ const char* updateErrorText(uint8_t error)
         case UPDATE_ERROR_NO_DATA:return "no firmware data received";
         case UpdateStorageMountError:return "update storage could not be mounted";
         case UpdateStorageRemoveError:return "old staged update could not be cleared";
+        case UpdateStorageFormatError:return "update storage could not be reformatted";
         default:return "unknown updater error";
     }
 }
@@ -55,8 +56,17 @@ bool prepareUpdateStorage(uint64_t& available)
 {
     // PicoOTA stages the image in LittleFS. A previous interrupted upload can
     // leave firmware.bin behind, so delete that disposable staging file before
-    // computing free capacity. Do not touch the user's telemetry log.
-    if(!LittleFS.begin()){currentError=UpdateStorageMountError;return false;}
+    // computing free capacity. Do not touch the user's telemetry log unless
+    // the filesystem geometry changed in a USB-installed firmware update and
+    // the prior filesystem can no longer mount.
+    if(!LittleFS.begin())
+    {
+        // The first build with a larger OTA staging partition necessarily
+        // moves LittleFS. Format only this invalid old layout so the updater
+        // can recover itself; settings/commissioning live in EEPROM instead.
+        if(!LittleFS.format()||!LittleFS.begin()){currentError=UpdateStorageFormatError;return false;}
+        Serial.println("Wi-Fi update storage reformatted after partition change; saved telemetry cleared");
+    }
     if(LittleFS.exists("firmware.bin")&&!LittleFS.remove("firmware.bin")){currentError=UpdateStorageRemoveError;return false;}
     FSInfo info{};
     if(!LittleFS.info(info)||info.totalBytes<=info.usedBytes){currentError=UPDATE_ERROR_SIZE;return false;}
@@ -114,9 +124,10 @@ button{padding:.6rem 1rem}progress{width:100%;height:1.2rem}small{color:#666}</s
 <form id="f"><input id="file" type="file" accept=".bin,application/octet-stream" required><br><button>Install Update</button></form>
 <progress id="p" max="100" value="0"></progress><p id="s">Choose a firmware.bin file.</p>
 <small>Keep the machine powered. It will restart automatically after a successful update.</small>
-<script>f.onsubmit=e=>{e.preventDefault();let x=new XMLHttpRequest(),d=new FormData();d.append('update',file.files[0]);
-x.upload.onprogress=e=>{if(e.lengthComputable){let n=Math.round(e.loaded*100/e.total);p.value=n;s.textContent='Uploading '+n+'%';}};
-x.onload=()=>{s.textContent=x.responseText};x.onerror=()=>s.textContent='Upload failed';x.open('POST','/update');x.send(d);};</script>
+<script>const form=document.getElementById('f'),fileInput=document.getElementById('file'),progress=document.getElementById('p'),status=document.getElementById('s');
+form.onsubmit=e=>{e.preventDefault();if(!fileInput.files||fileInput.files.length!==1){status.textContent='Choose a firmware.bin file.';return;}let x=new XMLHttpRequest(),d=new FormData(),firmware=fileInput.files[0];d.append('update',firmware,firmware.name);
+x.upload.onprogress=e=>{if(e.lengthComputable){let n=Math.round(e.loaded*100/e.total);progress.value=n;status.textContent='Uploading '+n+'%';}};
+x.onload=()=>{status.textContent=x.responseText};x.onerror=()=>status.textContent='Upload failed';x.open('POST','/update');x.send(d);};</script>
 </main></body></html>)HTML";
 
 void configureServer()
@@ -160,7 +171,12 @@ void configureServer()
         }
         else if(upload.status==UPLOAD_FILE_END&&currentStatus==FirmwareUpdateStatus::Uploading)
         {
-            if(Update.end(true)){currentProgress=100;currentStatus=FirmwareUpdateStatus::Success;}
+            // Some browsers can reach the multipart start/end callbacks even
+            // when the selected input was not actually attached to the body.
+            // Do not pass that empty transaction to PicoOTA as a misleading
+            // "size is zero" staging error.
+            if(!receivedBytes){Update.end();currentError=UPDATE_ERROR_NO_DATA;currentStatus=FirmwareUpdateStatus::Error;}
+            else if(Update.end(true)){currentProgress=100;currentStatus=FirmwareUpdateStatus::Success;}
             else {currentError=Update.getError();currentStatus=FirmwareUpdateStatus::Error;}
         }
         else if(upload.status==UPLOAD_FILE_ABORTED)

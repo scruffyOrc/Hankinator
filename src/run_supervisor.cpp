@@ -1,6 +1,7 @@
 #include "run_supervisor.h"
 #include "app_api.h"
 #include "config.h"
+#include "hall_sensor.h"
 #include "load_cells.h"
 #include "runtime.h"
 #include "telemetry.h"
@@ -23,14 +24,23 @@ uint32_t settleStartedMs=0;
 uint32_t tensionReliefWaitStartedMs=0;
 StallRecovery::Controller recovery({
     Config::StallReducedMotorRps,Config::StallSlowdownRate,Config::StallRecoveryRampRate,Config::StallRecoveryMinimumRps,
+    Config::StallRecoveryResonanceCrossRate,Config::StallRecoveryResonanceLowRps,Config::StallRecoveryResonanceHighRps,
     Config::StallConfirmMs,Config::StallSevereMs,Config::StallPersistentMs,Config::StallInvalidMs,Config::StallStableMs,
     Config::StallProofTimeoutMs,Config::StepsPerHubRev,
-    {Config::StallSpeedFloors[0],Config::StallSpeedFloors[1],Config::StallSpeedFloors[2]},Config::StallSevereSg,Config::StallHealthyHysteresis,Config::StallMaxHolds});
+    Config::StallRecoveryProofTurns,{Config::StallSpeedFloors[0],Config::StallSpeedFloors[1],Config::StallSpeedFloors[2]},Config::StallSevereSg,Config::StallHealthyHysteresis,Config::DefaultStallRestartLimit});
 uint32_t lastStallPoll=0;
 uint32_t lastSgSequence=0;
 bool discardWeightSegment=false;
 bool sgUnavailableAnnounced=false;
 bool staleStatusCacheAnnounced=false;
+// If the first eight wraps are still effectively weightless after motion,
+// re-tare with those wraps already on Hank.  The second eight-wrap reading is
+// the incremental mass of the next eight wraps; its baseline is also our best
+// estimate of the first eight.  This lets us recover a 16-wrap total without
+// treating a small negative post-motion offset as yarn weight.
+bool calibrationRetryAttempted=false;
+bool calibrationRetryTaring=false;
+float retryTareBaselineGrams=0.0f;
 
 float limitBatchStopSpeed(float stageSpeed)
 {
@@ -48,7 +58,10 @@ float limitBatchStopSpeed(float stageSpeed)
     return min(stageSpeed,endSpeed+(stageSpeed-endSpeed)*progress);
 }
 void syncRecovery() {
-    state.recovery=recovery.phase;state.countUncertain=recovery.uncertain;
+    state.recovery=recovery.phase;
+    // Hall may independently lose its landmark sequence.  Do not erase that
+    // fact just because StallGuard subsequently returns to a normal phase.
+    state.countUncertain=state.countUncertain||recovery.uncertain;
     state.stallIncidents=recovery.incidents;state.sgBaseline=recovery.baseline;
 }
 
@@ -67,11 +80,11 @@ void eventWithValues(const char* name,float weight,float gramsPerTurn,uint16_t t
     Telemetry::event(label);
 }
 
-void emitStall(const char* name)
+void emitStall(const char* name,bool diagCause=false)
 {
     char label[64]{};
     const long weightCentiGrams=isnan(state.filteredWeightGrams)?LONG_MIN:lroundf(state.filteredWeightGrams*100.0f);
-    snprintf(label,sizeof(label),"%s_sg_%u_base_%u_wt_cg_%ld",name,state.sgResult,state.sgBaseline,weightCentiGrams);
+    snprintf(label,sizeof(label),"%s_src_%s_sg_%u_base_%u_wt_cg_%ld",name,diagCause?"diag":"sg",state.sgResult,state.sgBaseline,weightCentiGrams);
     Telemetry::event(label);
 }
 
@@ -81,6 +94,24 @@ void abortWeightRun(const char* event)
     cancelAuxiliaryMotion();tensionReliefPhase=TensionReliefPhase::Idle;
     motionActive=false;motionSegmentStopStep=UINT32_MAX;
     Telemetry::event(event);
+}
+
+void beginCalibrationRetryTare()
+{
+    calibrationRetryAttempted=true;
+    calibrationRetryTaring=true;
+    retryTareBaselineGrams=0.0f;
+    measurementPending=false;
+    state.settlingFinalWeight=true;
+    state.filteredWeightGrams=NAN;
+    state.weightSpreadGrams=NAN;
+    // The first probe is intentionally discarded.  A completed tare after it
+    // makes the next eight turns an incremental measurement; see the comment
+    // above the retry state.
+    lastMeasurementStep=0;
+    lastMeasurementWeight=0.0f;
+    LoadCells::startTare();
+    Telemetry::event("WEIGHT_CALIBRATION_RETRY_TARE_START");
 }
 
 void finishAtWeight(float grams)
@@ -207,8 +238,29 @@ void handleStoppedWeight(float grams)
         startBatch(WeightApproachState::Calibration,1,"WEIGHT_RELEARN_AFTER_STALL");
         return;
     }
+    // After the retry tare, stoppedWeightGrams() is relative to the first
+    // eight wraps.  The total on Hank is therefore that baseline plus the
+    // increment from the second eight wraps.  On the first retry reading they
+    // are assumed equal, hence a total of twice the incremental value.
+    const bool retryMeasurement=calibrationRetryAttempted&&retryTareBaselineGrams==0.0f&&state.weightState==WeightApproachState::Calibration;
+    if(retryMeasurement)
+    {
+        if(grams>0.0f)retryTareBaselineGrams=grams;
+        grams+=retryTareBaselineGrams;
+        state.filteredWeightGrams=grams;
+    }
     updateSlope(grams,step);
-    if(isnan(state.gramsPerTurn)||state.gramsPerTurn<Config::WeightEstimateMinimumGramsPerTurn){abortWeightRun("WEIGHT_ESTIMATE_INVALID_SLOPE_ABORT");return;}
+    if(isnan(state.gramsPerTurn)||state.gramsPerTurn<Config::WeightEstimateMinimumGramsPerTurn)
+    {
+        if(state.weightState==WeightApproachState::Calibration&&!calibrationRetryAttempted)
+        {
+            beginCalibrationRetryTare();
+            return;
+        }
+        state.weightEstimateUnavailable=true;
+        abortWeightRun("WEIGHT_ESTIMATE_RETRY_FAILED_ABORT");
+        return;
+    }
 
     const WeightApproachState measuredStage=state.weightState;
     const uint16_t remaining=estimatedRemainingTurns(grams);
@@ -252,7 +304,7 @@ void updateStoppedMeasurement()
         return;
     }
     lastWeightSequence=loadCells.sequence;
-    const float grams=LoadCells::stoppedWeightGrams(loadCells);
+    float grams=LoadCells::stoppedWeightGrams(loadCells);
     if(isnan(grams))
     {
         if(timedOut)
@@ -262,6 +314,10 @@ void updateStoppedMeasurement()
         }
         return;
     }
+    // Once the retry tare is established, readings are incremental from the
+    // first eight wraps.  Reconstitute the total yarn estimate before any
+    // filtering or future slope calculation.
+    if(calibrationRetryAttempted&&retryTareBaselineGrams>0.0f)grams+=retryTareBaselineGrams;
     settleWindow[settleWrite]=grams;settleWrite=uint8_t((settleWrite+1)%Config::WeightFinalSettleSamples);
     if(settleCount<Config::WeightFinalSettleSamples)settleCount++;
     float minimum=settleWindow[0],maximum=settleWindow[0];
@@ -297,12 +353,22 @@ void updateStall()
     const uint32_t status=driver.statusValid?driver.status:TmcDriver::cachedDrvStatus();
     const bool statusValid=driver.statusValid||cachedStatus;
     const bool hardFault=statusValid&&(status&0x3FUL);
-    if(driver.valid&&driver.sequence==lastSgSequence&&!hardFault)return;
+    // Always drain DIAG before the duplicate-SG fast path. Otherwise an edge
+    // captured while stopped can survive until the next recovery ramp and be
+    // mistaken for a brand-new bind.
+    const bool diagSeen=TmcDriver::consumeDiag();
+    if(driver.valid&&driver.sequence==lastSgSequence&&!hardFault&&!diagSeen)return;
     lastSgSequence=driver.sequence;
-    const bool diag=TmcDriver::consumeDiag();
     const bool production=motionActive&&!auxiliaryMotionActive()&&!measurementPending;
     const bool normalPause=pauseState==PauseState::RUNNING;
     const bool sgValid=driver.valid&&(driver.status&(1UL<<30)); // StallGuard4 requires StealthChop.
+    // The TMC2209 DIAG edge is useful as an immediate first-run warning, but
+    // it is not trustworthy while the driver is being brought back through a
+    // reduced-speed proof/ramp. A genuine continuing bind is still caught by
+    // the numeric SG path (and electrical faults remain immediate).
+    const bool diagAllowed=recovery.phase==StallRecovery::Phase::Normal;
+    const bool diag=diagSeen&&diagAllowed;
+    if(diagSeen&&!diagAllowed)Telemetry::event("STALL_DIAG_IGNORED_DURING_RECOVERY");
     if(production&&cachedStatus&&!staleStatusCacheAnnounced)
     {
         staleStatusCacheAnnounced=true;
@@ -320,15 +386,15 @@ void updateStall()
     syncRecovery();
     if(action==StallRecovery::Action::Slow||action==StallRecovery::Action::Lock) {
         discardWeightSegment=state.weightArmed;
-        emitStall(action==StallRecovery::Action::Slow?"STALL_SLOWDOWN":"STALL_SLOW_LOCK");
-    } else if(action==StallRecovery::Action::Restore)emitStall("STALL_HEALTHY_TURN_RAMP_UP");
+        emitStall(action==StallRecovery::Action::Slow?"STALL_SLOWDOWN":"STALL_SLOW_LOCK",diag);
+    } else if(action==StallRecovery::Action::Restore)emitStall("STALL_HEALTHY_TURN_RAMP_UP",diag);
     else if(action==StallRecovery::Action::Hold) {
         state.clearanceReason=sgValid?ClearanceReason::Load:(driver.valid?ClearanceReason::DriverMode:ClearanceReason::DriverData);
         discardWeightSegment=state.weightArmed;
         // Stop immediately without automatically reversing an unknown obstruction.
         motionActive=false;requestedStepRateHz=0;currentMotorRPS=0;
         pauseState=PauseState::RUNNING;
-        emitStall((sgValid||diag)?"STALL_CHECK_YARN_HOLD":"STALL_DRIVER_DATA_HOLD");
+        emitStall((sgValid||diag)?"STALL_CHECK_YARN_HOLD":"STALL_DRIVER_DATA_HOLD",diag);
     } else if(action==StallRecovery::Action::Abort) {
         abortWeightRun(hardFault?"DRIVER_ELECTRICAL_FAULT_ABORT":"STALL_RETRY_LIMIT_ABORT");
         disableMotor();
@@ -338,10 +404,15 @@ void updateStall()
 
 void RunSupervisor::beginRun()
 {
+    // Read the setting at run start as well as when a UI changes it. This
+    // makes a persisted value authoritative after reset and keeps a run's
+    // policy stable while it is active.
+    recovery.setMaxRestarts(min(settings.stallRestartLimit,Config::MaxStallRestartLimit));
     state=RunSupervisorSnapshot{};state.weightArmed=armed&&weightCapabilityEnabled&&!autoCountMode&&LoadCells::tareValid();state.targetWeightGrams=configuredTarget;
     finalMeasurementAttempted=false;
     abortCompletion=false;measurementPending=false;measurementOnly=false;tensionReliefPhase=TensionReliefPhase::Idle;tensionReliefWaitStartedMs=0;recoveredMeasurementGrams=NAN;lastServiceMs=0;lastWeightSequence=0;sgUnavailableAnnounced=false;staleStatusCacheAnnounced=false;
     recovery.reset(selectedCruiseMotorRPS,millis());lastStallPoll=millis();lastSgSequence=0;discardWeightSegment=false;
+    calibrationRetryAttempted=false;calibrationRetryTaring=false;retryTareBaselineGrams=0.0f;
     TmcDriver::consumeDiag();syncRecovery();
     lastMeasurementStep=0;lastMeasurementWeight=0.0f;stageStartStep=0;
     if(state.weightArmed)
@@ -360,6 +431,11 @@ void RunSupervisor::beginRun()
     }
 }
 
+void RunSupervisor::setRecoveryRestartLimit(const uint8_t limit)
+{
+    recovery.setMaxRestarts(min(limit,Config::MaxStallRestartLimit));
+}
+
 void RunSupervisor::service()
 {
     updateStall();
@@ -368,6 +444,24 @@ void RunSupervisor::service()
     // Load cells remain observational while the hub is moving. Weight control
     // only requires them after tension relief, while stopped; a missed HX711
     // conversion during motion must not terminate an otherwise healthy run.
+    if(calibrationRetryTaring)
+    {
+        const LoadCellTareStatus tare=LoadCells::updateTare();
+        if(tare==LoadCellTareStatus::Complete)
+        {
+            calibrationRetryTaring=false;
+            state.settlingFinalWeight=false;
+            Telemetry::event("WEIGHT_CALIBRATION_RETRY_TARE_COMPLETE");
+            startBatch(WeightApproachState::Calibration,Config::WeightEstimateCalibrationTurns,"WEIGHT_CALIBRATION_RETRY_BATCH_START");
+        }
+        else if(tare==LoadCellTareStatus::Failed)
+        {
+            calibrationRetryTaring=false;
+            state.weightEstimateUnavailable=true;
+            abortWeightRun("WEIGHT_CALIBRATION_RETRY_TARE_FAILED_ABORT");
+        }
+        return;
+    }
     if(tensionReliefPhase==TensionReliefPhase::WaitingBeforeReverse)
     {
         if(now-tensionReliefWaitStartedMs>=Config::WeightTensionReliefPreReverseSettleMs)startTensionReliefReverse();
@@ -379,7 +473,10 @@ void RunSupervisor::service()
         Telemetry::event("WEIGHT_TENSION_RECOVERY_COMPLETE");
         handleStoppedWeight(recoveredMeasurementGrams);
     }
-    if(state.weightArmed&&!measurementPending&&!motionActive&&tensionReliefPhase==TensionReliefPhase::Idle&&state.weightState!=WeightApproachState::TargetReached)beginStoppedMeasurement();
+    // handleStoppedWeight() can abort during this same service pass.  Never
+    // schedule a new tension-relief sequence after that abort; doing so left a
+    // pending measurement that no later pass could service.
+    if(!abortCompletion&&state.weightArmed&&!measurementPending&&!motionActive&&tensionReliefPhase==TensionReliefPhase::Idle&&state.weightState!=WeightApproachState::TargetReached)beginStoppedMeasurement();
     if(measurementPending&&tensionReliefPhase==TensionReliefPhase::Measuring)updateStoppedMeasurement();
 }
 
@@ -401,8 +498,29 @@ float RunSupervisor::limitMotorRps(float requestedRps)
     return limitBatchStopSpeed(limited);
 }
 
-RunSupervisorSnapshot RunSupervisor::snapshot(){return state;}
+RunSupervisorSnapshot RunSupervisor::snapshot()
+{
+    RunSupervisorSnapshot value=state;
+    // The HX711 data is deliberately ignored during rotation.  Once a
+    // stopped measurement has established both a settled mass and a usable
+    // grams-per-turn estimate, the UI can nevertheless show a transparent
+    // estimate that follows the physical STEP count between measurements.
+    if(value.weightArmed&&isfinite(value.filteredWeightGrams)&&
+       isfinite(value.gramsPerTurn)&&value.gramsPerTurn>=Config::WeightEstimateMinimumGramsPerTurn)
+    {
+        const uint32_t current=safeCurrentStepCount();
+        const uint32_t forwardSteps=current>lastMeasurementStep?current-lastMeasurementStep:0;
+        value.predictedWeightGrams=value.filteredWeightGrams+
+            forwardSteps/float(Config::StepsPerHubRev)*value.gramsPerTurn;
+        value.predictedWeightValid=isfinite(value.predictedWeightGrams);
+    }
+    return value;
+}
 bool RunSupervisor::waitingForClearance(){return recovery.phase==StallRecovery::Phase::Held;}
+void RunSupervisor::markCountUncertain()
+{
+    state.countUncertain=true;
+}
 void RunSupervisor::holdForHallFault(const char* reason)
 {
     if(abortCompletion||waitingForClearance())return;
@@ -431,14 +549,21 @@ bool RunSupervisor::confirmClearance()
         Telemetry::event("STALL_CLEAR_REFUSED_DRIVER");return false;
     }
     if(cachedStatus)Telemetry::event("STALL_CLEAR_USING_CACHED_DRIVER_STATUS");
+    // Discard any DIAG transition that arrived while the machine was stopped.
+    // Recovery begins with a clean edge window.
+    TmcDriver::consumeDiag();
     const bool hallRecovery=state.clearanceReason==ClearanceReason::Hall;
     if(!recovery.confirm(millis(),safeCurrentStepCount(),Config::LaunchMotorRps,hallRecovery))return false;
+    // Both a Hall hold and a StallGuard hold can stop the commanded motion
+    // between Hall landmarks. Reacquire before restart so the first genuine
+    // post-recovery magnet is not compared against a pre-stop expectation.
+    HallSensor::resumeAfterClearance();
     state.clearanceReason=ClearanceReason::None;
     syncRecovery();pauseState=PauseState::RUNNING;
     if(hallRecovery)
     {
         Telemetry::event(recovery.phase==StallRecovery::Phase::Proving?
-            "HALL_RECOVERY_PROVING_ONE_TURN":"HALL_RECOVERY_LOCKED_REMAINDER");
+            "HALL_RECOVERY_RAMPING_TO_2RPS_PROVING_4_TURNS":"HALL_RECOVERY_RESUME");
     }
     Telemetry::event("STALL_USER_CLEAR_RESUME_SLOW");
     if(state.weightArmed) {

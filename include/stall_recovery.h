@@ -9,9 +9,12 @@ enum class Phase:uint8_t {Normal,Slowing,Proving,Ramping,Locked,Held,Aborted};
 enum class Action:uint8_t {None,Slow,Restore,Lock,Hold,Abort};
 struct Settings {
     float reducedRps,downRate,upRate,minRps;
+    float resonanceCrossRate,resonanceLowRps,resonanceHighRps;
     uint32_t confirmMs,severeMs,persistentMs,invalidMs,stableMs,proofTimeoutMs,stepsPerTurn;
+    uint8_t proofTurns;
     uint16_t floors[3],severeSg,hysteresis;
-    uint8_t maxHolds;
+    // Number of user-cleared recovery restarts allowed.  Zero means unlimited.
+    uint8_t maxRestarts;
 };
 struct Input {
     uint32_t now,steps;
@@ -45,13 +48,13 @@ public:
         // a fresh SG_RESULT, which is not evidence of a driver-data fault.
         if(!in.eligible){clearEvidence();return Action::None;}
         if(in.speed<cfg.minRps){
-            // A user-cleared recovery restarts gently below the StallGuard
-            // operating range. Raise its cap toward the reduced-speed target
-            // without classifying the unavailable SG data, so it can re-enter
-            // monitored operation instead of remaining trapped at launch speed.
-            if(phase==Phase::Locked||phase==Phase::Proving) {
+            // A user-cleared recovery restarts from launch speed. Raise its
+            // cap toward the recovery plateau without classifying unavailable
+            // SG data, so it can re-enter monitored operation instead of
+            // remaining trapped at launch speed.
+            if(phase==Phase::Slowing||phase==Phase::Locked||phase==Phase::Proving) {
                 const float target=std::min(ceiling,cfg.reducedRps);
-                cap=cap<target?std::min(target,cap+cfg.upRate*seconds):cap;
+                cap=raiseCap(target,seconds);
             }
             clearEvidence();return Action::None;
         }
@@ -63,8 +66,8 @@ public:
         invalidMs=0;
         if(phase==Phase::Slowing||phase==Phase::Locked||phase==Phase::Proving) {
             const float target=std::min(ceiling,cfg.reducedRps);
-            cap=cap>target?std::max(target,cap-cfg.downRate*seconds):std::min(target,cap+cfg.upRate*seconds);
-        } else if(phase==Phase::Ramping)cap=std::min(ceiling,cap+cfg.upRate*seconds);
+            cap=cap>target?std::max(target,cap-cfg.downRate*seconds):raiseCap(target,seconds);
+        } else if(phase==Phase::Ramping)cap=raiseCap(ceiling,seconds);
         const bool sameSpeed=fabsf(in.speed-lastSpeed)<=0.06f;
         lastSpeed=in.speed;
         const uint8_t nextBand=in.speed<1.5f?0:(in.speed<2.5f?1:2);
@@ -84,13 +87,13 @@ public:
             lowMs=0;candidate=false;
             // Hall-confirmed recovery can still prove a clear mechanism even
             // when this TMC2209 module does not expose numerical SG_RESULT.
-            // Once reduced speed is reached, measure one hub turn from an
+            // Once the recovery plateau is reached, measure four hub turns from an
             // absolute step origin. A late main-loop service pass must not
             // erase real, uninterrupted hub motion just because its interval
             // exceeded the normal 100 ms supervisory cadence.
             if(phase==Phase::Proving) {
                 const float target=std::min(ceiling,cfg.reducedRps);
-                // Count only travel at the settled reduced-speed cap, not
+                // Count only travel at the settled recovery plateau, not
                 // the ramp that reaches it. `proofGood` marks that the
                 // absolute origin has been captured; it is cleared on a stop
                 // or any fall below the reduced speed.
@@ -98,7 +101,7 @@ public:
                 if(!atReducedSpeed) {proofSteps=0;proofGood=false;}
                 else if(!proofGood) {proofGood=true;proofStartStep=in.steps;proofSteps=0;}
                 else proofSteps=in.steps>=proofStartStep?in.steps-proofStartStep:0;
-                if(proofSteps>=cfg.stepsPerTurn){phase=Phase::Ramping;return Action::Restore;}
+                if(proofSteps>=proofTargetSteps()){phase=Phase::Ramping;return Action::Restore;}
             }
             return Action::None;
         }
@@ -111,8 +114,12 @@ public:
         if(lowMs>=cfg.confirmMs&&!episode) {
             episode=true;uncertain=true;incidents++;proofSteps=proofMs=0;proofGood=false;
             cap=std::min(cap,in.speed);
-            phase=incidents==1?Phase::Slowing:Phase::Locked;
-            return incidents==1?Action::Slow:Action::Lock;
+            // Every incident gets the same plateau-and-ramp recovery. A
+            // separately configured restart limit may still stop an unsafe
+            // sequence of uncleared incidents, but repeat incidents must not
+            // silently strand a successfully-cleared run at reduced speed.
+            phase=Phase::Slowing;
+            return Action::Slow;
         }
         if(phase==Phase::Slowing||phase==Phase::Locked) {
             const float target=std::min(ceiling,cfg.reducedRps);
@@ -121,10 +128,28 @@ public:
             }
         } else if(phase==Phase::Proving) {
             proofMs+=dt;
-            // No skipped samples, pauses or unhealthy intervals count toward proof.
-            if(healthy&&elapsed<=100&&proofGood)proofSteps+=delta;else proofSteps=0;
-            proofGood=healthy&&elapsed<=100;
-            if(proofSteps>=cfg.stepsPerTurn){phase=Phase::Ramping;return Action::Restore;}
+            // The proof plateau answers a mechanical question: can the hub
+            // make four uninterrupted turns at the reduced speed? Requiring
+            // every SG sample to clear the learned "healthy" threshold made
+            // an otherwise smooth recovery time out whenever SG was merely
+            // noisy. A persistent/severe low result still reaches hold()
+            // above; an isolated low sample simply restarts this proof.
+            const float target=std::min(ceiling,cfg.reducedRps);
+            const bool atReducedSpeed=cap>=target-0.001f&&in.speed>=target-0.01f;
+            if(!atReducedSpeed||low) {
+                proofSteps=0;
+                proofGood=false;
+            } else if(!proofGood) {
+                proofGood=true;
+                proofStartStep=in.steps;
+                proofSteps=0;
+            } else {
+                // Use an absolute STEP origin rather than service cadence;
+                // foreground work may delay a poll without interrupting a
+                // physically clean reduced-speed turn.
+                proofSteps=in.steps>=proofStartStep?in.steps-proofStartStep:0;
+            }
+            if(proofSteps>=proofTargetSteps()){phase=Phase::Ramping;return Action::Restore;}
             if(proofMs>=cfg.proofTimeoutMs)return hold();
         } else if(phase==Phase::Ramping) {
             if(cap>=ceiling)phase=Phase::Normal;
@@ -139,15 +164,19 @@ public:
     bool confirm(uint32_t now,uint32_t step,float launchRps,bool proveFirstRecovery=false) {
         if(phase!=Phase::Held)return false;
         // Hall faults are independent confirmations of missed hub motion.
-        // First clear: prove one reduced-speed turn then ramp up. Second: stay
-        // reduced for the run. Third hold: abort in hold(). Numeric-StallGuard
-        // recovery retains its existing conservative locked behavior.
-        if(proveFirstRecovery&&holds==1){phase=Phase::Proving;incidents=1;}
-        else {phase=Phase::Locked;incidents=std::max(uint8_t(2),incidents);}
+        // Every user-cleared incident starts at launch speed, reaches the
+        // plateau, proves four clean hub turns, and then ramps to cruise.
+        // `proveFirstRecovery` remains part of the public call for source
+        // compatibility with the Hall path; recovery policy is now identical
+        // for every cleared bind.
+        (void)proveFirstRecovery;
+        phase=Phase::Proving;
+        incidents=std::max(uint8_t(1),incidents);
         cap=std::min(launchRps,cfg.reducedRps);lastNow=now;lastStep=step;lastSpeed=0;
         clearEvidence();episode=false;return true;
     }
     Action requireClearance(){return hold();}
+    void setMaxRestarts(uint8_t limit){cfg.maxRestarts=limit;}
     Phase phase=Phase::Normal;
     float cap=0;
     uint8_t incidents=0,holds=0;
@@ -159,8 +188,32 @@ private:
     float ceiling=0,lastSpeed=0;
     uint32_t lastNow=0,lastStep=0,lowMs=0,severeMs=0,invalidMs=0,stableMs=0,proofMs=0,proofSteps=0,proofStartStep=0;
     uint8_t band=0;bool episode=false,proofGood=false;
+    uint32_t proofTargetSteps() const {return cfg.stepsPerTurn*cfg.proofTurns;}
+    float raiseCap(float target,float seconds) const {
+        float speed=cap;
+        while(seconds>0.0f&&speed<target) {
+            const bool inResonance=speed>=cfg.resonanceLowRps&&speed<cfg.resonanceHighRps;
+            const float rate=inResonance?cfg.resonanceCrossRate:cfg.upRate;
+            float boundary=target;
+            if(speed<cfg.resonanceLowRps) boundary=std::min(target,cfg.resonanceLowRps);
+            else if(speed<cfg.resonanceHighRps) boundary=std::min(target,cfg.resonanceHighRps);
+            const float secondsToBoundary=(boundary-speed)/rate;
+            if(seconds<secondsToBoundary) return speed+seconds*rate;
+            speed=boundary;
+            seconds-=secondsToBoundary;
+        }
+        return speed;
+    }
     static uint16_t median(const Bin& b){uint16_t v[16];for(uint8_t i=0;i<b.count;i++)v[i]=b.values[i];std::sort(v,v+b.count);return b.count?v[b.count/2]:0;}
     void clearEvidence(){lowMs=severeMs=invalidMs=stableMs=proofSteps=proofStartStep=0;candidate=false;proofGood=false;}
-    Action hold(){uncertain=true;holds++;phase=holds>=cfg.maxHolds?Phase::Aborted:Phase::Held;return phase==Phase::Aborted?Action::Abort:Action::Hold;}
+    Action hold(){
+        uncertain=true;
+        if(holds<UINT8_MAX)holds++;
+        // `holds` is the incident that is now asking for clearance; a limit
+        // of two therefore permits two successful resumes and aborts on the
+        // third distinct incident. Zero deliberately disables this cap.
+        phase=(cfg.maxRestarts!=0&&holds>cfg.maxRestarts)?Phase::Aborted:Phase::Held;
+        return phase==Phase::Aborted?Action::Abort:Action::Hold;
+    }
 };
 }

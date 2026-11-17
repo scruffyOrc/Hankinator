@@ -60,7 +60,7 @@ bool updateConfigurationShortcut()
     // configuration shortcut while the motor is energized.
     if(uiState==UiState::TARING||uiState==UiState::TARE_FAILED||uiState==UiState::LOAD_YARN||uiState==UiState::HALL_SEEK||uiState==UiState::HALL_FAILED)return false;
 
-    const bool alreadyInConfiguration=uiState==UiState::CONFIG_MENU||uiState==UiState::CONFIG_CONNECTIVITY_MENU||uiState==UiState::CONFIG_MACHINE_SETTINGS_MENU||uiState==UiState::CONFIG_DIAGNOSTICS_MENU||uiState==UiState::CONFIG_MOTOR_MENU||uiState==UiState::CONFIG_RUN_CURRENT||uiState==UiState::CONFIG_HOLD_CURRENT||uiState==UiState::CONFIG_DIRECTION||uiState==UiState::CONFIG_WEIGHT_MENU||uiState==UiState::CONFIG_WEIGHT_VALUE||uiState==UiState::CONFIG_PAIRING||uiState==UiState::CONFIG_LOAD_CELL_DIAGNOSTICS||uiState==UiState::CONFIG_FIRMWARE_UPDATE||uiState==UiState::CONFIG_WEIGHT_DIAGNOSTICS||uiState==UiState::CONFIG_COMMISSIONING;
+    const bool alreadyInConfiguration=uiState==UiState::CONFIG_MENU||uiState==UiState::CONFIG_CONNECTIVITY_MENU||uiState==UiState::CONFIG_MACHINE_SETTINGS_MENU||uiState==UiState::CONFIG_DIAGNOSTICS_MENU||uiState==UiState::CONFIG_MOTOR_MENU||uiState==UiState::CONFIG_RUN_CURRENT||uiState==UiState::CONFIG_HOLD_CURRENT||uiState==UiState::CONFIG_DIRECTION||uiState==UiState::CONFIG_RECOVERY_LIMIT||uiState==UiState::CONFIG_WEIGHT_MENU||uiState==UiState::CONFIG_WEIGHT_VALUE||uiState==UiState::CONFIG_PAIRING||uiState==UiState::CONFIG_LOAD_CELL_DIAGNOSTICS||uiState==UiState::CONFIG_FIRMWARE_UPDATE||uiState==UiState::CONFIG_WEIGHT_DIAGNOSTICS||uiState==UiState::CONFIG_COMMISSIONING;
     if(alreadyInConfiguration||uiState==UiState::CONFIG_LOAD_CELL_TIMING)
     {
         if(configurationInputReleaseRequired)
@@ -223,7 +223,7 @@ void updateTareProcess()
     }
 }
 
-void beginWinding()
+void beginWinding(const bool suppressHallFeedback)
 {
     // The Wi-Fi update portal and its radio activity are intentionally not
     // allowed to coexist with timing-critical STEP generation. Entering a
@@ -265,7 +265,7 @@ void beginWinding()
     currentStepCount = 0;
     targetStepCount  = steps;
     motionSegmentStopStep=UINT32_MAX;
-    HallSensor::beginRun();
+    HallSensor::beginRun(suppressHallFeedback);
 
     RunSupervisor::beginRun();
 
@@ -717,7 +717,7 @@ void startWeightDiagnosticsTare()
 }
 bool weightDiagnosticsSettling()
 {
-    return uiState==UiState::CONFIG_WEIGHT_DIAGNOSTICS && millis()-diagnosticsTareStarted<Config::LoadCellTareMotorSettleMs;
+    return (uiState==UiState::CONFIG_WEIGHT_DIAGNOSTICS||uiState==UiState::SCALE_MODE||uiState==UiState::HAND_TURNING) && millis()-diagnosticsTareStarted<Config::LoadCellTareMotorSettleMs;
 }
 
 void App::loop()
@@ -746,7 +746,7 @@ void App::loop()
             Telemetry::event(message);
         }
     }
-    if(uiState==UiState::CONFIG_WEIGHT_DIAGNOSTICS&&!weightDiagnosticsSettling())LoadCells::updateTare();
+    if((uiState==UiState::CONFIG_WEIGHT_DIAGNOSTICS||uiState==UiState::SCALE_MODE||uiState==UiState::HAND_TURNING)&&!weightDiagnosticsSettling())LoadCells::updateTare();
     updateTareProcess();
 #if defined(HANKWINDER_TOUCH_DIAGNOSTICS)
     updateMotor();

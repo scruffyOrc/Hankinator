@@ -96,6 +96,29 @@ inline bool solveDirectLegTotalModel(const int32_t (&rawDeltas)[Samples][Channel
     return solve(normal,rhs,coefficients);
 }
 
+// Weighted total-model fit. A caller may use this where samples come from
+// physically different but related load paths. Weights are supplied by the
+// commissioning policy rather than hidden in the numerical routine.
+template<size_t Samples>
+inline bool solveWeightedTotalModel(const int32_t (&rawDeltas)[Samples][Channels],const float (&targets)[Samples],const float (&weights)[Samples],float coefficients[Channels])
+{
+    float normal[Channels][Channels]{};
+    float rhs[Channels]{};
+    for(size_t sample=0;sample<Samples;sample++)
+    {
+        const float weight=weights[sample];
+        if(!isfinite(weight)||weight<=0.0f)return false;
+        for(uint8_t row=0;row<Channels;row++)
+        {
+            const float rowValue=float(rawDeltas[sample][row]);
+            rhs[row]+=weight*rowValue*targets[sample];
+            for(uint8_t column=0;column<Channels;column++)
+                normal[row][column]+=weight*rowValue*float(rawDeltas[sample][column]);
+        }
+    }
+    return solve(normal,rhs,coefficients);
+}
+
 inline float predict(const int32_t rawDelta[Channels],const float coefficients[Channels])
 {
     float grams=0;

@@ -122,8 +122,8 @@ void updateEncoder()
         else if(uiState==UiState::CONFIG_MOTOR_MENU)
         {
             motorMenuSelection+=clockwise?1:-1;
-            if(motorMenuSelection>2)motorMenuSelection=0;
-            if(motorMenuSelection<0)motorMenuSelection=2;
+            if(motorMenuSelection>3)motorMenuSelection=0;
+            if(motorMenuSelection<0)motorMenuSelection=3;
             drawCurrentScreen();
         }
         else if(uiState==UiState::CONFIG_RUN_CURRENT)
@@ -139,6 +139,12 @@ void updateEncoder()
         else if(uiState==UiState::CONFIG_DIRECTION)
         {
             Machine::setClockwise(clockwise);
+            drawCurrentScreen();
+        }
+        else if(uiState==UiState::CONFIG_RECOVERY_LIMIT)
+        {
+            const int value=int(Machine::recoverySettings().restartLimit)+(clockwise?1:-1);
+            Machine::setRecoveryRestartLimit(uint8_t(constrain(value,0,int(Config::MaxStallRestartLimit))));
             drawCurrentScreen();
         }
         else if(uiState==UiState::CONFIG_WEIGHT_MENU)
@@ -373,13 +379,15 @@ void updateButton()
             case UiState::CONFIG_MOTOR_MENU:
                 if(motorMenuSelection==0)uiState=UiState::CONFIG_RUN_CURRENT;
                 else if(motorMenuSelection==1)uiState=UiState::CONFIG_HOLD_CURRENT;
-                else uiState=UiState::CONFIG_DIRECTION;
+                else if(motorMenuSelection==2)uiState=UiState::CONFIG_DIRECTION;
+                else uiState=UiState::CONFIG_RECOVERY_LIMIT;
                 break;
 
             case UiState::CONFIG_RUN_CURRENT:
             case UiState::CONFIG_HOLD_CURRENT:
             case UiState::CONFIG_DIRECTION:
-                saveSettings();
+            case UiState::CONFIG_RECOVERY_LIMIT:
+                Machine::saveMotorSettings();
                 uiState=UiState::CONFIG_MOTOR_MENU;
                 break;
 
@@ -511,9 +519,12 @@ void updateStopButton()
         // UI is then returned to home on its own normal LVGL pass.
         if(uiState==UiState::HALL_SEEK||uiState==UiState::HALL_FAILED||
            uiState==UiState::TARING||uiState==UiState::TARE_FAILED||
-           uiState==UiState::LOAD_YARN||uiState==UiState::WINDING)
+           uiState==UiState::LOAD_YARN||uiState==UiState::WINDING||
+           uiState==UiState::HAND_TURNING||
+           (uiState==UiState::COMPLETE&&Machine::winding().finalAdjustmentActive))
         {
-            resetToYarnWeightSelection();
+            if(uiState==UiState::HAND_TURNING)Machine::closeHandTurning();
+            else Machine::exitWindingWorkflow();
             TouchDiagnosticsUi::requestEmergencyStopView();
         }
         lastStop=stop;
@@ -554,7 +565,7 @@ void updateStopButton()
             uiState=UiState::CONFIG_MACHINE_SETTINGS_MENU;
             drawCurrentScreen();delay(120);lastStop=stop;return;
         }
-        if(uiState==UiState::CONFIG_RUN_CURRENT||uiState==UiState::CONFIG_HOLD_CURRENT||uiState==UiState::CONFIG_DIRECTION)
+        if(uiState==UiState::CONFIG_RUN_CURRENT||uiState==UiState::CONFIG_HOLD_CURRENT||uiState==UiState::CONFIG_DIRECTION||uiState==UiState::CONFIG_RECOVERY_LIMIT)
         {
             uiState=UiState::CONFIG_MOTOR_MENU;
             drawCurrentScreen();delay(120);lastStop=stop;return;

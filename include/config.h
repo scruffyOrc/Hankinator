@@ -17,7 +17,7 @@ constexpr uint8_t Heartbeat=LED_BUILTIN;
 }
 
 namespace Config {
-constexpr char FirmwareVersion[]="0.99.12";
+constexpr char FirmwareVersion[]="1.0";
 constexpr char FirmwareUpdateSsid[]="Hankinator-Update";
 constexpr char FirmwareUpdatePassword[]="hankinator";
 constexpr uint16_t MotorStepsPerRev=200;
@@ -26,8 +26,8 @@ constexpr uint16_t MotorPulleyTeeth=20, HubPulleyTeeth=80;
 constexpr uint32_t StepsPerMotorRev=MotorStepsPerRev*Microsteps;
 constexpr uint32_t StepsPerHubRev=StepsPerMotorRev*HubPulleyTeeth/MotorPulleyTeeth;
 constexpr float LaunchMotorRps=.25f, LaunchRampTurns=2.0f;
-constexpr float StartMotorRps=1.0f, CruiseMotorRps=4.0f, EndMotorRps=0.5f;
-constexpr float CruiseSpeedOptions[]={0.5f,1.0f,2.0f,3.0f,4.0f};
+constexpr float StartMotorRps=1.0f, CruiseMotorRps=3.5f, EndMotorRps=0.5f;
+constexpr float CruiseSpeedOptions[]={0.5f,1.0f,2.0f,3.0f,3.5f,4.0f};
 constexpr uint8_t CruiseSpeedOptionCount=sizeof(CruiseSpeedOptions)/sizeof(CruiseSpeedOptions[0]);
 // The mechanism has a pronounced resonance near 1.0 motor RPS.  Keep the
 // gentle launch profile, but cross that band rather than dwelling in it.
@@ -47,7 +47,7 @@ constexpr uint32_t StepPulseUs=2, IdleTimerUs=1000;
 constexpr uint32_t SplashTimeMs=4000, RainbowCycleMs=1200;
 constexpr size_t EepromSize=4096;
 constexpr uint32_t SettingsMagic=0x48414E4B, LogMagic=0x484C4F47;
-constexpr uint16_t SettingsVersion=11, LogVersion=10;
+constexpr uint16_t SettingsVersion=14, LogVersion=10;
 // Leave sleep off until the external backlight MOSFET is fitted.  The UI can
 // be configured in advance, but the direct 3.3 V LED wiring cannot be shut
 // down in software.
@@ -59,13 +59,25 @@ constexpr uint8_t MinTouchDisplaySleepMinutes=1,MaxTouchDisplaySleepMinutes=60;
 // Characterize pulse edges before changing these provisional tolerances.
 constexpr uint16_t HallPairGapDegrees=20;
 constexpr float HallSeekMotorRps=0.5f;
+// The close-pair registration magnets are only about 20 degrees apart.  Hand
+// Turning deliberately indexes more slowly than ordinary Hall seeking so it
+// can reliably stop on each physical landmark.
+constexpr float HandTurningIndexMotorRps=0.20f;
 constexpr uint32_t HallSeekMaxSteps=StepsPerHubRev/3,HallSeekTimeoutMs=6000;
 constexpr uint32_t HallDebounceUs=1000,HallAcquisitionMaxSteps=StepsPerHubRev*3;
 constexpr uint32_t HallPositionToleranceSteps=64,HallMaxCorrectionSteps=StepsPerHubRev/4;
+// Hall feedback is the physical rotation/count validator. A late landmark can
+// represent a small recovered skip, so allow it a bounded grace window before
+// treating the missing landmark as a real feedback fault.
+constexpr uint32_t HallMissingPulseGraceSteps=StepsPerHubRev/4;
+constexpr bool DefaultHallFeedbackEnabled=true;
 constexpr uint32_t WifiConnectTimeoutMs=20000,WifiScanTimeoutMs=15000,WifiStationStartDelayMs=500;
 constexpr uint8_t WifiStationConnectAttempts=2;
 constexpr uint8_t WifiMaxNetworks=16;
-constexpr bool WindDirectionHigh=true;
+// The installed motor harness is electrically reversed from the original
+// prototype mapping.  Keep the user-facing Clockwise setting physically
+// correct by using DIR=LOW as the clockwise winding polarity.
+constexpr bool WindDirectionHigh=false;
 constexpr float TmcRsense=.11f;
 constexpr uint8_t TmcAddress=0, StallThreshold=10;
 constexpr uint16_t DefaultRunCurrentMa=850,DefaultHoldCurrentMa=300;
@@ -91,13 +103,20 @@ constexpr uint8_t LoadCellDetectionSamples=5;
 constexpr uint32_t LoadCellDetectionWindowMs=1500,LoadCellHealthyTimeoutMs=1000;
 constexpr uint32_t LoadCellDiagnosticsRefreshMs=100;
 constexpr uint32_t LoadCellSyncTimeoutMs=1000;
-// Keep both PD_SCK phases conservative on the long harness. The data bit is
-// sampled at the end of the high phase, and pulse 25 uses the same timing.
+// HX711 Channel A at 64x gain is selected by 27 total PD_SCK pulses after a
+// conversion (24 data pulses plus three selection pulses). Keep both PD_SCK
+// phases conservative on the long harness; the data bit is sampled at the
+// end of each data-pulse high phase.
+constexpr uint8_t LoadCellGainSelectionPulses=3;
 constexpr uint8_t LoadCellSampleDelayUs=5;
 // Observational only: a large delta is not proof of corruption (a real load can change).
 constexpr int32_t LoadCellSuspiciousDeltaCounts=10000;
 constexpr uint8_t LoadCellTareSamples=16;
 constexpr uint32_t LoadCellTareTimeoutMs=6000,LoadCellTareMotorSettleMs=750;
+// Scale Mode is intentionally slower and steadier than the winding controller.
+// It presents a trimmed average of these stationary readings without changing
+// the calibrated load-cell model used by winding.
+constexpr uint8_t ScaleModeFilterSamples=15,ScaleModeFilterTrim=2;
 constexpr uint8_t LoadCellProfileBins=32;
 constexpr uint32_t LoadCellProfileTareTimeoutMs=12000;
 constexpr float LoadCellProfileMotorRps=0.5f;
@@ -114,38 +133,75 @@ constexpr float LoadCellGramsPerCount[]={
    -0.00264938080f,
     0.00237786342f
 };
-// Commissioning first measures each HX711 directly above its associated leg
-// with these three known reference masses. Those same masses are then measured
-// at the hub center to derive one machine-level hub gain. The four collars are
-// independent validation fixtures in two hub orientations.
+// Commissioning measures each HX711 directly above its associated leg with
+// these three known reference masses. The four collars are independent
+// validation fixtures in two hub orientations.
 constexpr uint16_t CommissioningReferenceMassCentiGrams[]={7943,11159,33353};
 constexpr uint8_t CommissioningReferenceMassCount=sizeof(CommissioningReferenceMassCentiGrams)/sizeof(CommissioningReferenceMassCentiGrams[0]);
 constexpr uint8_t CommissioningDirectSampleCount=CommissioningReferenceMassCount*LoadCellChannelCount;
+// After the direct-over-leg model is fitted, capture the same three known
+// masses at the front, middle and rear of an arm.  This is the payload path
+// used by yarn, unlike the former centre-hub-only correction experiment.
+constexpr uint8_t CommissioningArmPositionCount=3;
+// The experimental payload model is trained with all four collar masses
+// distributed across the four arms at front, middle, and rear positions.
+constexpr uint8_t CommissioningArmSampleCount=CommissioningArmPositionCount;
 constexpr uint16_t DefaultCommissioningCollarCentiGrams[]={4806,4807,4807,4808};
 constexpr uint32_t CommissioningMotorSettleMs=1000,CommissioningLoadSettleMs=1500;
 constexpr uint8_t CommissioningSamples=40;
 constexpr float CommissioningIndexMotorRps=0.5f;
 constexpr int32_t CommissioningMinimumFirstChangeCounts=2000;
 constexpr float CommissioningMinimumCoefficient=0.00001f,CommissioningMaximumCoefficient=0.02f;
-constexpr float CommissioningMinimumHubGain=0.90f,CommissioningMaximumHubGain=1.10f;
 constexpr float CommissioningValidationMinimumGrams=5.0f,CommissioningValidationFraction=0.05f;
+// The direct-leg captures establish the machine frame; arm captures are the
+// real yarn payload path and therefore have four times their influence in the
+// final four-cell fit. Each capture is normalized by mass squared so the
+// 333.53 g reference does not overwhelm the 79.43 g / 111.59 g evidence.
+constexpr float CommissioningDirectLegFitWeight=0.25f,CommissioningArmFitWeight=1.0f;
+constexpr float CommissioningMinimumArmGain=0.50f,CommissioningMaximumArmGain=1.50f;
+// Experimental position-aware payload model.  Each row is the signed
+// four-HX711 response per gram at front, middle, or rear of a supported arm.
+constexpr float CommissioningArmResponseMaximumCountsPerGram=1000.0f;
+constexpr uint8_t CommissioningArmInterpolationSteps=40;
+constexpr float CommissioningValidationMaximumOverreadGrams=0.25f;
+// The position-aware arm model is under characterization.  Keep collar
+// validations observable, but do not prevent saving a completed experimental
+// commissioning run until we have enough placement data to set this guard.
+constexpr bool CommissioningValidationBlocksSave=false;
 constexpr uint32_t FirmwareUpdateDisplayRefreshMs=250,FirmwareUpdateRebootDelayMs=1500;
 constexpr uint32_t TelemetryIntervalMs=100;
+// The persisted run log keeps every 100 ms sample.  Bluetooth is a
+// foreground transport on this Pico build, so stream a lighter 2 Hz view to
+// a connected terminal rather than allowing a backlog of long CSV rows to
+// delay touch handling during a winding run.
+constexpr uint32_t BluetoothLiveTelemetryIntervalMs=500;
 // Adaptive StallGuard recovery; provisional thresholds require characterization.
 constexpr bool EnableStallDetection=true;
 constexpr uint32_t ControlSupervisorIntervalMs=100;
 constexpr uint16_t StallSevereSg=20;
 constexpr bool EnableStallRecovery=true;
 constexpr uint32_t StallPollMs=50,StallUartRequestMs=25,StallUartTimeoutMs=8,StallDataFreshMs=200;
-// A confirmed recovery slows below cruise, but must not park at the 1.0 RPS
-// mechanical resonance.  1.5 RPS is the first characterization target.
-constexpr float StallRecoveryMinimumRps=1.0f,StallReducedMotorRps=1.5f;
+// Every bind recovery passes through the same plateau instead of leaving a
+// later, independently-cleared bind permanently in limp mode. The plateau
+// stays above the 1.0 RPS resonance and must be clean for four hub turns
+// before the normal ramp may resume toward the chosen cruise speed.
+constexpr float StallRecoveryMinimumRps=1.0f,StallReducedMotorRps=2.0f;
+constexpr uint8_t StallRecoveryProofTurns=4;
 constexpr float StallSlowdownRate=2.0f,StallRecoveryRampRate=0.5f;
+// Recovery uses the same deliberate resonance crossing as a normal resume.
+// It starts gently, traverses the 0.85--1.20 RPS band quickly, then returns
+// to the normal recovery slope before proving four turns at 2.0 RPS.
+constexpr float StallRecoveryResonanceCrossRate=3.0f;
+constexpr float StallRecoveryResonanceLowRps=0.85f,StallRecoveryResonanceHighRps=1.20f;
 constexpr uint32_t StallConfirmMs=100,StallSevereMs=100,StallPersistentMs=600;
 constexpr uint32_t StallInvalidMs=300,StallStableMs=150,StallProofTimeoutMs=10000;
 constexpr uint16_t StallSpeedFloors[]={70,85,100}; // <1.5, <2.5, >=2.5 motor RPS
 constexpr uint16_t StallHealthyHysteresis=15;
-constexpr uint8_t StallMaxHolds=3; // Two confirmed retries; third stop aborts.
+// Number of user-cleared bind recoveries permitted in one winding run. Zero
+// means unlimited: every new bind still stops the hub and requires a human to
+// inspect/clear it, but distinct incidents do not strand a partially wound
+// hank simply because an earlier bind was resolved.
+constexpr uint8_t DefaultStallRestartLimit=0,MaxStallRestartLimit=10;
 constexpr float MinimumWeightTargetGrams=5.0f,MaximumWeightTargetGrams=2000.0f;
 constexpr float WeightApproachMinimumMarginGrams=3.0f,WeightApproachMarginFraction=0.15f;
 constexpr float WeightApproachMotorRps=0.5f,WeightApproachDecelRpsPerSecond=1.0f;
@@ -168,7 +224,10 @@ constexpr float WeightEstimateMinimumGramsPerTurn=0.01f;
 constexpr uint16_t DefaultWeightTargetsCentiGrams[]={2150,5300,11000};
 constexpr uint16_t MinWeightTargetCentiGrams=100,MaxWeightTargetCentiGrams=50000,WeightTargetStepCentiGrams=10;
 constexpr uint16_t FuhSafetyTurnCeiling=1000;
-constexpr float FuhCruiseMotorRps=3.0f;
+// The motion-speed sweep found 3.5 RPS has the smallest post-motion baseline
+// shift in the usable range. Keep 4.0 RPS selectable for characterization,
+// but use 3.5 RPS as the appliance default for both count and weight winding.
+constexpr float FuhCruiseMotorRps=3.5f;
 constexpr uint8_t WeightFinalSettleSamples=8;
 constexpr float WeightFinalSettleMaxRangeGrams=2.0f;
 constexpr uint32_t WeightFinalSettleTimeoutMs=15000;

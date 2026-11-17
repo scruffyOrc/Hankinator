@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <algorithm>
+#include "config.h"
 
 // Hardware-independent five-magnet decoder. All distances are commanded STEP
 // pulses captured at Hall edges, never elapsed time (acceleration is allowed).
@@ -35,12 +36,16 @@ public:
             return Result::None;
         }
         const uint32_t nominal=distance(phase);
-        // A missing/extra pulse or large slip is ambiguous: do not invent travel.
-        const uint32_t ambiguity=std::max(tol+1,shortGap/2);
-        if(difference(gap,nominal)>ambiguity){fault=true;return Result::Fault;}
+        // A later-than-expected landmark can be a real, bounded loss of hub
+        // travel.  Keep it as an observable correction candidate instead of
+        // stopping the machine before the landmark has a chance to arrive.
+        // An early edge remains impossible for normal slip and is therefore a
+        // genuine pattern fault. A very large late gap is more likely a missing
+        // landmark than a correction and is also a fault.
+        if(gap+tol<nominal||gap>nominal+Config::HallMaxCorrectionSteps){fault=true;return Result::Fault;}
         expected+=nominal;phase=(phase+1)%5;
         const int32_t lag=int32_t(step-origin)-int32_t(expected)-int32_t(corrected);
-        if(lag < -int32_t(tol)||lag>int32_t(ambiguity)){fault=true;return Result::Fault;}
+        if(lag < -int32_t(tol)||lag>int32_t(Config::HallMaxCorrectionSteps)){fault=true;return Result::Fault;}
         // Require the same deficit at two consecutive distinct landmarks.
         if(lag>int32_t(tol)&&previousLag>int32_t(tol)) {
             const uint32_t amount=uint32_t(std::min(lag,previousLag))-tol;
@@ -50,7 +55,10 @@ public:
     }
     bool overdue(uint32_t step)const {
         if(first)return false;
-        const uint32_t maximum=locked?distance(phase)+std::max(tol+1,shortGap/2):rev/3;
+        // Give a late physical landmark enough commanded travel to arrive and
+        // be reconciled. StallGuard is the earlier bind detector; Hall faults
+        // only when the expected physical landmark is genuinely absent.
+        const uint32_t maximum=locked?distance(phase)+Config::HallMissingPulseGraceSteps:rev/3;
         return step-last>maximum;
     }
     bool locked=false,fault=false;

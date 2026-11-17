@@ -66,6 +66,9 @@ float weightGrams();
 // reference for weight decisions made while the hub is stopped.
 float stoppedWeightGrams(const LoadCellSnapshot& snapshot);
 float profileWeightGrams(const LoadCellSnapshot& snapshot,uint32_t hubStep);
+// Fits total grams and an effective front-to-rear arm position simultaneously
+// from a signed four-cell delta and three commissioned arm response vectors.
+float estimateArmModelWeight(const int32_t delta[Config::LoadCellChannelCount],const float response[Config::CommissioningArmPositionCount][Config::LoadCellChannelCount],float* effectivePosition=nullptr);
 void setCalibration(const float coefficients[Config::LoadCellChannelCount]);
 void calibration(float coefficients[Config::LoadCellChannelCount]);
 }

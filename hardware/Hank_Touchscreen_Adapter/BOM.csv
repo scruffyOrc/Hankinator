@@ -1,0 +1,8 @@
+Reference,Qty,Value,Footprint,Notes
+J1,1,LCD ILI9488/XPT2046,PinSocket_1x14_P2.54mm_Vertical,Female socket: mates with touchscreen's male 1x14 header
+J2,1,EXP1 to V1A,PinHeader_2x05_P2.54mm_Vertical,Male: intended for female-to-female 10-conductor harness
+J3,1,EXP2 to V1A,PinHeader_2x05_P2.54mm_Vertical,Male: intended for female-to-female 10-conductor harness
+J4,1,AUX 3V3 GND GP1,JST-XH_B3B-XH-A_1x03_P2.50mm_Vertical,Pin 1 +3V3 pin 2 GND pin 3 GP1 BL PWM
+Q1,1,Si4599DY,SOIC-8_3.9x4.9mm_P1.27mm,Use P-channel half only as 3V3 high-side LED PWM switch
+R1,1,1k,R_0603_1608Metric,GP1 to Si4599 P-channel gate
+R2,1,100k,R_0603_1608Metric,Gate-to-source reset pull-up

@@ -1,6 +1,9 @@
 #pragma once
 #include "runtime.h"
 void loadFactoryDefaults(); bool settingsAreValid(); void saveSettings(); void loadSettings();
+// Reset customer-changeable preferences while optionally retaining the
+// machine-specific load-cell commissioning model.
+void resetUserSettings(bool eraseCommissioning);
 void updatePanelLights();void signalStoppedLights();void setPanelLights(); void drawStartupSplash(); void runStartupSplash(); void beep(uint16_t duration=30);
 uint32_t calculateTargetSteps(); uint32_t stepsPerSecondForMotorRPS(float); void enableMotor(); void disableMotor();
 int64_t stepAlarmCallback(alarm_id_t,void*); uint32_t safeCurrentStepCount(); float turnsCompleted(); float turnsRemaining();
@@ -25,5 +28,5 @@ void drawLoadYarnScreen();
 void drawFirmwareUpdateScreen();
 void startTareAfterHall();
 int getTurnIncrement();void updateEncoder();void updateButton();void updateStopButton();
-void resetToYarnWeightSelection();void requestWindingStart();void beginWinding();void updateTareProcess();void updateHeartbeat();void updatePauseState();void updateMotor();
+void resetToYarnWeightSelection();void requestWindingStart();void beginWinding(bool suppressHallFeedback=false);void updateTareProcess();void updateHeartbeat();void updatePauseState();void updateMotor();
 namespace App {void setup();void loop();}

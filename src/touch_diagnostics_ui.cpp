@@ -40,6 +40,9 @@ constexpr uint32_t DiagnosticsDeep=0x8B5000;
 constexpr uint32_t WeightLight=0x21A89B;
 constexpr uint32_t Weight=0x11998E;
 constexpr uint32_t WeightDeep=0x087A74;
+// Utility is intentionally distinct from the Weight workflow: it is a
+// separate destination for secondary machine functions, not another target.
+constexpr uint32_t Utility=0x6B5CC6;
 
 uint32_t uiBackground(){return settings.touchDisplayDarkMode?0x090B12:Background;}
 uint32_t uiInk(){return settings.touchDisplayDarkMode?0xF3F5F9:Ink;}
@@ -91,6 +94,8 @@ lv_obj_t* commissioningProgress=nullptr;
 lv_obj_t* windingGauge=nullptr;
 lv_obj_t* windingPercent=nullptr;
 lv_obj_t* windingAction=nullptr;
+lv_obj_t* windingTurns=nullptr;
+lv_obj_t* windingWeight=nullptr;
 lv_obj_t* bluetoothStateLabel=nullptr;
 lv_obj_t* pairingButton=nullptr;
 lv_obj_t* pairingButtonLabel=nullptr;
@@ -102,12 +107,20 @@ lv_obj_t* systemCheckPrimary=nullptr;
 lv_obj_t* systemCheckDetail=nullptr;
 lv_obj_t* turnCountLabel=nullptr;
 lv_obj_t* turnSlider=nullptr;
+lv_obj_t* scaleValue=nullptr;
+lv_obj_t* scaleStatus=nullptr;
+lv_obj_t* scaleUnitButtonLabel=nullptr;
+lv_obj_t* handTurningCount=nullptr;
+lv_obj_t* handTurningStatus=nullptr;
+lv_obj_t* handTurningWeight=nullptr;
+lv_obj_t* handTurningDone=nullptr;
 bool pendingWindingWorkflowRefresh=false;
 bool pendingHomeAfterPhysicalStop=false;
 bool pendingEasterEggAdvance=false;
 bool pendingEasterEggLogoDraw=false;
 Machine::CommissioningState displayedCommissioningState=Machine::CommissioningState::Ready;
 Machine::WindingStage displayedWindingStage=Machine::WindingStage::Idle;
+bool displayedFinalAdjustment=false;
 uint8_t displayedCommissioningSamples=0;
 uint8_t editingWeightPreset=0;
 bool editingRunCurrent=true;
@@ -118,6 +131,14 @@ uint8_t easterEggTapCount=0;
 uint8_t easterEggPhase=0,easterEggFlashFrame=0;
 lv_obj_t* easterEggCaption=nullptr;
 char presetKeypadValue[12]{};
+enum class NumericEntry : uint8_t { WeightTarget, RunCurrent, HoldCurrent, TurnCount, DisplaySleep, RecoveryRestarts };
+enum class ScaleUnit : uint8_t { Grams, Ounces, DecimalPounds, PoundsOunces };
+NumericEntry numericEntry=NumericEntry::WeightTarget;
+ScaleUnit scaleUnit=ScaleUnit::Grams;
+bool resetCommissioningData=false;
+bool resetCommissioningCodeRejected=false;
+char resetCodeValue[8]{};
+lv_obj_t* resetCodeValueLabel=nullptr;
 
 uint32_t calibrationChecksum(const CalibrationRecord& record)
 {
@@ -276,11 +297,13 @@ void clearTouchFilter();
 // installed Montserrat subset always contains.
 void formatGrams(char* output,size_t size,float grams,uint8_t decimals=2)
 {
-    const long scale=decimals==1?10:100;
+    if(decimals>4)decimals=4;
+    long scale=1;
+    for(uint8_t index=0;index<decimals;index++)scale*=10;
     const long scaled=lroundf(grams*scale);
     const unsigned long magnitude=scaled<0?static_cast<unsigned long>(-scaled):static_cast<unsigned long>(scaled);
-    if(decimals==1)snprintf(output,size,"%s%lu.%01lu",scaled<0?"-":"",magnitude/10,magnitude%10);
-    else snprintf(output,size,"%s%lu.%02lu",scaled<0?"-":"",magnitude/100,magnitude%100);
+    if(decimals==0)snprintf(output,size,"%s%lu",scaled<0?"-":"",magnitude);
+    else snprintf(output,size,"%s%lu.%0*lu",scaled<0?"-":"",magnitude/static_cast<unsigned long>(scale),int(decimals),magnitude%static_cast<unsigned long>(scale));
 }
 
 void drawCalibration()
@@ -407,8 +430,17 @@ void buildCommissioningOverwriteWarning(lv_event_t* =nullptr);
 void buildWeightTargetsMenu(lv_event_t* =nullptr);
 void buildWeightTargetEditor(uint8_t preset);
 void buildWeightKeypad();
+void buildRecoveryRestartLimit(lv_event_t* =nullptr);
+void buildFactoryReset(lv_event_t* =nullptr);
+void buildFactoryResetCode(lv_event_t* =nullptr);
+void buildFactoryResetConfirm(lv_event_t* =nullptr);
+void buildFactoryResetComplete();
 void buildWeightWindingMenu(lv_event_t* =nullptr);
 void buildTurnWindingMenu(lv_event_t* =nullptr);
+void buildScaleMode(lv_event_t* =nullptr);
+void buildHandTurning(lv_event_t* =nullptr);
+void closeHandTurning(lv_event_t*);
+void finishHandTurning(lv_event_t*);
 void buildWindingWorkflow(lv_event_t* =nullptr);
 void buildWindingStopConfirm(lv_event_t* =nullptr);
 void buildEasterEgg();
@@ -596,7 +628,7 @@ void keypadWeightKey(lv_event_t* event)
     const size_t length=strlen(presetKeypadValue);
     if(key=='.')
     {
-        if(!strchr(presetKeypadValue,'.')&&length<sizeof(presetKeypadValue)-1){presetKeypadValue[length]='.';presetKeypadValue[length+1]='\0';}
+        if(numericEntry==NumericEntry::WeightTarget&&!strchr(presetKeypadValue,'.')&&length<sizeof(presetKeypadValue)-1){presetKeypadValue[length]='.';presetKeypadValue[length+1]='\0';}
     }
     else if(key>='0'&&key<='9'&&length<sizeof(presetKeypadValue)-1){presetKeypadValue[length]=key;presetKeypadValue[length+1]='\0';}
     refreshWeightKeypadValue();
@@ -617,9 +649,26 @@ void backspaceWeightKeypad(lv_event_t*)
 
 void acceptWeightKeypad(lv_event_t*)
 {
-    const float grams=strtof(presetKeypadValue,nullptr);
-    Machine::setWeightTargetGrams(editingWeightPreset,grams);
-    buildWeightTargetEditor(editingWeightPreset);
+    char* end=nullptr;
+    if(numericEntry==NumericEntry::WeightTarget)
+    {
+        const float grams=strtof(presetKeypadValue,&end);
+        if(end==presetKeypadValue||*end!='\0')return;
+        Machine::setWeightTargetGrams(editingWeightPreset,grams);
+        buildWeightTargetEditor(editingWeightPreset);
+        return;
+    }
+    const long value=strtol(presetKeypadValue,&end,10);
+    if(end==presetKeypadValue||*end!='\0'||value<0)return;
+    switch(numericEntry)
+    {
+        case NumericEntry::RunCurrent:Machine::setRunCurrentMa(uint16_t(min<long>(value,Config::MaxRunCurrentMa)));buildMotorCurrentEditor(nullptr);break;
+        case NumericEntry::HoldCurrent:Machine::setHoldCurrentMa(uint16_t(min<long>(value,Config::MaxHoldCurrentMa)));buildMotorCurrentEditor(nullptr);break;
+        case NumericEntry::TurnCount:touchTurns=uint16_t(constrain(value,long(Config::MinTurns),350L));buildTurnWindingMenu(nullptr);break;
+        case NumericEntry::DisplaySleep:settings.touchDisplaySleepMinutes=uint8_t(constrain(value,long(Config::MinTouchDisplaySleepMinutes),long(Config::MaxTouchDisplaySleepMinutes)));buildDisplaySleep(nullptr);break;
+        case NumericEntry::RecoveryRestarts:Machine::setRecoveryRestartLimit(uint8_t(constrain(value,0L,long(Config::MaxStallRestartLimit))));buildRecoveryRestartLimit(nullptr);break;
+        default:break;
+    }
 }
 
 void addWeightKeypadButton(lv_obj_t* parent,const char* caption,const char key,int x,int y)
@@ -630,9 +679,28 @@ void addWeightKeypadButton(lv_obj_t* parent,const char* caption,const char key,i
 
 void buildWeightKeypad()
 {
-    clearScreen(weightPresetName(editingWeightPreset),true);lv_obj_t* root=lv_scr_act();
-    addBack(root,[](lv_event_t*) {buildWeightTargetEditor(editingWeightPreset);});
-    label(root,"Enter target",&lv_font_montserrat_16,lv_color_hex(uiMuted()),LV_ALIGN_TOP_LEFT,22,94);
+    const char* title="Enter value";
+    const char* prompt="Enter value";
+    switch(numericEntry)
+    {
+        case NumericEntry::WeightTarget:title=weightPresetName(editingWeightPreset);prompt="Enter target";break;
+        case NumericEntry::RunCurrent:title="Run current";prompt="Enter current (mA)";break;
+        case NumericEntry::HoldCurrent:title="Hold current";prompt="Enter current (mA)";break;
+        case NumericEntry::TurnCount:title="Turn count";prompt="Enter turns";break;
+        case NumericEntry::DisplaySleep:title="Display sleep";prompt="Enter minutes";break;
+        case NumericEntry::RecoveryRestarts:title="Recovery restarts";prompt="0 = unlimited";break;
+    }
+    clearScreen(title,true);lv_obj_t* root=lv_scr_act();
+    addBack(root,[](lv_event_t*) {
+        switch(numericEntry){
+            case NumericEntry::WeightTarget:buildWeightTargetEditor(editingWeightPreset);break;
+            case NumericEntry::RunCurrent:case NumericEntry::HoldCurrent:buildMotorCurrentEditor(nullptr);break;
+            case NumericEntry::TurnCount:buildTurnWindingMenu(nullptr);break;
+            case NumericEntry::DisplaySleep:buildDisplaySleep(nullptr);break;
+            case NumericEntry::RecoveryRestarts:buildRecoveryRestartLimit(nullptr);break;
+        }
+    });
+    label(root,prompt,&lv_font_montserrat_16,lv_color_hex(uiMuted()),LV_ALIGN_TOP_LEFT,22,94);
     presetKeypadValueLabel=label(root,"0",&lv_font_montserrat_36,lv_color_hex(uiInk()),LV_ALIGN_TOP_LEFT,22,124);
     card(root,"CLEAR",22,214,86,48,Muted,clearWeightKeypad);
     card(root,"OK",118,214,86,48,0x2FAF5A,acceptWeightKeypad);
@@ -640,14 +708,152 @@ void buildWeightKeypad()
     addWeightKeypadButton(root,"1",'1',keyX,keyY);addWeightKeypadButton(root,"2",'2',keyX+keyGap,keyY);addWeightKeypadButton(root,"3",'3',keyX+2*keyGap,keyY);
     addWeightKeypadButton(root,"4",'4',keyX,keyY+52);addWeightKeypadButton(root,"5",'5',keyX+keyGap,keyY+52);addWeightKeypadButton(root,"6",'6',keyX+2*keyGap,keyY+52);
     addWeightKeypadButton(root,"7",'7',keyX,keyY+104);addWeightKeypadButton(root,"8",'8',keyX+keyGap,keyY+104);addWeightKeypadButton(root,"9",'9',keyX+2*keyGap,keyY+104);
-    addWeightKeypadButton(root,".",'.',keyX,keyY+156);addWeightKeypadButton(root,"0",'0',keyX+keyGap,keyY+156);
+    if(numericEntry==NumericEntry::WeightTarget)addWeightKeypadButton(root,".",'.',keyX,keyY+156);
+    addWeightKeypadButton(root,"0",'0',numericEntry==NumericEntry::WeightTarget?keyX+keyGap:keyX,keyY+156);
     card(root,LV_SYMBOL_BACKSPACE,keyX+2*keyGap,keyY+156,58,44,0x4856C8,backspaceWeightKeypad);
 }
 
 void openWeightKeypad(lv_event_t*)
 {
+    numericEntry=NumericEntry::WeightTarget;
     presetKeypadValue[0]='\0';
     buildWeightKeypad();
+}
+
+void openRunCurrentKeypad(lv_event_t*) {numericEntry=NumericEntry::RunCurrent;presetKeypadValue[0]='\0';buildWeightKeypad();}
+void openHoldCurrentKeypad(lv_event_t*) {numericEntry=NumericEntry::HoldCurrent;presetKeypadValue[0]='\0';buildWeightKeypad();}
+void openTurnCountKeypad(lv_event_t*) {numericEntry=NumericEntry::TurnCount;presetKeypadValue[0]='\0';buildWeightKeypad();}
+void openDisplaySleepKeypad(lv_event_t*) {numericEntry=NumericEntry::DisplaySleep;presetKeypadValue[0]='\0';buildWeightKeypad();}
+void openRecoveryKeypad(lv_event_t*) {numericEntry=NumericEntry::RecoveryRestarts;presetKeypadValue[0]='\0';buildWeightKeypad();}
+
+void showFactoryReset(lv_event_t*)
+{
+    // Every visit starts safely: ordinary settings reset, commissioning kept.
+    resetCommissioningData=false;
+    resetCommissioningCodeRejected=false;
+    resetCodeValue[0]='\0';
+    buildFactoryReset(nullptr);
+}
+
+void refreshResetCode()
+{
+    if(!resetCodeValueLabel)return;
+    char masked[sizeof(resetCodeValue)]{};
+    const size_t length=strlen(resetCodeValue);
+    for(size_t index=0;index<length;index++)masked[index]='*';
+    lv_label_set_text(resetCodeValueLabel,length?masked:"—");
+}
+
+void toggleResetCommissioning(lv_event_t* event)
+{
+    if(!lv_obj_has_state(lv_event_get_target(event),LV_STATE_CHECKED))
+    {
+        resetCommissioningData=false;
+        resetCommissioningCodeRejected=false;
+        buildFactoryReset(nullptr);
+        return;
+    }
+    resetCodeValue[0]='\0';
+    resetCommissioningCodeRejected=false;
+    buildFactoryResetCode(nullptr);
+}
+
+void resetCodeKey(lv_event_t* event)
+{
+    const char key=char(intptr_t(lv_obj_get_user_data(lv_event_get_target(event))));
+    const size_t length=strlen(resetCodeValue);
+    if(key>='0'&&key<='9'&&length<sizeof(resetCodeValue)-1)
+    {
+        resetCodeValue[length]=key;
+        resetCodeValue[length+1]='\0';
+    }
+    refreshResetCode();
+}
+
+void clearResetCode(lv_event_t*) {resetCodeValue[0]='\0';refreshResetCode();}
+void backspaceResetCode(lv_event_t*)
+{
+    const size_t length=strlen(resetCodeValue);
+    if(length)resetCodeValue[length-1]='\0';
+    refreshResetCode();
+}
+
+void acceptResetCode(lv_event_t*)
+{
+    resetCommissioningData=strcmp(resetCodeValue,"462867")==0;
+    resetCommissioningCodeRejected=!resetCommissioningData;
+    buildFactoryReset(nullptr);
+}
+
+void addResetCodeButton(lv_obj_t* parent,const char* caption,const char key,const int x,const int y)
+{
+    lv_obj_t* button=card(parent,caption,x,y,58,44,0x4856C8,resetCodeKey);
+    lv_obj_set_user_data(button,reinterpret_cast<void*>(intptr_t(key)));
+}
+
+void rebootAfterFactoryReset(lv_timer_t* timer)
+{
+    lv_timer_del(timer);
+    rp2040.restart();
+}
+
+void applyFactoryReset(lv_event_t*)
+{
+    if(!Machine::factoryReset(resetCommissioningData))return;
+    buildFactoryResetComplete();
+    // Let the result remain visible long enough to be useful, then restart so
+    // every driver and the UI reloads the freshly persisted state together.
+    lv_timer_create(rebootAfterFactoryReset,1400,nullptr);
+}
+
+void buildFactoryReset(lv_event_t*)
+{
+    clearScreen("Factory reset",true);lv_obj_t* root=lv_scr_act();addBack(root,buildDiagnosticsMenu);
+    warningIcon(root,84);
+    label(root,"All settings will be removed.",&lv_font_montserrat_20,lv_color_hex(uiInk()),LV_ALIGN_TOP_MID,0,124);
+    label(root,"Motor, targets, Wi-Fi, and paired Bluetooth devices.",&lv_font_montserrat_14,lv_color_hex(uiMuted()),LV_ALIGN_TOP_MID,0,154);
+    label(root,"Reset commissioning data",&lv_font_montserrat_16,lv_color_hex(uiInk()),LV_ALIGN_TOP_LEFT,24,188);
+    lv_obj_t* toggle=lv_switch_create(root);lv_obj_set_size(toggle,82,42);lv_obj_set_pos(toggle,374,176);
+    lv_obj_set_style_bg_color(toggle,lv_color_hex(0xDDE2EC),LV_PART_MAIN);lv_obj_set_style_bg_color(toggle,lv_color_hex(0xB61E28),LV_PART_INDICATOR|LV_STATE_CHECKED);lv_obj_set_style_bg_color(toggle,lv_color_white(),LV_PART_KNOB);lv_obj_set_style_shadow_width(toggle,0,LV_PART_KNOB);
+    if(resetCommissioningData)lv_obj_add_state(toggle,LV_STATE_CHECKED);
+    lv_obj_add_event_cb(toggle,toggleResetCommissioning,LV_EVENT_VALUE_CHANGED,nullptr);
+    const char* note=resetCommissioningData?"Commissioning data will also be erased.":resetCommissioningCodeRejected?"Code not accepted. Commissioning data will be kept.":"Commissioning data will be kept.";
+    label(root,note,&lv_font_montserrat_14,lv_color_hex(uiMuted()),LV_ALIGN_TOP_LEFT,24,222);
+    card(root,"RESET",26,260,428,42,0xB61E28,[](lv_event_t*) {buildFactoryResetConfirm(nullptr);});
+}
+
+void buildFactoryResetCode(lv_event_t*)
+{
+    clearScreen("Commissioning reset",true);lv_obj_t* root=lv_scr_act();addBack(root,buildFactoryReset);
+    label(root,"Enter authorization code",&lv_font_montserrat_16,lv_color_hex(uiMuted()),LV_ALIGN_TOP_LEFT,22,94);
+    resetCodeValueLabel=label(root,"—",&lv_font_montserrat_36,lv_color_hex(uiInk()),LV_ALIGN_TOP_LEFT,22,124);
+    card(root,"CLEAR",22,214,86,48,Muted,clearResetCode);
+    card(root,"OK",118,214,86,48,0x2FAF5A,acceptResetCode);
+    constexpr int keyX=266,keyY=86,keyGap=64;
+    addResetCodeButton(root,"1",'1',keyX,keyY);addResetCodeButton(root,"2",'2',keyX+keyGap,keyY);addResetCodeButton(root,"3",'3',keyX+2*keyGap,keyY);
+    addResetCodeButton(root,"4",'4',keyX,keyY+52);addResetCodeButton(root,"5",'5',keyX+keyGap,keyY+52);addResetCodeButton(root,"6",'6',keyX+2*keyGap,keyY+52);
+    addResetCodeButton(root,"7",'7',keyX,keyY+104);addResetCodeButton(root,"8",'8',keyX+keyGap,keyY+104);addResetCodeButton(root,"9",'9',keyX+2*keyGap,keyY+104);
+    addResetCodeButton(root,"0",'0',keyX+keyGap,keyY+156);
+    card(root,LV_SYMBOL_BACKSPACE,keyX+2*keyGap,keyY+156,58,44,0x4856C8,backspaceResetCode);
+}
+
+void buildFactoryResetConfirm(lv_event_t*)
+{
+    clearScreen("Confirm reset",true);lv_obj_t* root=lv_scr_act();addBack(root,buildFactoryReset);
+    warningIcon(root,84);
+    label(root,"Are you sure?",&lv_font_montserrat_28,lv_color_hex(uiInk()),LV_ALIGN_TOP_MID,0,124);
+    label(root,"This cannot be undone.",&lv_font_montserrat_16,lv_color_hex(uiMuted()),LV_ALIGN_TOP_MID,0,164);
+    label(root,resetCommissioningData?"Settings and commissioning data will be erased.":"Settings will be erased. Commissioning will be kept.",&lv_font_montserrat_14,lv_color_hex(uiMuted()),LV_ALIGN_TOP_MID,0,194);
+    card(root,"NO",20,244,210,48,Muted,[](lv_event_t*) {buildFactoryReset(nullptr);});
+    card(root,"YES",250,244,210,48,0xB61E28,applyFactoryReset);
+}
+
+void buildFactoryResetComplete()
+{
+    clearScreen("Factory reset");lv_obj_t* root=lv_scr_act();
+    label(root,"Reset complete",&lv_font_montserrat_28,lv_color_hex(0x2FAF5A),LV_ALIGN_TOP_MID,0,112);
+    label(root,resetCommissioningData?"Settings and commissioning data removed.":"Settings removed. Commissioning retained.",&lv_font_montserrat_16,lv_color_hex(uiInk()),LV_ALIGN_TOP_MID,0,158);
+    label(root,"Restarting…",&lv_font_montserrat_20,lv_color_hex(uiMuted()),LV_ALIGN_TOP_MID,0,214);
 }
 
 void buildWeightTargetEditor(const uint8_t preset)
@@ -656,12 +862,11 @@ void buildWeightTargetEditor(const uint8_t preset)
     clearScreen(weightPresetName(preset),true);lv_obj_t* root=lv_scr_act();
     addBack(root,[](lv_event_t*) {Machine::saveWeightTargets();buildWeightTargetsMenu(nullptr);});
     presetValueLabel=label(root,"",&lv_font_montserrat_36,lv_color_hex(uiInk()),LV_ALIGN_TOP_MID,0,112);
-    lv_obj_add_flag(presetValueLabel,LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_event_cb(presetValueLabel,openWeightKeypad,LV_EVENT_CLICKED,nullptr);
+    card(root,LV_SYMBOL_KEYBOARD,354,102,48,48,0x4856C8,openWeightKeypad);
     lv_obj_t* minus=card(root,"-",44,196,112,72,0x4856C8);lv_obj_add_flag(minus,LV_OBJ_FLAG_CLICKABLE);lv_obj_set_user_data(minus,reinterpret_cast<void*>(intptr_t(-1)));lv_obj_add_event_cb(minus,adjustWeightTargetWhileHeld,LV_EVENT_ALL,nullptr);
     card(root,"RESET",184,196,112,72,Muted,resetWeightTarget);
     lv_obj_t* plus=card(root,"+",324,196,112,72,0x4856C8);lv_obj_add_flag(plus,LV_OBJ_FLAG_CLICKABLE);lv_obj_set_user_data(plus,reinterpret_cast<void*>(intptr_t(1)));lv_obj_add_event_cb(plus,adjustWeightTargetWhileHeld,LV_EVENT_ALL,nullptr);
-    label(root,"Tap the value to enter it directly.",&lv_font_montserrat_14,lv_color_hex(uiMuted()),LV_ALIGN_TOP_MID,0,284);
+    label(root,"Use the keyboard button for direct entry.",&lv_font_montserrat_14,lv_color_hex(uiMuted()),LV_ALIGN_TOP_MID,0,284);
     refreshWeightTargetValue();
 }
 
@@ -742,6 +947,128 @@ void buildWeightDiagnostics(lv_event_t*)
     updateWeight(nullptr);liveTimer=lv_timer_create(updateWeight,100,nullptr);
 }
 
+const char* scaleUnitName()
+{
+    switch(scaleUnit)
+    {
+        case ScaleUnit::Ounces:return "oz";
+        case ScaleUnit::DecimalPounds:return "lb";
+        case ScaleUnit::PoundsOunces:return "lb oz";
+        default:return "g";
+    }
+}
+
+void formatScaleMass(char* output,const size_t size,const float grams)
+{
+    char value[24]{};
+    switch(scaleUnit)
+    {
+        case ScaleUnit::Grams:
+            formatGrams(value,sizeof(value),grams,1);snprintf(output,size,"%s g",value);break;
+        case ScaleUnit::Ounces:
+            formatGrams(value,sizeof(value),grams*0.0352739619f,2);snprintf(output,size,"%s oz",value);break;
+        case ScaleUnit::DecimalPounds:
+            formatGrams(value,sizeof(value),grams/453.59237f,3);snprintf(output,size,"%s lb",value);break;
+        case ScaleUnit::PoundsOunces:
+        {
+            const float totalOunces=grams*0.0352739619f;
+            const long pounds=long(floorf(totalOunces/16.0f));
+            formatGrams(value,sizeof(value),totalOunces-(pounds*16.0f),1);
+            snprintf(output,size,"%ld lb %s oz",pounds,value);
+            break;
+        }
+    }
+}
+
+void updateScale(lv_timer_t*)
+{
+    if(!scaleValue||!scaleStatus)return;
+    const Machine::ScaleSnapshot& data=Machine::scale();
+    if(data.settling){lv_label_set_text(scaleValue,"Please Tare");lv_label_set_text(scaleStatus,"Settling machine...");}
+    else if(data.tareStatus==Machine::TareStatus::Collecting){lv_label_set_text(scaleValue,"Please Tare");lv_label_set_text(scaleStatus,"Taring...");}
+    else if(data.tareStatus!=Machine::TareStatus::Complete){lv_label_set_text(scaleValue,"Please Tare");lv_label_set_text(scaleStatus,"Tap TARE to begin");}
+    else if(!data.weightValid){lv_label_set_text(scaleValue,"Measuring...");lv_label_set_text(scaleStatus,"Stabilizing reading");}
+    else
+    {
+        char value[36]{};formatScaleMass(value,sizeof(value),data.weightGrams);
+        lv_label_set_text(scaleValue,value);
+        char detail[48]{};snprintf(detail,sizeof(detail),"Stable average / %u samples",unsigned(data.samples));
+        lv_label_set_text(scaleStatus,detail);
+    }
+}
+
+void cycleScaleUnit(lv_event_t*)
+{
+    scaleUnit=ScaleUnit((uint8_t(scaleUnit)+1)%4);
+    if(scaleUnitButtonLabel)lv_label_set_text(scaleUnitButtonLabel,scaleUnitName());
+    updateScale(nullptr);
+}
+
+void closeScale(lv_event_t*)
+{
+    Machine::closeScaleMode();
+    buildHome(nullptr);
+}
+
+void buildScaleMode(lv_event_t*)
+{
+    clearScreen("Scale",true);lv_obj_t* root=lv_scr_act();addBack(root,closeScale);
+    scaleValue=label(root,"Please Tare",&lv_font_montserrat_36,lv_color_hex(uiInk()),LV_ALIGN_TOP_MID,0,112);
+    scaleStatus=label(root,"Taring...",&lv_font_montserrat_16,lv_color_hex(uiMuted()),LV_ALIGN_TOP_MID,0,170);
+    card(root,"TARE",20,232,205,52,Weight,[](lv_event_t*) {Machine::startScaleTare();updateScale(nullptr);});
+    lv_obj_t* unit=card(root,scaleUnitName(),255,232,205,52,WeightLight,cycleScaleUnit);
+    scaleUnitButtonLabel=lv_obj_get_child(unit,0);
+    updateScale(nullptr);liveTimer=lv_timer_create(updateScale,100,nullptr);
+}
+
+void openScaleMode(lv_event_t*)
+{
+    if(Machine::openScaleMode())buildScaleMode(nullptr);
+}
+
+void updateHandTurning(lv_timer_t*)
+{
+    const Machine::HandTurningSnapshot& hand=Machine::handTurning();
+    if(handTurningCount)
+    {
+        // Keep this entirely integer-based. The Pico's compact printf build
+        // does not include floating-point formatting, which left this label
+        // empty even though the Hall quarter-turn count was changing.
+        static constexpr const char* fractions[]={".00",".25",".50",".75"};
+        char count[24];
+        snprintf(count,sizeof(count),"%lu%s",(unsigned long)(hand.turnQuarters/4),fractions[hand.turnQuarters%4]);
+        lv_label_set_text(handTurningCount,count);
+    }
+    if(handTurningStatus)lv_label_set_text(handTurningStatus,hand.message);
+    if(handTurningWeight)
+    {
+        if(hand.finalWeightValid)
+        {
+            char grams[20],text[40];formatGrams(grams,sizeof(grams),hand.finalWeightGrams,1);
+            snprintf(text,sizeof(text),"FINAL WEIGHT\n%s g",grams);lv_label_set_text(handTurningWeight,text);
+        }
+        else lv_label_set_text(handTurningWeight,hand.stage==Machine::HandTurningStage::CapturingFinalWeight?"MEASURING...":"");
+    }
+    if(handTurningDone)
+    {
+        const bool enabled=hand.stage==Machine::HandTurningStage::Holding||hand.stage==Machine::HandTurningStage::FreeTurning||hand.stage==Machine::HandTurningStage::FinalWeight;
+        if(enabled)lv_obj_clear_state(handTurningDone,LV_STATE_DISABLED);else lv_obj_add_state(handTurningDone,LV_STATE_DISABLED);
+    }
+}
+
+void buildHandTurning(lv_event_t*)
+{
+    clearScreen("Hand turning",true);lv_obj_t* root=lv_scr_act();addBack(root,closeHandTurning);
+    handTurningStatus=label(root,"Preparing...",&lv_font_montserrat_20,lv_color_hex(uiInk()),LV_ALIGN_TOP_MID,0,84);
+    lv_obj_set_style_text_align(handTurningStatus,LV_TEXT_ALIGN_CENTER,0);
+    handTurningCount=label(root,"0.00",&lv_font_montserrat_48,lv_color_hex(Utility),LV_ALIGN_TOP_MID,0,112);
+    label(root,"TURNS",&lv_font_montserrat_20,lv_color_hex(uiMuted()),LV_ALIGN_TOP_MID,0,166);
+    handTurningWeight=label(root,"",&lv_font_montserrat_20,lv_color_hex(Weight),LV_ALIGN_TOP_MID,0,196);
+    lv_obj_set_style_text_align(handTurningWeight,LV_TEXT_ALIGN_CENTER,0);
+    handTurningDone=card(root,"DONE",20,242,440,50,0x2FAF5A,finishHandTurning);
+    updateHandTurning(nullptr);liveTimer=lv_timer_create(updateHandTurning,100,nullptr);
+}
+
 void buildCommissioning(lv_event_t*)
 {
     clearScreen("Commission load cells",true);lv_obj_t* root=lv_scr_act();addBack(root,buildMachineSettings);
@@ -752,14 +1079,11 @@ void buildCommissioning(lv_event_t*)
     {
         case Machine::CommissioningState::Ready:
         {
-            char massOne[12]{},massTwo[12]{},massThree[12]{},collars[12]{};
-            formatGrams(massOne,sizeof(massOne),value.referenceMassesGrams[0]);
-            formatGrams(massTwo,sizeof(massTwo),value.referenceMassesGrams[1]);
-            formatGrams(massThree,sizeof(massThree),value.referenceMassesGrams[2]);
+            char collars[12]{};
             formatGrams(collars,sizeof(collars),value.expectedTotalGrams);
-            snprintf(primary,sizeof(primary),"Direct-leg + hub calibration");
-            snprintf(detail,sizeof(detail),"%sg / %sg / %sg",massOne,massTwo,massThree);
-            snprintf(progress,sizeof(progress),"4 collars validate %sg",collars);
+            snprintf(primary,sizeof(primary),"Distributed collar calibration");
+            snprintf(detail,sizeof(detail),"All 4 collars: front, middle, rear");
+            snprintf(progress,sizeof(progress),"3 arm captures; collars total %sg",collars);
             card(root,"BEGIN",26,250,428,48,Diagnostics,[](lv_event_t*) {Machine::confirmCommissioning();buildCommissioning(nullptr);});break;
         }
         case Machine::CommissioningState::PromptLeg:
@@ -771,22 +1095,36 @@ void buildCommissioning(lv_event_t*)
             snprintf(progress,sizeof(progress),"Direct capture %u of 12",unsigned(value.currentReferenceMass*4+value.currentLeg+1));
             card(root,"CAPTURE",26,250,428,48,Diagnostics,[](lv_event_t*) {Machine::confirmCommissioning();buildCommissioning(nullptr);});break;
         }
-        case Machine::CommissioningState::PromptHubReference:
-            snprintf(primary,sizeof(primary),"Center-hub correction");snprintf(detail,sizeof(detail),"%s",value.message);
+        case Machine::CommissioningState::PromptArm:
+        {
+            static const char* positions[]={"front","middle","rear"};
+            char collars[12]{};formatGrams(collars,sizeof(collars),value.expectedTotalGrams);
+            snprintf(primary,sizeof(primary),"All 4 collars at %s",positions[value.currentArmPosition<3?value.currentArmPosition:0]);
+            snprintf(detail,sizeof(detail),"One collar on each arm; total %sg",collars);
+            snprintf(progress,sizeof(progress),"Distributed capture %u of 3",unsigned(value.currentArmPosition+1));
             card(root,"CAPTURE",26,250,428,48,Diagnostics,[](lv_event_t*) {Machine::confirmCommissioning();buildCommissioning(nullptr);});break;
+        }
+        case Machine::CommissioningState::PromptRemoveLegMass:
+            snprintf(primary,sizeof(primary),"Remove final leg mass");
+            snprintf(detail,sizeof(detail),"Remove 333.53g from RR; hub must be empty");
+            card(root,"ROTATE TO ARM",26,250,428,48,Diagnostics,[](lv_event_t*) {Machine::confirmCommissioning();buildCommissioning(nullptr);});break;
+        case Machine::CommissioningState::PromptRemoveArmMass:
+            snprintf(primary,sizeof(primary),"Remove all collars");
+            snprintf(detail,sizeof(detail),"Hub must be empty before reindexing");
+            card(root,"RETURN TO INDEX",26,250,428,48,Diagnostics,[](lv_event_t*) {Machine::confirmCommissioning();buildCommissioning(nullptr);});break;
         case Machine::CommissioningState::PromptAllFirst:
-            snprintf(primary,sizeof(primary),"Place 4 collars at arm ends");snprintf(detail,sizeof(detail),"Capture orientation one");
+            snprintf(primary,sizeof(primary),"Place 4 collars at middle");snprintf(detail,sizeof(detail),"One collar on each arm");
             card(root,"CAPTURE",26,250,428,48,Diagnostics,[](lv_event_t*) {Machine::confirmCommissioning();buildCommissioning(nullptr);});break;
         case Machine::CommissioningState::PromptRotate:
-            snprintf(primary,sizeof(primary),"First validation passed");snprintf(detail,sizeof(detail),"Remove all weights, then rotate 180°");
+            snprintf(primary,sizeof(primary),"First validation recorded");snprintf(detail,sizeof(detail),"Remove all weights, then rotate 180°");
             card(root,"ROTATE 180°",26,250,428,48,Diagnostics,[](lv_event_t*) {Machine::confirmCommissioning();buildCommissioning(nullptr);});break;
         case Machine::CommissioningState::PromptAllSecond:
-            snprintf(primary,sizeof(primary),"Weight 1: lower-left fixed");snprintf(detail,sizeof(detail),"Weights 2–4: same chassis spots");
+            snprintf(primary,sizeof(primary),"Place 4 collars at middle");snprintf(detail,sizeof(detail),"Validate after the 180 degree rotation");
             card(root,"CAPTURE",26,250,428,48,Diagnostics,[](lv_event_t*) {Machine::confirmCommissioning();buildCommissioning(nullptr);});break;
         case Machine::CommissioningState::Complete:
         {
             char first[12]{},second[12]{};formatGrams(first,sizeof(first),value.firstValidationGrams,1);formatGrams(second,sizeof(second),value.secondValidationGrams,1);
-            snprintf(primary,sizeof(primary),"Calibration saved");snprintf(detail,sizeof(detail),"Hub %.4f | 0 deg %sg | 180 deg %sg",double(value.hubGain),first,second);
+            snprintf(primary,sizeof(primary),"Calibration saved");snprintf(detail,sizeof(detail),"0 deg %sg | 180 deg %sg",first,second);
             card(root,"DONE",26,250,428,48,0x2FAF5A,[](lv_event_t*) {Machine::cancelCommissioning();buildMachineSettings(nullptr);});break;
         }
         case Machine::CommissioningState::Failed:
@@ -794,10 +1132,10 @@ void buildCommissioning(lv_event_t*)
             card(root,"BACK TO SETTINGS",26,250,428,48,0xB61E28,[](lv_event_t*) {Machine::cancelCommissioning();buildMachineSettings(nullptr);});break;
         default:
             snprintf(primary,sizeof(primary),"%s",value.message);
-            if(value.state==Machine::CommissioningState::CapturingLeg||value.state==Machine::CommissioningState::CapturingHubReference||value.state==Machine::CommissioningState::CapturingAllFirst||value.state==Machine::CommissioningState::CapturingAllSecond)
+            if(value.state==Machine::CommissioningState::CapturingLeg||value.state==Machine::CommissioningState::CapturingArm||value.state==Machine::CommissioningState::CapturingAllFirst||value.state==Machine::CommissioningState::CapturingAllSecond)
                 snprintf(detail,sizeof(detail),"Collecting %u / %u",unsigned(value.samplesCollected),unsigned(value.samplesRequired));
-            else if(value.state==Machine::CommissioningState::Indexing||value.state==Machine::CommissioningState::Rotating)snprintf(detail,sizeof(detail),"Hub rotating slowly");
-            else if(value.state==Machine::CommissioningState::Taring)snprintf(detail,sizeof(detail),"Keep hub empty and still");
+            else if(value.state==Machine::CommissioningState::Indexing||value.state==Machine::CommissioningState::ReindexingForValidation||value.state==Machine::CommissioningState::Rotating||value.state==Machine::CommissioningState::RotatingToArm)snprintf(detail,sizeof(detail),"Hub rotating slowly");
+            else if(value.state==Machine::CommissioningState::Taring||value.state==Machine::CommissioningState::TaringArm||value.state==Machine::CommissioningState::TaringValidation)snprintf(detail,sizeof(detail),"Keep hub empty and still");
             break;
     }
     commissioningPrimary=label(root,primary,&lv_font_montserrat_20,lv_color_hex(value.state==Machine::CommissioningState::Failed?0xB61E28:ink),LV_ALIGN_TOP_MID,0,104);
@@ -806,7 +1144,7 @@ void buildCommissioning(lv_event_t*)
     liveTimer=lv_timer_create([](lv_timer_t*) {
         const Machine::CommissioningSnapshot& value=Machine::commissioning();
         if(value.state!=displayedCommissioningState){buildCommissioning(nullptr);return;}
-        const bool capturing=value.state==Machine::CommissioningState::CapturingLeg||value.state==Machine::CommissioningState::CapturingHubReference||value.state==Machine::CommissioningState::CapturingAllFirst||value.state==Machine::CommissioningState::CapturingAllSecond;
+        const bool capturing=value.state==Machine::CommissioningState::CapturingLeg||value.state==Machine::CommissioningState::CapturingArm||value.state==Machine::CommissioningState::CapturingAllFirst||value.state==Machine::CommissioningState::CapturingAllSecond;
         if(capturing&&value.samplesCollected!=displayedCommissioningSamples&&commissioningDetail) {
             displayedCommissioningSamples=value.samplesCollected;
             char detail[48];snprintf(detail,sizeof(detail),"Collecting %u / %u",unsigned(value.samplesCollected),unsigned(value.samplesRequired));
@@ -913,6 +1251,7 @@ void buildMotorCurrentEditor(lv_event_t*)
     char value[24]{};
     snprintf(value,sizeof(value),"%u mA",unsigned(editingRunCurrent?motor.runCurrentMa:motor.holdCurrentMa));
     label(root,value,&lv_font_montserrat_36,lv_color_hex(uiInk()),LV_ALIGN_TOP_MID,0,112);
+    card(root,LV_SYMBOL_KEYBOARD,354,102,48,48,0x4856C8,editingRunCurrent?openRunCurrentKeypad:openHoldCurrentKeypad);
     label(root,editingRunCurrent?"Motor drive current":"Motor holding current",&lv_font_montserrat_14,lv_color_hex(uiMuted()),LV_ALIGN_TOP_MID,0,164);
     lv_obj_t* minus=card(root,"-",44,208,112,64,0x4856C8,adjustMotorCurrent);
     lv_obj_set_user_data(minus,reinterpret_cast<void*>(intptr_t(-Config::CurrentStepMa)));
@@ -947,9 +1286,45 @@ void buildMotorDirection(lv_event_t*)
 void buildMotorSettings(lv_event_t*)
 {
     clearScreen("Motor",true);lv_obj_t* root=lv_scr_act();addBack(root,buildMachineSettings);
-    card(root,"RUN\nCURRENT",20,112,136,136,0x6170D8,openRunCurrentWarning);
-    card(root,"HOLD\nCURRENT",172,112,136,136,0x5261C8,openHoldCurrentWarning);
-    card(root,"ROTATION\nDIRECTION",324,112,136,136,0x4856C8,buildMotorDirection);
+    card(root,"RUN\nCURRENT",20,92,205,92,0x6170D8,openRunCurrentWarning);
+    card(root,"HOLD\nCURRENT",255,92,205,92,0x5261C8,openHoldCurrentWarning);
+    card(root,"ROTATION\nDIRECTION",20,202,205,92,0x4856C8,buildMotorDirection);
+    card(root,"RECOVERY\nRESTARTS",255,202,205,92,0x3B4D9B,buildRecoveryRestartLimit);
+}
+
+void adjustRecoveryRestartLimit(lv_event_t* event)
+{
+    const int delta=intptr_t(lv_obj_get_user_data(lv_event_get_target(event)));
+    const int value=int(Machine::recoverySettings().restartLimit)+delta;
+    Machine::setRecoveryRestartLimit(uint8_t(constrain(value,0,int(Config::MaxStallRestartLimit))));
+    buildRecoveryRestartLimit(nullptr);
+}
+
+void resetRecoveryRestartLimit(lv_event_t*)
+{
+    Machine::resetRecoveryRestartLimitToDefault();
+    buildRecoveryRestartLimit(nullptr);
+}
+
+void saveRecoveryRestartLimitAndReturn(lv_event_t*)
+{
+    Machine::saveRecoverySettings();
+    buildMotorSettings(nullptr);
+}
+
+void buildRecoveryRestartLimit(lv_event_t*)
+{
+    const Machine::RecoverySettingsSnapshot& recovery=Machine::recoverySettings();
+    clearScreen("Recovery restarts",true);lv_obj_t* root=lv_scr_act();addBack(root,saveRecoveryRestartLimitAndReturn);
+    const char* value=recovery.restartLimit==0?"UNLIMITED":nullptr;
+    char valueText[16]{};
+    if(!value){snprintf(valueText,sizeof(valueText),"%u",unsigned(recovery.restartLimit));value=valueText;}
+    label(root,value,&lv_font_montserrat_36,lv_color_hex(uiInk()),LV_ALIGN_TOP_MID,0,106);
+    card(root,LV_SYMBOL_KEYBOARD,354,96,48,48,0x3B4D9B,openRecoveryKeypad);
+    label(root,"0 means every cleared bind can resume.",&lv_font_montserrat_14,lv_color_hex(uiMuted()),LV_ALIGN_TOP_MID,0,156);
+    lv_obj_t* minus=card(root,"-",44,208,112,64,0x3B4D9B,adjustRecoveryRestartLimit);lv_obj_set_user_data(minus,reinterpret_cast<void*>(intptr_t(-1)));
+    card(root,"RESET",184,208,112,64,Muted,resetRecoveryRestartLimit);
+    lv_obj_t* plus=card(root,"+",324,208,112,64,0x3B4D9B,adjustRecoveryRestartLimit);lv_obj_set_user_data(plus,reinterpret_cast<void*>(intptr_t(1)));
 }
 
 void updateConnectivity(lv_timer_t*)
@@ -1069,6 +1444,7 @@ void buildDisplaySleep(lv_event_t*)
     label(root,"Blank display after inactivity",&lv_font_montserrat_16,lv_color_hex(uiInk()),LV_ALIGN_TOP_LEFT,24,92);
     displayToggle(82,settings.touchDisplaySleepEnabled,setDisplaySleepEnabled);
     displaySleepMinutesLabel=label(root,"",&lv_font_montserrat_28,lv_color_hex(uiInk()),LV_ALIGN_TOP_MID,0,142);
+    card(root,LV_SYMBOL_KEYBOARD,354,130,48,48,0x6170D8,openDisplaySleepKeypad);
     lv_obj_t* minus=card(root,"-",20,206,48,48,0x6170D8,adjustDisplaySleepMinutes);lv_obj_set_user_data(minus,reinterpret_cast<void*>(intptr_t(-1)));
     displaySleepSlider=lv_slider_create(root);lv_obj_set_size(displaySleepSlider,328,16);lv_obj_set_pos(displaySleepSlider,76,222);lv_slider_set_range(displaySleepSlider,Config::MinTouchDisplaySleepMinutes,Config::MaxTouchDisplaySleepMinutes);
     lv_obj_set_style_bg_color(displaySleepSlider,lv_color_hex(0xB9C0D5),LV_PART_MAIN);lv_obj_set_style_bg_color(displaySleepSlider,lv_color_hex(0x6170D8),LV_PART_INDICATOR);lv_obj_set_style_bg_color(displaySleepSlider,lv_color_hex(0x6170D8),LV_PART_KNOB);lv_obj_add_event_cb(displaySleepSlider,updateDisplaySleepMinutes,LV_EVENT_VALUE_CHANGED,nullptr);
@@ -1093,8 +1469,9 @@ void buildDisplaySettings(lv_event_t*)
 void buildDiagnosticsMenu(lv_event_t*)
 {
     clearScreen("Diagnostics",true);lv_obj_t* root=lv_scr_act();addBack(root,buildConfiguration);
-    card(root,"SYSTEM\nCHECK",20,112,205,136,DiagnosticsLight,buildSystemCheck);
-    card(root,"WEIGHT",255,112,205,136,Diagnostics,buildWeightDiagnostics);
+    card(root,"SYSTEM\nCHECK",20,100,205,126,DiagnosticsLight,buildSystemCheck);
+    card(root,"WEIGHT",255,100,205,126,Diagnostics,buildWeightDiagnostics);
+    card(root,"FACTORY RESET",20,244,440,48,0xB61E28,showFactoryReset);
 }
 
 void buildConfiguration(lv_event_t*)
@@ -1149,6 +1526,22 @@ void toggleTouchPause(lv_event_t*)
     else Machine::togglePauseResume();
 }
 
+void addCompletionTurn(lv_event_t*)
+{
+    if(Machine::addCompletionTurn())buildWindingWorkflow(nullptr);
+}
+
+void closeHandTurning(lv_event_t*)
+{
+    Machine::closeHandTurning();
+    buildHome(nullptr);
+}
+
+void finishHandTurning(lv_event_t*)
+{
+    Machine::finishHandTurning();
+}
+
 void exitTouchWinding(lv_event_t*)
 {
     const bool weightMode=Machine::winding().weightMode;
@@ -1191,6 +1584,7 @@ void buildTurnWindingMenu(lv_event_t*)
 {
     clearScreen("Turn count",true);lv_obj_t* root=lv_scr_act();addBack(root,queueHomeScreen);
     turnCountLabel=label(root,"",&lv_font_montserrat_36,lv_color_hex(uiInk()),LV_ALIGN_TOP_MID,0,88);
+    card(root,LV_SYMBOL_KEYBOARD,354,78,48,48,0x4856C8,openTurnCountKeypad);
     turnSlider=lv_slider_create(root);lv_obj_set_size(turnSlider,328,16);lv_obj_set_pos(turnSlider,76,154);lv_slider_set_range(turnSlider,Config::MinTurns,350);
     lv_obj_set_style_bg_color(turnSlider,lv_color_hex(0xB9C0D5),LV_PART_MAIN);lv_obj_set_style_bg_color(turnSlider,lv_color_hex(0x4856C8),LV_PART_INDICATOR);lv_obj_set_style_bg_color(turnSlider,lv_color_hex(0x4856C8),LV_PART_KNOB);
     lv_obj_add_event_cb(turnSlider,updateTouchTurnsFromSlider,LV_EVENT_VALUE_CHANGED,nullptr);
@@ -1214,21 +1608,31 @@ void buildWeightWindingMenu(lv_event_t*)
 void updateWindingWorkflow(lv_timer_t*)
 {
     const Machine::WindingSnapshot& run=Machine::winding();
-    if(run.stage!=displayedWindingStage){queueWindingWorkflowRefresh();return;}
+    if(run.stage!=displayedWindingStage||run.finalAdjustmentActive!=displayedFinalAdjustment){queueWindingWorkflowRefresh();return;}
     if(run.stage!=Machine::WindingStage::Running)return;
     float fraction=0.0f;
-    if(run.weightMode&&isfinite(run.targetWeightGrams)&&run.targetWeightGrams>0.0f&&run.measuredWeightValid)
-        fraction=constrain(run.measuredWeightGrams/run.targetWeightGrams,0.0f,1.0f);
+    bool predicted=false;
+    if(run.weightMode&&isfinite(run.targetWeightGrams)&&run.targetWeightGrams>0.0f)
+    {
+        if(run.predictedWeightValid)
+        {
+            fraction=constrain(run.predictedWeightGrams/run.targetWeightGrams,0.0f,1.0f);
+            predicted=true;
+        }
+        else if(run.measuredWeightValid)fraction=constrain(run.measuredWeightGrams/run.targetWeightGrams,0.0f,1.0f);
+    }
     else if(run.selectedTurns)fraction=constrain(run.completedTurns/run.selectedTurns,0.0f,1.0f);
     if(windingGauge)lv_arc_set_value(windingGauge,int(lroundf(fraction*100.0f)));
-    if(windingPercent){char percent[12];snprintf(percent,sizeof(percent),"%u%%",unsigned(lroundf(fraction*100.0f)));lv_label_set_text(windingPercent,percent);}
+    if(windingPercent){char percent[20];if(run.weightMode&&!predicted)snprintf(percent,sizeof(percent),"LEARNING");else snprintf(percent,sizeof(percent),predicted?"EST. %u%%":"%u%%",unsigned(lroundf(fraction*100.0f)));lv_label_set_text(windingPercent,percent);}
+    if(windingTurns){char count[16]{},turns[32]{};formatGrams(count,sizeof(count),run.completedTurns,1);snprintf(turns,sizeof(turns),"TURNS\n%s",count);lv_label_set_text(windingTurns,turns);}
+    if(windingWeight){char grams[18];if(run.measuredWeightValid){formatGrams(grams,sizeof(grams),run.measuredWeightGrams,1);char weight[40];snprintf(weight,sizeof(weight),"MEASURED\n%s g",grams);lv_label_set_text(windingWeight,weight);}else lv_label_set_text(windingWeight,"MEASURED\n--");}
     if(windingAction)lv_label_set_text(windingAction,run.requiresClearance?"CHECK\nHUB":(run.paused?"RESUME":"PAUSE"));
 }
 
 void buildWindingWorkflow(lv_event_t*)
 {
     const Machine::WindingSnapshot& run=Machine::winding();
-    displayedWindingStage=run.stage;
+    displayedWindingStage=run.stage;displayedFinalAdjustment=run.finalAdjustmentActive;
     const char* title=run.weightMode?"Weight winding":"Turn winding";
     clearScreen(title,true);lv_obj_t* root=lv_scr_act();addBack(root,requestTouchWindingBack);
     if(run.stage==Machine::WindingStage::HallSeeking) {
@@ -1244,12 +1648,17 @@ void buildWindingWorkflow(lv_event_t*)
     } else if(run.stage==Machine::WindingStage::Running) {
         windingGauge=lv_arc_create(root);lv_obj_set_size(windingGauge,220,220);lv_obj_align(windingGauge,LV_ALIGN_TOP_MID,0,72);lv_arc_set_range(windingGauge,0,100);lv_arc_set_bg_angles(windingGauge,135,405);lv_arc_set_angles(windingGauge,135,405);lv_obj_remove_style(windingGauge,nullptr,LV_PART_KNOB);lv_obj_clear_flag(windingGauge,LV_OBJ_FLAG_CLICKABLE);lv_obj_set_style_arc_width(windingGauge,18,LV_PART_MAIN);lv_obj_set_style_arc_width(windingGauge,18,LV_PART_INDICATOR);lv_obj_set_style_arc_color(windingGauge,lv_color_hex(0xD3D9E8),LV_PART_MAIN);lv_obj_set_style_arc_color(windingGauge,lv_color_hex(Weight),LV_PART_INDICATOR);
         lv_obj_t* pause=card(root,"PAUSE",177,119,126,126,0x4856C8,toggleTouchPause);lv_obj_set_style_radius(pause,LV_RADIUS_CIRCLE,0);windingAction=lv_obj_get_child(pause,0);
-        windingPercent=label(root,"0%",&lv_font_montserrat_28,lv_color_hex(uiInk()),LV_ALIGN_TOP_MID,0,272);
+        windingTurns=label(root,"TURNS\n0.0",&lv_font_montserrat_16,lv_color_hex(uiMuted()),LV_ALIGN_TOP_LEFT,362,132);
+        windingWeight=label(root,"MEASURED\n--",&lv_font_montserrat_16,lv_color_hex(uiMuted()),LV_ALIGN_TOP_LEFT,362,202);
+        windingPercent=label(root,"LEARNING",&lv_font_montserrat_20,lv_color_hex(Weight),LV_ALIGN_TOP_MID,0,274);
     } else if(run.stage==Machine::WindingStage::Complete) {
         label(root,run.finalAborted?"Winding stopped":"Winding complete",&lv_font_montserrat_28,lv_color_hex(run.finalAborted?0xB61E28:0x2FAF5A),LV_ALIGN_TOP_MID,0,98);
         char turns[32];snprintf(turns,sizeof(turns),"%u turns",unsigned(run.finalTurns));label(root,turns,&lv_font_montserrat_20,lv_color_hex(uiInk()),LV_ALIGN_TOP_MID,0,146);
         if(run.finalWeightValid){char grams[32];formatGrams(grams,sizeof(grams),run.finalWeightGrams,1);strncat(grams," g",sizeof(grams)-strlen(grams)-1);label(root,grams,&lv_font_montserrat_20,lv_color_hex(uiInk()),LV_ALIGN_TOP_MID,0,178);}
-        card(root,"DONE",20,244,440,48,0x2FAF5A,exitTouchWinding);
+        else if(run.weightEstimateUnavailable)label(root,"Unable to estimate winding duration",&lv_font_montserrat_16,lv_color_hex(0xB61E28),LV_ALIGN_TOP_MID,0,180);
+        if(run.finalAdjustmentActive)label(root,"Adding one turn and reweighing",&lv_font_montserrat_16,lv_color_hex(uiMuted()),LV_ALIGN_TOP_MID,0,214);
+        card(root,"+1 TURN",20,244,205,48,run.finalAdjustmentActive?0xA8AEC0:0x4856C8,run.finalAdjustmentActive?nullptr:addCompletionTurn);
+        card(root,"DONE",255,244,205,48,0x2FAF5A,exitTouchWinding);
     } else if(run.stage==Machine::WindingStage::HallFailed||run.stage==Machine::WindingStage::TareFailed||run.stage==Machine::WindingStage::Fault) {
         label(root,"Unable to start winding",&lv_font_montserrat_20,lv_color_hex(0xB61E28),LV_ALIGN_TOP_MID,0,110);
         label(root,"Check hub and load sensors",&lv_font_montserrat_16,lv_color_hex(uiMuted()),LV_ALIGN_TOP_MID,0,152);
@@ -1270,8 +1679,20 @@ void buildHome(lv_event_t*)
     char versionText[18];snprintf(versionText,sizeof(versionText),"v%s",Config::FirmwareVersion);
     label(root,versionText,&lv_font_montserrat_14,lv_color_hex(0xC6CCDE),LV_ALIGN_TOP_LEFT,190,26);
     lv_obj_add_event_cb(version,versionEasterEggTap,LV_EVENT_CLICKED,nullptr);
-    if(weightCapabilityEnabled)card(root,"WEIGHT",34,102,190,190,Weight,buildWeightWindingMenu);
-    card(root,"TURN\nCOUNT",weightCapabilityEnabled?256:145,102,190,190,0x4856C8,buildTurnWindingMenu);
+    if(weightCapabilityEnabled)
+    {
+        // Keep the four everyday jobs equally discoverable.  Their colors are
+        // deliberately distinct, but all come from the established palette.
+        card(root,"WEIGHT",20,82,210,104,Weight,buildWeightWindingMenu);
+        card(root,"COUNT",250,82,210,104,0x4856C8,buildTurnWindingMenu);
+        card(root,"HAND\nWIND",20,202,210,104,Utility,[](lv_event_t*) {if(Machine::openHandTurning())buildHandTurning(nullptr);});
+        card(root,"SCALE",250,202,210,104,DiagnosticsLight,openScaleMode);
+    }
+    else
+    {
+        // Turninator intentionally keeps its existing single-purpose home.
+        card(root,"COUNT",145,92,190,158,0x4856C8,buildTurnWindingMenu);
+    }
     lv_obj_t* setup=lv_btn_create(root);lv_obj_set_size(setup,54,46);lv_obj_set_pos(setup,414,12);lv_obj_set_style_bg_opa(setup,LV_OPA_TRANSP,0);lv_obj_set_style_border_width(setup,0,0);
     label(setup,LV_SYMBOL_SETTINGS,&lv_font_montserrat_20,lv_color_white(),LV_ALIGN_CENTER,0,0);lv_obj_add_event_cb(setup,buildConfiguration,LV_EVENT_CLICKED,nullptr);
 }

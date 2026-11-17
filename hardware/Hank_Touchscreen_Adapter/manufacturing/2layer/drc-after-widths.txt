@@ -1,0 +1,82 @@
+** Drc report for Hank_Touchscreen_Adapter.kicad_pcb **
+** Created on 2026-11-06T15:24:19 **
+** Report includes: Errors, Warnings, Exclusions **
+
+** Found 16 DRC violations **
+[clearance]: Clearance violation ( clearance 0.2000 mm; actual 0.1307 mm)
+    Local override; error
+    @(149.7262 mm, 119.2662 mm): Track [TFT_RST] on F.Cu, length 6.7964 mm
+    @(150.2069 mm, 112.9907 mm): Track [+5V] on F.Cu, length 15.1839 mm
+[clearance]: Clearance violation ( clearance 0.2000 mm; actual 0.1307 mm)
+    Local override; error
+    @(148.5000 mm, 118.0400 mm): Track [TFT_RST] on F.Cu, length 1.7341 mm
+    @(150.2069 mm, 112.9907 mm): Track [+5V] on F.Cu, length 15.1839 mm
+[clearance]: Clearance violation ( clearance 0.2000 mm; actual 0.1307 mm)
+    Local override; error
+    @(150.2069 mm, 112.9907 mm): Track [+5V] on F.Cu, length 15.1839 mm
+    @(149.7262 mm, 126.0626 mm): Track [TFT_RST] on F.Cu, length 1.0594 mm
+[clearance]: Clearance violation ( clearance 0.2000 mm; actual 0.0517 mm)
+    Local override; error
+    @(148.7932 mm, 129.5883 mm): Track [+5V] on F.Cu, length 0.8531 mm
+    @(148.5000 mm, 130.7400 mm): PTH pad 9 [<no net>] of J1
+[clearance]: Clearance violation ( clearance 0.2000 mm; actual 0.0890 mm)
+    Local override; error
+    @(150.2069 mm, 128.1746 mm): Track [+5V] on F.Cu, length 1.9993 mm
+    @(148.5000 mm, 128.2000 mm): PTH pad 8 [TFT_LED] of J1
+[clearance]: Clearance violation ( clearance 0.2000 mm; actual 0.0853 mm)
+    Local override; error
+    @(148.5000 mm, 112.9600 mm): PTH pad 2 [GND] of J1
+    @(148.7879 mm, 111.5717 mm): Track [+5V] on F.Cu, length 2.0068 mm
+[clearance]: Clearance violation ( clearance 0.2000 mm; actual 0.1103 mm)
+    Local override; error
+    @(147.9401 mm, 129.5883 mm): Track [+5V] on F.Cu, length 10.3030 mm
+    @(148.5000 mm, 130.7400 mm): PTH pad 9 [<no net>] of J1
+[clearance]: Clearance violation ( clearance 0.2000 mm; actual 0.1500 mm)
+    Local override; error
+    @(129.5000 mm, 114.5000 mm): PTH pad 2 [GND] of J4
+    @(128.9416 mm, 115.7500 mm): Track [+3V3] on B.Cu, length 1.0817 mm
+[clearance]: Clearance violation ( clearance 0.2000 mm; actual 0.0655 mm)
+    Local override; error
+    @(129.5000 mm, 114.5000 mm): PTH pad 2 [GND] of J4
+    @(130.0233 mm, 115.7500 mm): Track [+3V3] on B.Cu, length 1.0863 mm
+[clearance]: Clearance violation ( clearance 0.2000 mm; actual 0.0903 mm)
+    Local override; error
+    @(128.1783 mm, 116.5133 mm): Track [+3V3] on B.Cu, length 1.0795 mm
+    @(129.5000 mm, 117.0000 mm): PTH pad 3 [GP1_BL_PWM] of J4
+[clearance]: Clearance violation ( clearance 0.2000 mm; actual 0.0967 mm)
+    Local override; error
+    @(129.5000 mm, 117.0000 mm): PTH pad 3 [GP1_BL_PWM] of J4
+    @(128.1783 mm, 117.4637 mm): Track [+3V3] on B.Cu, length 0.9504 mm
+[clearance]: Clearance violation ( clearance 0.2000 mm; actual 0.0664 mm)
+    Local override; error
+    @(129.5000 mm, 114.5000 mm): PTH pad 2 [GND] of J4
+    @(130.7914 mm, 114.9819 mm): Track [+3V3] on B.Cu, length 1.6905 mm
+[clearance]: Clearance violation ( clearance 0.2000 mm; actual 0.0741 mm)
+    Local override; error
+    @(129.5000 mm, 117.0000 mm): PTH pad 3 [GP1_BL_PWM] of J4
+    @(129.1196 mm, 118.4050 mm): Track [+3V3] on B.Cu, length 1.3312 mm
+[clearance]: Clearance violation ( clearance 0.2000 mm; actual 0.1023 mm)
+    Local override; error
+    @(139.3250 mm, 122.4311 mm): Track [TFT_LED] on B.Cu, length 8.1585 mm
+    @(140.1500 mm, 122.0000 mm): Pad 1 [BL_GATE] of R2 on B.Cu
+[clearance]: Clearance violation ( clearance 0.2000 mm; actual 0.0880 mm)
+    Local override; error
+    @(137.0250 mm, 117.1350 mm): Pad 6 [+3V3] of Q1 on B.Cu
+    @(137.4202 mm, 115.8650 mm): Track [TFT_LED] on B.Cu, length 2.6938 mm
+[clearance]: Clearance violation ( clearance 0.2000 mm; actual 0.1750 mm)
+    Local override; error
+    @(140.1500 mm, 122.0000 mm): Pad 1 [BL_GATE] of R2 on B.Cu
+    @(139.3250 mm, 117.7698 mm): Track [TFT_LED] on B.Cu, length 4.6613 mm
+
+** Found 0 unconnected pads **
+
+** Found 0 Footprint errors **
+
+** Ignored checks **
+    - Footprint has no courtyard defined
+    - Track endpoint not centered on via
+    - Tuning profile track geometries
+    - Footprint doesn't match symbol's footprint filters
+    - Footprint component type doesn't match footprint pads
+
+** End of Report **

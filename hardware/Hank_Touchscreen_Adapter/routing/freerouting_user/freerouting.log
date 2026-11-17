@@ -1,0 +1,150 @@
+2026-11-06 15:20:11.822 INFO   Freerouting v2.2.4 (build-date: 2026-05-13)
+2026-11-06 15:20:11.825 DEBUG  [startup] user-data path : C:\Users\crisd\SkeinWinder\Hankinator\hardware\Hank_Touchscreen_Adapter\routing\freerouting_user  (source: CLI argument --user_data_path)
+2026-11-06 15:20:11.825 DEBUG  [startup] log file       : C:\Users\crisd\SkeinWinder\Hankinator\hardware\Hank_Touchscreen_Adapter\routing\freerouting_user\freerouting.log
+2026-11-06 15:20:11.826 DEBUG  No freerouting.json found at 'C:\Users\crisd\SkeinWinder\Hankinator\hardware\Hank_Touchscreen_Adapter\routing\freerouting_user\freerouting.json' — will create one with default settings.
+2026-11-06 15:20:11.883 DEBUG  Default settings saved to 'C:\Users\crisd\SkeinWinder\Hankinator\hardware\Hank_Touchscreen_Adapter\routing\freerouting_user\freerouting.json'.
+2026-11-06 15:20:11.883 DEBUG  Version: 2.2.4,2026-05-13
+2026-11-06 15:20:11.883 DEBUG  Command line arguments: '-de C:\Users\crisd\SkeinWinder\Hankinator\hardware\Hank_Touchscreen_Adapter\routing\Hank_Touchscreen_Adapter_2layer.dsn -do C:\Users\crisd\SkeinWinder\Hankinator\hardware\Hank_Touchscreen_Adapter\routing\Hank_Touchscreen_Adapter_2layer.ses --gui.enabled=false --router.layers.routable=true,true --router.layers.preferred_direction_horizontal=true,false --router.autorouter.max_passes=50 --router.via_costs=30 --user_data_path=C:\Users\crisd\SkeinWinder\Hankinator\hardware\Hank_Touchscreen_Adapter\routing\freerouting_user'
+2026-11-06 15:20:11.884 DEBUG  Architecture: Windows 11,amd64,10.0
+2026-11-06 15:20:11.884 DEBUG  Java: 25.0.4,Eclipse Adoptium
+2026-11-06 15:20:11.884 DEBUG  System Language: en,en_US
+2026-11-06 15:20:11.884 DEBUG  Hardware: 32 CPU cores,24368 MB RAM
+2026-11-06 15:20:11.884 DEBUG  UTC Time: 2026-11-06T23:20:11.883740500Z
+2026-11-06 15:20:11.885 WARN   Unknown settings property: router.layers.routable
+2026-11-06 15:20:11.885 WARN   Unknown settings property: router.layers.preferred_direction_horizontal
+2026-11-06 15:20:11.886 WARN   Unknown settings property: router.autorouter.max_passes
+2026-11-06 15:20:11.886 WARN   Unknown settings property: router.via_costs
+2026-11-06 15:20:11.886 DEBUG  GUI Language: en_US
+2026-11-06 15:20:11.886 DEBUG  Host: N/A
+2026-11-06 15:20:12.177 WARN   Analytics tracking: first delivery failure in this window - /v1/analytics/identify - SSLHandshakeException: (certificate_unknown) PKIX path building failed: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target. Further failures will be aggregated and reported every 60 minutes. → Action: TLS handshake failed. Verify that the JRE trust store contains the server certificate's CA, that the system clock is correct, and that TLS 1.2+ is enabled.
+2026-11-06 15:20:12.894 DEBUG  Loaded router settings from: C:\Users\crisd\SkeinWinder\Hankinator\hardware\Hank_Touchscreen_Adapter\routing\freerouting_user\freerouting.json
+2026-11-06 15:20:12.895 WARN   Failed to apply CLI router setting: router.layers.routable: No field found with name or SerializedName: layers
+2026-11-06 15:20:12.895 WARN   Failed to apply CLI router setting: router.layers.preferred_direction_horizontal: No field found with name or SerializedName: layers
+2026-11-06 15:20:12.895 WARN   Failed to apply CLI router setting: router.autorouter.max_passes: No field found with name or SerializedName: autorouter
+2026-11-06 15:20:12.895 WARN   Failed to apply CLI router setting: router.via_costs: No field found with name or SerializedName: via_costs
+2026-11-06 15:20:12.896 DEBUG  No router settings found in environment variables
+2026-11-06 15:20:12.897 DEBUG  Merging settings from 4 sources:
+2026-11-06 15:20:12.898 DEBUG    - Default Settings (priority 0): base settings
+2026-11-06 15:20:12.900 DEBUG    - freerouting.json (priority 10): 0 fields changed
+2026-11-06 15:20:12.900 DEBUG    - Environment Variables (priority 55): 0 fields changed
+2026-11-06 15:20:12.900 DEBUG    - CLI Arguments (priority 60): 0 fields changed
+2026-11-06 15:20:12.901 DEBUG  Settings merged successfully from 4 source(s)
+2026-11-06 15:20:12.960 DEBUG  Set DEFAULT clearance (all layers): 2000 (0.05 mm) from DSN value 200.0
+2026-11-06 15:20:12.963 DEBUG  Set clearance (all layers): smd_smd = 500 (0.0125 mm), classes [2,2]
+2026-11-06 15:20:12.964 DEBUG  Set default trace width (all layers): DSN=200.0 → board=2000 (0.05 mm)
+2026-11-06 15:20:12.974 DEBUG  Loaded router settings from DSN file: Hank_Touchscreen_Adapter_2layer.dsn (2 layers)
+2026-11-06 15:20:12.985 DEBUG  Set DEFAULT clearance (all layers): 2000 (0.05 mm) from DSN value 200.0
+2026-11-06 15:20:12.985 DEBUG  Set clearance (all layers): smd_smd = 500 (0.0125 mm), classes [2,2]
+2026-11-06 15:20:12.985 DEBUG  Set default trace width (all layers): DSN=200.0 → board=2000 (0.05 mm)
+2026-11-06 15:20:12.986 DEBUG  Loaded router settings from DSN file: Hank_Touchscreen_Adapter_2layer.dsn (2 layers)
+2026-11-06 15:20:12.986 DEBUG  Merging settings from 5 sources:
+2026-11-06 15:20:12.986 DEBUG    - Default Settings (priority 0): base settings
+2026-11-06 15:20:12.987 DEBUG    - freerouting.json (priority 10): 0 fields changed
+2026-11-06 15:20:12.987 DEBUG    - DSN file: Hank_Touchscreen_Adapter_2layer.dsn (priority 20): 4 fields changed
+2026-11-06 15:20:12.987 DEBUG    - Environment Variables (priority 55): 0 fields changed
+2026-11-06 15:20:12.987 DEBUG    - CLI Arguments (priority 60): 0 fields changed
+2026-11-06 15:20:12.987 DEBUG  Settings merged successfully from 5 source(s)
+2026-11-06 15:20:12.993 DEBUG  Set DEFAULT clearance (all layers): 2000 (0.05 mm) from DSN value 200.0
+2026-11-06 15:20:12.993 DEBUG  Set clearance (all layers): smd_smd = 500 (0.0125 mm), classes [2,2]
+2026-11-06 15:20:12.993 DEBUG  Set default trace width (all layers): DSN=200.0 → board=2000 (0.05 mm)
+2026-11-06 15:20:13.045 DEBUG  Set DEFAULT clearance (all layers): 2000 (0.05 mm) from DSN value 200.0
+2026-11-06 15:20:13.046 DEBUG  Set clearance (all layers): smd_smd = 500 (0.0125 mm), classes [2,2]
+2026-11-06 15:20:13.046 DEBUG  Set default trace width (all layers): DSN=200.0 → board=2000 (0.05 mm)
+2026-11-06 15:20:13.046 DEBUG  Loaded router settings from DSN file: Hank_Touchscreen_Adapter_2layer.dsn (2 layers)
+2026-11-06 15:20:13.046 DEBUG  Merging settings from 5 sources:
+2026-11-06 15:20:13.046 DEBUG    - Default Settings (priority 0): base settings
+2026-11-06 15:20:13.046 DEBUG    - freerouting.json (priority 10): 0 fields changed
+2026-11-06 15:20:13.046 DEBUG    - DSN file: Hank_Touchscreen_Adapter_2layer.dsn (priority 20): 4 fields changed
+2026-11-06 15:20:13.047 DEBUG    - Environment Variables (priority 55): 0 fields changed
+2026-11-06 15:20:13.047 DEBUG    - CLI Arguments (priority 60): 0 fields changed
+2026-11-06 15:20:13.047 DEBUG  Settings merged successfully from 5 source(s)
+2026-11-06 15:20:13.048 INFO   [CBD3C1\F4D8B8] Job 'CBD3C1\F4D8B8' started at 2026-11-06T23:20:13.048791700Z.
+2026-11-06 15:20:13.065 WARN   Failed to check for new version
+2026-11-06 15:20:13.102 DEBUG  Queuing item for routing: Pin on net 'TOUCH_IRQ' (connected: 1/2)
+2026-11-06 15:20:13.103 DEBUG  Queuing item for routing: Pin on net 'TOUCH_DO' (connected: 1/2)
+2026-11-06 15:20:13.103 DEBUG  Queuing item for routing: Pin on net 'TOUCH_DIN' (connected: 1/2)
+2026-11-06 15:20:13.103 DEBUG  Queuing item for routing: Pin on net 'TOUCH_CS' (connected: 1/2)
+2026-11-06 15:20:13.103 DEBUG  Queuing item for routing: Pin on net 'TOUCH_CLK' (connected: 1/2)
+2026-11-06 15:20:13.103 DEBUG  Queuing item for routing: Pin on net 'TFT_LED' (connected: 1/3)
+2026-11-06 15:20:13.103 DEBUG  Queuing item for routing: Pin on net 'TFT_SCK' (connected: 1/2)
+2026-11-06 15:20:13.103 DEBUG  Queuing item for routing: Pin on net 'TFT_MOSI' (connected: 1/2)
+2026-11-06 15:20:13.103 DEBUG  Queuing item for routing: Pin on net 'TFT_DC' (connected: 1/2)
+2026-11-06 15:20:13.103 DEBUG  Queuing item for routing: Pin on net 'TFT_RST' (connected: 1/2)
+2026-11-06 15:20:13.103 DEBUG  Queuing item for routing: Pin on net 'TFT_CS' (connected: 1/2)
+2026-11-06 15:20:13.103 DEBUG  Queuing item for routing: Pin on net 'GND' (connected: 1/4)
+2026-11-06 15:20:13.103 DEBUG  Queuing item for routing: Pin on net '+5V' (connected: 1/2)
+2026-11-06 15:20:13.104 DEBUG  Queuing item for routing: Pin on net 'BL_GATE' (connected: 1/3)
+2026-11-06 15:20:13.104 DEBUG  Queuing item for routing: Pin on net 'GP1_BL_PWM' (connected: 1/2)
+2026-11-06 15:20:13.104 DEBUG  Queuing item for routing: Pin on net '+3V3' (connected: 1/4)
+2026-11-06 15:20:13.104 DEBUG  Queuing item for routing: Pin on net 'BL_GATE' (connected: 1/3)
+2026-11-06 15:20:13.104 DEBUG  Queuing item for routing: Pin on net 'TFT_LED' (connected: 1/3)
+2026-11-06 15:20:13.104 DEBUG  Queuing item for routing: Pin on net 'TFT_LED' (connected: 1/3)
+2026-11-06 15:20:13.104 DEBUG  Queuing item for routing: Pin on net '+3V3' (connected: 1/4)
+2026-11-06 15:20:13.104 DEBUG  Queuing item for routing: Pin on net '+3V3' (connected: 1/4)
+2026-11-06 15:20:13.104 DEBUG  Queuing item for routing: Pin on net 'BL_GATE' (connected: 1/3)
+2026-11-06 15:20:13.104 DEBUG  Queuing item for routing: Pin on net 'GP1_BL_PWM' (connected: 1/2)
+2026-11-06 15:20:13.104 DEBUG  Queuing item for routing: Pin on net 'GND' (connected: 1/4)
+2026-11-06 15:20:13.105 DEBUG  Queuing item for routing: Pin on net '+3V3' (connected: 1/4)
+2026-11-06 15:20:13.105 DEBUG  Queuing item for routing: Pin on net 'GND' (connected: 1/4)
+2026-11-06 15:20:13.105 DEBUG  Queuing item for routing: Pin on net 'TFT_MOSI' (connected: 1/2)
+2026-11-06 15:20:13.105 DEBUG  Queuing item for routing: Pin on net 'TOUCH_CLK' (connected: 1/2)
+2026-11-06 15:20:13.105 DEBUG  Queuing item for routing: Pin on net 'TOUCH_DIN' (connected: 1/2)
+2026-11-06 15:20:13.105 DEBUG  Queuing item for routing: Pin on net 'TFT_SCK' (connected: 1/2)
+2026-11-06 15:20:13.105 DEBUG  Queuing item for routing: Pin on net '+5V' (connected: 1/2)
+2026-11-06 15:20:13.105 DEBUG  Queuing item for routing: Pin on net 'GND' (connected: 1/4)
+2026-11-06 15:20:13.105 DEBUG  Queuing item for routing: Pin on net 'TOUCH_IRQ' (connected: 1/2)
+2026-11-06 15:20:13.105 DEBUG  Queuing item for routing: Pin on net 'TFT_RST' (connected: 1/2)
+2026-11-06 15:20:13.105 DEBUG  Queuing item for routing: Pin on net 'TFT_DC' (connected: 1/2)
+2026-11-06 15:20:13.105 DEBUG  Queuing item for routing: Pin on net 'TFT_CS' (connected: 1/2)
+2026-11-06 15:20:13.105 DEBUG  Queuing item for routing: Pin on net 'TOUCH_CS' (connected: 1/2)
+2026-11-06 15:20:13.105 DEBUG  Queuing item for routing: Pin on net 'TOUCH_DO' (connected: 1/2)
+2026-11-06 15:20:13.107 DEBUG  [CBD3C1\F4D8B8] Pass #1: 22 incompletes across 38 items to route
+2026-11-06 15:20:13.109 DEBUG  [CBD3C1\F4D8B8]   Net 'TOUCH_DO' has 1 incomplete(s)
+2026-11-06 15:20:13.109 DEBUG  [CBD3C1\F4D8B8]   Net 'TOUCH_CS' has 1 incomplete(s)
+2026-11-06 15:20:13.109 DEBUG  [CBD3C1\F4D8B8]   Net 'TFT_CS' has 1 incomplete(s)
+2026-11-06 15:20:13.109 DEBUG  [CBD3C1\F4D8B8]   Net 'TFT_DC' has 1 incomplete(s)
+2026-11-06 15:20:13.109 DEBUG  [CBD3C1\F4D8B8]   Net 'TFT_RST' has 1 incomplete(s)
+2026-11-06 15:20:13.109 DEBUG  [CBD3C1\F4D8B8]   Net 'TOUCH_IRQ' has 1 incomplete(s)
+2026-11-06 15:20:13.109 DEBUG  [CBD3C1\F4D8B8]   Net 'GND' has 3 incomplete(s)
+2026-11-06 15:20:13.109 DEBUG  [CBD3C1\F4D8B8]   Net '+5V' has 1 incomplete(s)
+2026-11-06 15:20:13.109 DEBUG  [CBD3C1\F4D8B8]   Net 'TFT_SCK' has 1 incomplete(s)
+2026-11-06 15:20:13.109 DEBUG  [CBD3C1\F4D8B8]   Net 'TOUCH_DIN' has 1 incomplete(s)
+2026-11-06 15:20:13.109 DEBUG  [CBD3C1\F4D8B8]   Net 'TOUCH_CLK' has 1 incomplete(s)
+2026-11-06 15:20:13.109 DEBUG  [CBD3C1\F4D8B8]   Net 'TFT_MOSI' has 1 incomplete(s)
+2026-11-06 15:20:13.109 DEBUG  [CBD3C1\F4D8B8]   Net '+3V3' has 3 incomplete(s)
+2026-11-06 15:20:13.109 DEBUG  [CBD3C1\F4D8B8]   Net 'GP1_BL_PWM' has 1 incomplete(s)
+2026-11-06 15:20:13.109 DEBUG  [CBD3C1\F4D8B8]   Net 'BL_GATE' has 2 incomplete(s)
+2026-11-06 15:20:13.110 DEBUG  [CBD3C1\F4D8B8]   Net 'TFT_LED' has 2 incomplete(s)
+2026-11-06 15:20:13.390 DEBUG  InsertFoundConnectionAlgo: insert trace failed for net #11 at corner 29/29 on layer 1, trace width: 1000, from corner: 12, ok_point: (1381148,-1303736), target: (1264500,-1355000)
+2026-11-06 15:20:13.391 DEBUG  InsertFoundConnectionAlgo: insert trace failed for net #11
+2026-11-06 15:20:13.398 DEBUG  [CBD3C1\F4D8B8] Autorouter Failed to route connection between pin #4 of component #2 and pin #9 of component #7, because the new connection could not be inserted.
+2026-11-06 15:20:13.556 DEBUG  InsertFoundConnectionAlgo: insert trace failed for net #3 at corner 13/13 on layer 0, trace width: 1000, from corner: 7, ok_point: (1381148,-1303736), target: (1367250,-1329600)
+2026-11-06 15:20:13.558 DEBUG  InsertFoundConnectionAlgo: insert trace failed for net #3
+2026-11-06 15:20:13.559 DEBUG  [CBD3C1\F4D8B8] Autorouter Failed to route connection between pin #2 of component #1 and pin #2 of component #7, because the new connection could not be inserted.
+2026-11-06 15:20:13.850 INFO   [CBD3C1\F4D8B8] Auto-router pass #1 on board 'fd35202d9f6f5600f54cdeb4141c2101' was completed in 0.74 seconds with the score of 973.83 (1 unrouted).
+2026-11-06 15:20:13.864 DEBUG  Queuing item for routing: Pin on net 'GP1_BL_PWM' (connected: 1/2)
+2026-11-06 15:20:13.865 DEBUG  Queuing item for routing: Pin on net 'GP1_BL_PWM' (connected: 1/2)
+2026-11-06 15:20:13.867 DEBUG  [CBD3C1\F4D8B8] Pass #2: 1 incompletes across 2 items to route
+2026-11-06 15:20:13.867 DEBUG  [CBD3C1\F4D8B8]   Net 'GP1_BL_PWM' has 1 incomplete(s)
+2026-11-06 15:20:13.928 INFO   [CBD3C1\F4D8B8] Auto-router pass #2 on board '04ebb5d79f0041168fdb08c4ee70637e' was completed in 0.06 seconds with the score of 974.29 (1 unrouted).
+2026-11-06 15:20:13.937 DEBUG  Queuing item for routing: Pin on net '+3V3' (connected: 5/6)
+2026-11-06 15:20:13.937 DEBUG  Queuing item for routing: Pin on net '+3V3' (connected: 1/6)
+2026-11-06 15:20:13.938 DEBUG  [CBD3C1\F4D8B8] Pass #3: 1 incompletes across 2 items to route
+2026-11-06 15:20:13.939 DEBUG  [CBD3C1\F4D8B8]   Net '+3V3' has 1 incomplete(s)
+2026-11-06 15:20:13.972 INFO   [CBD3C1\F4D8B8] Auto-router pass #3 on board '8d10e045e4f3b70bc7cc74413c5d6544' was completed in 0.04 seconds with the score of 994.37.
+2026-11-06 15:20:13.980 INFO   [CBD3C1\F4D8B8] Auto-router pass #4 on board '8bb433679a4b3d23773119b6ae6c3ce0' was completed in 0.00 seconds with the score of 994.37.
+2026-11-06 15:20:13.982 DEBUG  === Performance Profile ===
+2026-11-06 15:20:13.982 DEBUG  === Routing Parameters ===
+2026-11-06 15:20:13.982 DEBUG    Via Costs: 50, Plane Via Costs: 5
+2026-11-06 15:20:13.982 DEBUG    Layer Costs (Preferred / Against):
+2026-11-06 15:20:13.983 DEBUG      Layer 1: 1.0 / 2.3
+2026-11-06 15:20:13.983 DEBUG      Layer 2: 1.0 / 1.7
+2026-11-06 15:20:13.983 DEBUG  
+2026-11-06 15:20:13.985 DEBUG    autoroute_item                          :      728 ms total,       42 calls,     17 ms avg
+2026-11-06 15:20:13.985 DEBUG  
+2026-11-06 15:20:13.985 DEBUG  === Pass History ===
+2026-11-06 15:20:13.985 DEBUG    Pass 1  :    1 unrouted items,     0.74 s,   100 ripup cost
+2026-11-06 15:20:13.985 DEBUG    Pass 2  :    1 unrouted items,     0.06 s,   200 ripup cost
+2026-11-06 15:20:13.985 DEBUG    Pass 3  :    0 unrouted items,     0.03 s,   300 ripup cost
+2026-11-06 15:20:13.986 DEBUG  ===========================
+2026-11-06 15:20:13.991 INFO   [CBD3C1\F4D8B8] Auto-router session completed: started with 22 unrouted nets, completed in 0.92 seconds, final score: 994.37, using 0.00 total CPU seconds, 0.00 GB total allocated, and 0.00 MB peak heap usage.

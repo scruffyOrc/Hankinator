@@ -110,7 +110,7 @@ void updatePanelLights()
         switch(uiState)
         {
             case UiState::CONFIG_MENU:case UiState::CONFIG_CONNECTIVITY_MENU:case UiState::CONFIG_MACHINE_SETTINGS_MENU:case UiState::CONFIG_DIAGNOSTICS_MENU:case UiState::CONFIG_MOTOR_MENU:
-            case UiState::CONFIG_RUN_CURRENT:case UiState::CONFIG_HOLD_CURRENT:
+            case UiState::CONFIG_RUN_CURRENT:case UiState::CONFIG_HOLD_CURRENT:case UiState::CONFIG_RECOVERY_LIMIT:
             case UiState::CONFIG_DIRECTION:case UiState::CONFIG_WEIGHT_MENU:
             case UiState::CONFIG_WEIGHT_VALUE:case UiState::CONFIG_PAIRING:
             case UiState::CONFIG_LOAD_CELL_DIAGNOSTICS:case UiState::CONFIG_FIRMWARE_UPDATE:

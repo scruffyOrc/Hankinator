@@ -5,19 +5,100 @@
 #include "app_api.h"
 #include "commissioning.h"
 #include "diagnostics_transport.h"
+#include "firmware_update.h"
 #include "hall_sensor.h"
 #include "load_cells.h"
 #include "run_supervisor.h"
+#include "telemetry.h"
 #include "tmc_driver.h"
 
 namespace {
 Machine::DiagnosticsSnapshot current{};
+Machine::ScaleSnapshot scaleCurrent{};
 Machine::CommissioningSnapshot commissioningCurrent{};
 Machine::WeightTargetsSnapshot targetsCurrent{};
 Machine::MotorSettingsSnapshot motorCurrent{};
+Machine::RecoverySettingsSnapshot recoveryCurrent{};
 Machine::ConnectivitySnapshot connectivityCurrent{};
 Machine::SystemCheckSnapshot systemCheckCurrent{};
+Machine::HandTurningSnapshot handTurningCurrent{};
 uint32_t systemCheckStarted=0;
+int32_t scaleWindow[Config::ScaleModeFilterSamples]{};
+uint8_t scaleWindowCount=0,scaleWindowWrite=0;
+uint32_t scaleWindowSequence=0;
+// Pausing is the one time a winding screen can safely present a live load-cell
+// reading. Keep a small stationary window separate from Scale mode so its
+// display remains calm without ever feeding in-motion data back into control.
+float pausedWeightWindow[Config::ScaleModeFilterSamples]{};
+uint8_t pausedWeightCount=0,pausedWeightWrite=0;
+uint32_t pausedWeightSequence=0;
+
+enum class CompletionAdjustmentPhase : uint8_t { Idle, Turning, WaitingBeforeBackoff, BackingOff, Settling, Measuring };
+CompletionAdjustmentPhase completionAdjustment=CompletionAdjustmentPhase::Idle;
+uint32_t completionAdjustmentStarted=0,completionAdjustmentSequence=0;
+float completionAdjustmentSamples[Config::WeightFinalSettleSamples]{};
+uint8_t completionAdjustmentCount=0;
+
+float handSamples[Config::ScaleModeFilterSamples]{};
+uint8_t handSampleCount=0;
+uint32_t handSampleSequence=0,handCaptureStarted=0,handLastPulse=0;
+
+float trimmedAverage(const float* values,const uint8_t count,const uint8_t trim)
+{
+    if(!count)return NAN;
+    float sorted[Config::ScaleModeFilterSamples]{};
+    for(uint8_t i=0;i<count;i++)sorted[i]=values[i];
+    for(uint8_t i=1;i<count;i++)
+    {
+        const float value=sorted[i];uint8_t at=i;
+        while(at&&sorted[at-1]>value){sorted[at]=sorted[at-1];--at;}
+        sorted[at]=value;
+    }
+    const uint8_t actualTrim=count>(trim*2)?trim:0;
+    float sum=0.0f;
+    for(uint8_t i=actualTrim;i<count-actualTrim;i++)sum+=sorted[i];
+    return sum/float(count-(actualTrim*2));
+}
+
+void resetHandCapture()
+{
+    handSampleCount=0;handSampleSequence=0;handCaptureStarted=0;
+}
+
+void resetCompletionAdjustment()
+{
+    completionAdjustment=CompletionAdjustmentPhase::Idle;
+    completionAdjustmentCount=0;completionAdjustmentSequence=0;completionAdjustmentStarted=0;
+}
+
+void resetScaleWindow()
+{
+    scaleWindowCount=scaleWindowWrite=0;
+    scaleWindowSequence=0;
+}
+
+void resetPausedWeightWindow()
+{
+    pausedWeightCount=pausedWeightWrite=0;
+    pausedWeightSequence=0;
+}
+
+float trimmedScaleAverage()
+{
+    if(!scaleWindowCount)return NAN;
+    int32_t sorted[Config::ScaleModeFilterSamples]{};
+    for(uint8_t i=0;i<scaleWindowCount;i++)sorted[i]=scaleWindow[i];
+    for(uint8_t i=1;i<scaleWindowCount;i++)
+    {
+        const int32_t value=sorted[i];uint8_t at=i;
+        while(at&&sorted[at-1]>value){sorted[at]=sorted[at-1];--at;}
+        sorted[at]=value;
+    }
+    const uint8_t trim=scaleWindowCount>(Config::ScaleModeFilterTrim*2)?Config::ScaleModeFilterTrim:0;
+    int64_t sum=0;
+    for(uint8_t i=trim;i<scaleWindowCount-trim;i++)sum+=sorted[i];
+    return (sum/float(scaleWindowCount-(trim*2)))/100.0f;
+}
 
 bool allLoadCellsHealthy(const LoadCellSnapshot& cells)
 {
@@ -105,10 +186,191 @@ void Machine::service()
     current.weightDiagnosticsSettling=weightDiagnosticsSettling();
     current.tareStatus=mapTareStatus(LoadCells::tareStatus());
 
+    // Motion has fully stopped only in PAUSED. Sample the stationary value for
+    // display purposes then; count and weight control remain governed by the
+    // run supervisor's settled/projection model.
+    if(uiState==UiState::WINDING&&pauseState==PauseState::PAUSED)
+    {
+        if(cells.sequence!=pausedWeightSequence&&current.weightValid)
+        {
+            pausedWeightSequence=cells.sequence;
+            pausedWeightWindow[pausedWeightWrite++]=current.weightGrams;
+            if(pausedWeightWrite==Config::ScaleModeFilterSamples)pausedWeightWrite=0;
+            if(pausedWeightCount<Config::ScaleModeFilterSamples)++pausedWeightCount;
+        }
+    }
+    else resetPausedWeightWindow();
+
+    // One extra turn after completion is intentionally independent from the
+    // run supervisor. The completed run remains complete; this is an explicit
+    // user correction, followed by the same gentle release and quiet weigh.
+    if(completionAdjustment!=CompletionAdjustmentPhase::Idle)
+    {
+        serviceStepGeneratorWake();
+        const uint32_t now=millis();
+        if(completionAdjustment==CompletionAdjustmentPhase::Turning&&consumeAuxiliaryMotionComplete())
+        {
+            finalRunStepCount+=Config::StepsPerHubRev;
+            completionAdjustment=CompletionAdjustmentPhase::WaitingBeforeBackoff;
+            completionAdjustmentStarted=now;
+        }
+        else if(completionAdjustment==CompletionAdjustmentPhase::WaitingBeforeBackoff&&now-completionAdjustmentStarted>=Config::WeightTensionReliefPreReverseSettleMs)
+        {
+            if(!startAuxiliaryHubMotion(false,Config::WeightTensionReliefSteps,Config::WeightTensionReliefMotorRps))
+            {
+                disableMotor();resetCompletionAdjustment();
+            }
+            else completionAdjustment=CompletionAdjustmentPhase::BackingOff;
+        }
+        else if(completionAdjustment==CompletionAdjustmentPhase::BackingOff&&consumeAuxiliaryMotionComplete())
+        {
+            completionAdjustment=CompletionAdjustmentPhase::Settling;
+            completionAdjustmentStarted=now;
+        }
+        else if(completionAdjustment==CompletionAdjustmentPhase::Settling&&now-completionAdjustmentStarted>=Config::WeightStoppedMechanicalSettleMs)
+        {
+            completionAdjustment=CompletionAdjustmentPhase::Measuring;
+            completionAdjustmentStarted=now;completionAdjustmentCount=0;completionAdjustmentSequence=0;
+        }
+        else if(completionAdjustment==CompletionAdjustmentPhase::Measuring)
+        {
+            if(cells.sequence!=completionAdjustmentSequence&&current.weightValid)
+            {
+                completionAdjustmentSequence=cells.sequence;
+                if(completionAdjustmentCount<Config::WeightFinalSettleSamples)
+                    completionAdjustmentSamples[completionAdjustmentCount++]=current.weightGrams;
+            }
+            if(completionAdjustmentCount>=Config::WeightFinalSettleSamples||now-completionAdjustmentStarted>=Config::WeightFinalSettleTimeoutMs)
+            {
+                const float measured=trimmedAverage(completionAdjustmentSamples,completionAdjustmentCount,1);
+                finalRunWeightValid=isfinite(measured);
+                finalRunWeightGrams=finalRunWeightValid?measured:NAN;
+                disableMotor();resetCompletionAdjustment();
+            }
+        }
+    }
+
+    if(uiState==UiState::HAND_TURNING)
+    {
+        const uint32_t now=millis();
+        handTurningCurrent.hallTriggers=HallSensor::manualPulseCount();
+        handTurningCurrent.turnQuarters=HallSensor::manualQuarterTurns();
+        if(handTurningCurrent.stage==HandTurningStage::SeekingRegistration&&HallSensor::commissioningIndexFinished())
+        {
+            if(HallSensor::commissioningIndexFailed())
+            {
+                handTurningCurrent.stage=HandTurningStage::Fault;
+                snprintf(handTurningCurrent.message,sizeof(handTurningCurrent.message),"Registration magnet not found");
+            }
+            else
+            {
+                handTurningCurrent.stage=HandTurningStage::SeekingPrevious;
+                snprintf(handTurningCurrent.message,sizeof(handTurningCurrent.message),"Finding preceding magnet");
+                // Indexing completes just after the second close-pair magnet.
+                // Reverse past that same magnet first, then park at the first
+                // close-pair magnet so the manual count has a stable phase.
+                HallSensor::startSeek(false,Config::HandTurningIndexMotorRps,1);
+            }
+        }
+        else if(handTurningCurrent.stage==HandTurningStage::SeekingPrevious&&HallSensor::seekFinished())
+        {
+            if(HallSensor::seekFailed()||HallSensor::state()==HallSensor::State::Absent)
+            {
+                handTurningCurrent.stage=HandTurningStage::Fault;
+                snprintf(handTurningCurrent.message,sizeof(handTurningCurrent.message),"Preceding magnet not found");
+            }
+            else
+            {
+                handTurningCurrent.stage=HandTurningStage::Taring;
+                snprintf(handTurningCurrent.message,sizeof(handTurningCurrent.message),"Taring; keep still");
+                ::startWeightDiagnosticsTare();
+            }
+        }
+        else if(handTurningCurrent.stage==HandTurningStage::Taring)
+        {
+            if(current.tareStatus==Machine::TareStatus::Complete)
+            {
+                // We park at the first close-pair magnet. Moving in the
+                // configured winding direction crosses its partner first,
+                // then the three quarter landmarks, and finally this parked
+                // magnet again. That lets Hand Wind follow the same physical
+                // direction as powered winding without losing Hall phase.
+                HallSensor::beginManualTracking(true);handLastPulse=0;
+                handTurningCurrent.stage=HandTurningStage::Holding;
+                handTurningCurrent.motorHolding=true;
+                // The reverse seek parks at the first close-pair magnet;
+                // manual winding now proceeds in the configured powered
+                // winding direction, with the alternate Hall phase above.
+                snprintf(handTurningCurrent.message,sizeof(handTurningCurrent.message),
+                    settings.clockwise?"Ready; turn CW by hand":"Ready; turn CCW by hand");
+            }
+            else if(current.tareStatus==Machine::TareStatus::Failed)
+            {
+                handTurningCurrent.stage=HandTurningStage::Fault;
+                snprintf(handTurningCurrent.message,sizeof(handTurningCurrent.message),"Tare failed");
+            }
+        }
+
+        const uint32_t pulses=HallSensor::manualPulseCount();
+        if((handTurningCurrent.stage==HandTurningStage::Holding||handTurningCurrent.stage==HandTurningStage::CapturingFinalWeight||handTurningCurrent.stage==HandTurningStage::FinalWeight)&&pulses>handLastPulse)
+        {
+            // The first user-created landmark is the unambiguous indication
+            // to release holding torque. Any later movement invalidates a
+            // finished reading and returns to free hand turning.
+            disableMotor();resetHandCapture();
+            handTurningCurrent.stage=HandTurningStage::FreeTurning;
+            handTurningCurrent.motorHolding=false;
+            snprintf(handTurningCurrent.message,sizeof(handTurningCurrent.message),"Free turning");
+        }
+        handLastPulse=pulses;
+
+        if(handTurningCurrent.stage==HandTurningStage::CapturingFinalWeight)
+        {
+            if(!handCaptureStarted)handCaptureStarted=now;
+            if(now-handCaptureStarted>=Config::WeightStoppedMechanicalSettleMs&&cells.sequence!=handSampleSequence&&current.weightValid)
+            {
+                handSampleSequence=cells.sequence;
+                if(handSampleCount<Config::ScaleModeFilterSamples)handSamples[handSampleCount++]=current.weightGrams;
+            }
+            if(handSampleCount>=Config::ScaleModeFilterSamples)
+            {
+                handTurningCurrent.finalWeightGrams=trimmedAverage(handSamples,handSampleCount,Config::ScaleModeFilterTrim);
+                handTurningCurrent.finalWeightValid=isfinite(handTurningCurrent.finalWeightGrams);
+                handTurningCurrent.stage=HandTurningStage::FinalWeight;
+                handTurningCurrent.motorHolding=true;
+                snprintf(handTurningCurrent.message,sizeof(handTurningCurrent.message),"Final weight captured");
+            }
+        }
+    }
+
+    scaleCurrent.tareStatus=current.tareStatus;
+    scaleCurrent.settling=uiState==UiState::SCALE_MODE&&weightDiagnosticsSettling();
+    if(uiState==UiState::SCALE_MODE)
+    {
+        if(current.tareStatus!=Machine::TareStatus::Complete||!current.weightValid)
+        {
+            resetScaleWindow();
+            scaleCurrent.weightValid=false;
+        }
+        else if(cells.sequence!=scaleWindowSequence)
+        {
+            scaleWindowSequence=cells.sequence;
+            scaleWindow[scaleWindowWrite++]=int32_t(lroundf(current.weightGrams*100.0f));
+            if(scaleWindowWrite==Config::ScaleModeFilterSamples)scaleWindowWrite=0;
+            if(scaleWindowCount<Config::ScaleModeFilterSamples)++scaleWindowCount;
+            scaleCurrent.weightGrams=trimmedScaleAverage();
+            // Do not present an early single-sample value as "smoothed".  A
+            // full window makes the postal-scale display deliberately calm.
+            scaleCurrent.weightValid=scaleWindowCount>=Config::ScaleModeFilterSamples&&isfinite(scaleCurrent.weightGrams);
+        }
+        scaleCurrent.samples=scaleWindowCount;
+    }
+
     const Commissioning::State commissioningState=Commissioning::state();
     commissioningCurrent.state=mapCommissioningState(commissioningState);
     commissioningCurrent.currentLeg=Commissioning::currentLeg();
     commissioningCurrent.currentReferenceMass=Commissioning::currentReferenceMass();
+    commissioningCurrent.currentArmPosition=Commissioning::currentArmPosition();
     commissioningCurrent.samplesCollected=Commissioning::samplesCollected();
     commissioningCurrent.samplesRequired=Commissioning::samplesRequired();
     commissioningCurrent.referenceMassGrams=Commissioning::referenceMassGrams(commissioningCurrent.currentReferenceMass);
@@ -116,7 +378,7 @@ void Machine::service()
     commissioningCurrent.expectedTotalGrams=Commissioning::expectedTotalGrams();
     commissioningCurrent.firstValidationGrams=Commissioning::firstValidationGrams();
     commissioningCurrent.secondValidationGrams=Commissioning::secondValidationGrams();
-    commissioningCurrent.hubGain=Commissioning::hubGain();
+    commissioningCurrent.armCorrectionGain=Commissioning::armCorrectionGain();
     commissioningCurrent.firstValidationValid=!isnan(commissioningCurrent.firstValidationGrams);
     commissioningCurrent.secondValidationValid=!isnan(commissioningCurrent.secondValidationGrams);
     commissioningCurrent.active=Commissioning::active();
@@ -131,16 +393,30 @@ void Machine::service()
     windingCurrent.selectedTurns=uint16_t(max(0,selectedTurns));
     windingCurrent.completedTurns=safeCurrentStepCount()/float(Config::StepsPerHubRev);
     windingCurrent.targetWeightGrams=supervisor.weightArmed?supervisor.targetWeightGrams:NAN;
-    windingCurrent.measuredWeightGrams=supervisor.filteredWeightGrams;
-    windingCurrent.measuredWeightValid=!isnan(supervisor.filteredWeightGrams);
+    if(pauseState==PauseState::PAUSED&&pausedWeightCount)
+    {
+        const float pausedWeight=trimmedAverage(pausedWeightWindow,pausedWeightCount,Config::ScaleModeFilterTrim);
+        windingCurrent.measuredWeightGrams=pausedWeight;
+        windingCurrent.measuredWeightValid=isfinite(pausedWeight);
+    }
+    else
+    {
+        windingCurrent.measuredWeightGrams=supervisor.filteredWeightGrams;
+        windingCurrent.measuredWeightValid=!isnan(supervisor.filteredWeightGrams);
+    }
+    windingCurrent.predictedWeightGrams=supervisor.predictedWeightGrams;
+    windingCurrent.predictedWeightValid=supervisor.predictedWeightValid;
     windingCurrent.finalTurns=uint16_t(min<uint32_t>(finalRunStepCount/Config::StepsPerHubRev,UINT16_MAX));
     windingCurrent.finalWeightGrams=finalRunWeightGrams;
     windingCurrent.finalWeightValid=finalRunWeightValid;
     windingCurrent.finalAborted=finalRunAborted;
+    windingCurrent.weightEstimateUnavailable=supervisor.weightEstimateUnavailable;
+    windingCurrent.finalAdjustmentActive=completionAdjustment!=CompletionAdjustmentPhase::Idle;
 
     motorCurrent.runCurrentMa=settings.runCurrentMa;
     motorCurrent.holdCurrentMa=settings.holdCurrentMa;
     motorCurrent.clockwise=settings.clockwise;
+    recoveryCurrent.restartLimit=settings.stallRestartLimit;
     connectivityCurrent.bluetoothEnabled=settings.bluetoothEnabled;
     connectivityCurrent.pairingOpen=DiagnosticsTransport::pairingOpen();
     connectivityCurrent.clientConnected=DiagnosticsTransport::connected();
@@ -195,6 +471,37 @@ const char* Machine::channelStatusName(const LoadCellChannelStatus status)
         default:return "No Data";
     }
 }
+
+bool Machine::openScaleMode()
+{
+    if(!weightCapabilityEnabled||productMode!=ProductMode::Fuhgeddabouditinator||motionActive||auxiliaryMotionActive())return false;
+    uiState=UiState::SCALE_MODE;
+    resetScaleWindow();
+    ::startWeightDiagnosticsTare();
+    service();
+    return true;
+}
+
+bool Machine::startScaleTare()
+{
+    if(uiState!=UiState::SCALE_MODE)return false;
+    resetScaleWindow();
+    ::startWeightDiagnosticsTare();
+    service();
+    return true;
+}
+
+void Machine::closeScaleMode()
+{
+    if(uiState!=UiState::SCALE_MODE)return;
+    LoadCells::cancelTare();
+    disableMotor();
+    resetScaleWindow();
+    uiState=UiState::CONFIG_MENU;
+    service();
+}
+
+const Machine::ScaleSnapshot& Machine::scale(){return scaleCurrent;}
 
 bool Machine::openCommissioning()
 {
@@ -336,6 +643,32 @@ void Machine::saveMotorSettings()
     saveSettings();
 }
 
+const Machine::RecoverySettingsSnapshot& Machine::recoverySettings()
+{
+    recoveryCurrent.restartLimit=settings.stallRestartLimit;
+    return recoveryCurrent;
+}
+
+bool Machine::setRecoveryRestartLimit(const uint8_t limit)
+{
+    const uint8_t normalized=min(limit,Config::MaxStallRestartLimit);
+    const bool changed=settings.stallRestartLimit!=normalized;
+    settings.stallRestartLimit=normalized;
+    RunSupervisor::setRecoveryRestartLimit(normalized);
+    recoveryCurrent.restartLimit=normalized;
+    return changed;
+}
+
+bool Machine::resetRecoveryRestartLimitToDefault()
+{
+    return setRecoveryRestartLimit(Config::DefaultStallRestartLimit);
+}
+
+void Machine::saveRecoverySettings()
+{
+    saveSettings();
+}
+
 const Machine::ConnectivitySnapshot& Machine::connectivity()
 {
     connectivityCurrent.bluetoothEnabled=settings.bluetoothEnabled;
@@ -454,6 +787,22 @@ bool Machine::prepareWeightWinding(const uint8_t preset)
     return true;
 }
 
+bool Machine::startMotionCharacterization(const uint16_t turns,const float cruiseMotorRps,const bool suppressHallFeedback)
+{
+    if(productMode==ProductMode::LoadCellFault||turns<Config::MinTurns||motionActive||auxiliaryMotionActive()||!isfinite(cruiseMotorRps)||cruiseMotorRps<=0.0f)return false;
+    autoCountMode=true;
+    selectedTurns=min<uint16_t>(turns,Config::FuhSafetyTurnCeiling);
+    selectedCruiseMotorRPS=cruiseMotorRps;
+    for(uint8_t i=0;i<Config::CruiseSpeedOptionCount;i++)
+        if(Config::CruiseSpeedOptions[i]==Config::FuhCruiseMotorRps)selectedCruiseSpeedIndex=i;
+    RunSupervisor::disarmWeightTarget();
+    // Do not save settings or re-tare here: this is a controlled movement
+    // characterization whose two quiet windows share the same initial tare.
+    beginWinding(suppressHallFeedback);
+    service();
+    return true;
+}
+
 bool Machine::confirmYarnLoaded()
 {
     if(uiState!=UiState::LOAD_YARN)return false;
@@ -476,7 +825,6 @@ bool Machine::confirmSafetyClearance()
 {
     if(uiState!=UiState::WINDING||!RunSupervisor::waitingForClearance())return false;
     const bool accepted=RunSupervisor::confirmClearance();
-    if(accepted)HallSensor::resumeAfterClearance();
     service();
     return accepted;
 }
@@ -496,6 +844,11 @@ bool Machine::exitWindingWorkflow()
         case UiState::COMPLETE:
             // Completion has already recorded telemetry and finalized the
             // run. Do not call the abort reset path after a successful run.
+            if(completionAdjustment!=CompletionAdjustmentPhase::Idle)
+            {
+                cancelAuxiliaryMotion();
+                resetCompletionAdjustment();
+            }
             disableMotor();
             uiState=weightCapabilityEnabled&&!autoCountMode?UiState::FUH_PROGRAM_SELECT:UiState::TURN_SELECT;
             break;
@@ -530,6 +883,62 @@ const Machine::WindingSnapshot& Machine::winding()
     return windingCurrent;
 }
 
+bool Machine::addCompletionTurn()
+{
+    if(uiState!=UiState::COMPLETE||completionAdjustment!=CompletionAdjustmentPhase::Idle||motionActive||auxiliaryMotionActive())return false;
+    enableMotor();
+    if(!startAuxiliaryHubMotion(true,Config::StepsPerHubRev,0.5f))
+    {
+        disableMotor();return false;
+    }
+    finalRunWeightValid=false;
+    completionAdjustment=CompletionAdjustmentPhase::Turning;
+    completionAdjustmentStarted=millis();
+    Telemetry::event("COMPLETION_PLUS_ONE_START");
+    service();
+    return true;
+}
+
+bool Machine::openHandTurning()
+{
+    if(!weightCapabilityEnabled||productMode!=ProductMode::Fuhgeddabouditinator||!settings.hallEnabled||motionActive||auxiliaryMotionActive())return false;
+    memset(&handTurningCurrent,0,sizeof(handTurningCurrent));
+    handTurningCurrent.stage=HandTurningStage::SeekingRegistration;
+    snprintf(handTurningCurrent.message,sizeof(handTurningCurrent.message),"Finding registration magnet");
+    uiState=UiState::HAND_TURNING;
+    enableMotor();HallSensor::startCommissioningIndex(Config::HandTurningIndexMotorRps);
+    Telemetry::event("HAND_TURN_START");
+    service();
+    return true;
+}
+
+bool Machine::finishHandTurning()
+{
+    if(uiState!=UiState::HAND_TURNING)return false;
+    if(handTurningCurrent.stage!=HandTurningStage::Holding&&handTurningCurrent.stage!=HandTurningStage::FreeTurning&&handTurningCurrent.stage!=HandTurningStage::FinalWeight)return false;
+    enableMotor();resetHandCapture();handLastPulse=HallSensor::manualPulseCount();
+    handTurningCurrent.finalWeightValid=false;
+    handTurningCurrent.stage=HandTurningStage::CapturingFinalWeight;
+    handTurningCurrent.motorHolding=true;
+    snprintf(handTurningCurrent.message,sizeof(handTurningCurrent.message),"Capturing final weight");
+    Telemetry::event("HAND_TURN_FINAL_WEIGHT_START");
+    service();
+    return true;
+}
+
+void Machine::closeHandTurning()
+{
+    if(uiState!=UiState::HAND_TURNING)return;
+    LoadCells::cancelTare();HallSensor::endManualTracking();HallSensor::cancel();
+    cancelAuxiliaryMotion();disableMotor();resetHandCapture();
+    handTurningCurrent.stage=HandTurningStage::Idle;
+    snprintf(handTurningCurrent.message,sizeof(handTurningCurrent.message),"Closed");
+    uiState=UiState::CONFIG_MENU;
+    service();
+}
+
+const Machine::HandTurningSnapshot& Machine::handTurning(){return handTurningCurrent;}
+
 bool Machine::startWeightDiagnosticsTare()
 {
     if(!weightCapabilityEnabled)return false;
@@ -545,4 +954,19 @@ void Machine::closeWeightDiagnostics()
     disableMotor();
     if(uiState==UiState::CONFIG_WEIGHT_DIAGNOSTICS)uiState=UiState::CONFIG_DIAGNOSTICS_MENU;
     service();
+}
+
+bool Machine::factoryReset(const bool eraseCommissioning)
+{
+    // A reset during hardware-timer motion could leave live motor settings
+    // out of sync with the persistent record. Diagnostics is idle-only, but
+    // retain this guard at the controller boundary.
+    if(motionActive||auxiliaryMotionActive()||uiState==UiState::WINDING)return false;
+
+    DiagnosticsTransport::closePairingWindow();
+    FirmwareUpdate::end();
+    DiagnosticsTransport::clearPairedDevices();
+    resetUserSettings(eraseCommissioning);
+    Serial.println(eraseCommissioning?"Factory reset complete; commissioning erased":"Factory reset complete; commissioning retained");
+    return true;
 }

@@ -15,6 +15,9 @@ struct LegacySettingsV9{uint32_t magic;uint16_t version;uint16_t turns[YARN_WEIG
 // Version 10 added the touch theme preference. Version 11 appends a final
 // center-hub correction to the direct-leg commissioning model.
 struct LegacySettingsV10{uint32_t magic;uint16_t version;uint16_t turns[YARN_WEIGHT_COUNT][SKEIN_SIZE_COUNT];uint16_t runCurrentMa,holdCurrentMa;uint8_t bluetoothEnabled,clockwise;uint16_t weightTargetsCentiGrams[3],autoTurns;uint8_t hallEnabled;char wifiSsid[33],wifiPassword[64];float loadCellGramsPerCount[4];uint16_t commissioningCollarCentiGrams[4];uint8_t loadCellCalibrationValid,touchDisplaySleepEnabled,touchDisplaySleepMinutes,touchDisplayDarkMode;};
+// Version 11 was the direct-leg model plus a neutral legacy hub gain. Version
+// 12 adds three signed front/middle/rear arm response vectors.
+struct LegacySettingsV11{uint32_t magic;uint16_t version;uint16_t turns[YARN_WEIGHT_COUNT][SKEIN_SIZE_COUNT];uint16_t runCurrentMa,holdCurrentMa;uint8_t bluetoothEnabled,clockwise;uint16_t weightTargetsCentiGrams[3],autoTurns;uint8_t hallEnabled;char wifiSsid[33],wifiPassword[64];float loadCellGramsPerCount[4];uint16_t commissioningCollarCentiGrams[4];uint8_t loadCellCalibrationValid,touchDisplaySleepEnabled,touchDisplaySleepMinutes,touchDisplayDarkMode;float loadCellHubGain;};
 
 bool turnsAreValid(const uint16_t turns[YARN_WEIGHT_COUNT][SKEIN_SIZE_COUNT])
 {
@@ -38,7 +41,7 @@ void loadFactoryDefaults()
     settings.bluetoothEnabled=1;
     settings.autoTurns=Config::DefaultAutoTurns;
     settings.clockwise=1;
-    settings.hallEnabled=0;
+    settings.hallEnabled=Config::DefaultHallFeedbackEnabled?1:0;
     memset(settings.wifiSsid,0,sizeof(settings.wifiSsid));
     memset(settings.wifiPassword,0,sizeof(settings.wifiPassword));
     memcpy(settings.weightTargetsCentiGrams,Config::DefaultWeightTargetsCentiGrams,sizeof(settings.weightTargetsCentiGrams));
@@ -49,6 +52,9 @@ void loadFactoryDefaults()
     settings.touchDisplaySleepMinutes=Config::DefaultTouchDisplaySleepMinutes;
     settings.touchDisplayDarkMode=Config::DefaultTouchDisplayDarkMode?1:0;
     settings.loadCellHubGain=1.0f;
+    memset(settings.loadCellArmCountsPerGram,0,sizeof(settings.loadCellArmCountsPerGram));
+    settings.loadCellArmModelValid=0;
+    settings.stallRestartLimit=Config::DefaultStallRestartLimit;
 
     for (
         int weight = 0;
@@ -67,6 +73,37 @@ void loadFactoryDefaults()
                     .factoryDefaultTurns;
         }
     }
+}
+
+void resetUserSettings(const bool eraseCommissioning)
+{
+    // Commissioning belongs to the assembled machine, not to its operator.
+    // Preserve it for an ordinary reset; the separately authorized path is
+    // the only one which deliberately discards this hardware-specific fit.
+    float retainedCoefficients[Config::LoadCellChannelCount]{};
+    uint16_t retainedCollars[Config::LoadCellChannelCount]{};
+    float retainedArmModel[Config::CommissioningArmPositionCount][Config::LoadCellChannelCount]{};
+    const uint8_t retainedValid=settings.loadCellCalibrationValid;
+    const uint8_t retainedArmModelValid=settings.loadCellArmModelValid;
+    const float retainedHubGain=settings.loadCellHubGain;
+    if(!eraseCommissioning)
+    {
+        memcpy(retainedCoefficients,settings.loadCellGramsPerCount,sizeof(retainedCoefficients));
+        memcpy(retainedCollars,settings.commissioningCollarCentiGrams,sizeof(retainedCollars));
+        memcpy(retainedArmModel,settings.loadCellArmCountsPerGram,sizeof(retainedArmModel));
+    }
+
+    loadFactoryDefaults();
+    if(!eraseCommissioning)
+    {
+        memcpy(settings.loadCellGramsPerCount,retainedCoefficients,sizeof(retainedCoefficients));
+        memcpy(settings.commissioningCollarCentiGrams,retainedCollars,sizeof(retainedCollars));
+        settings.loadCellCalibrationValid=retainedValid;
+        settings.loadCellArmModelValid=retainedArmModelValid;
+        settings.loadCellHubGain=retainedHubGain;
+        memcpy(settings.loadCellArmCountsPerGram,retainedArmModel,sizeof(retainedArmModel));
+    }
+    saveSettings();
 }
 
 bool settingsAreValid()
@@ -92,7 +129,7 @@ bool settingsAreValid()
     if(settings.runCurrentMa<Config::MinRunCurrentMa||settings.runCurrentMa>Config::MaxRunCurrentMa)return false;
     if(settings.holdCurrentMa<Config::MinHoldCurrentMa||settings.holdCurrentMa>Config::MaxHoldCurrentMa||settings.holdCurrentMa>settings.runCurrentMa)return false;
     for(uint8_t i=0;i<3;i++)if(settings.weightTargetsCentiGrams[i]<Config::MinWeightTargetCentiGrams||settings.weightTargetsCentiGrams[i]>Config::MaxWeightTargetCentiGrams)return false;
-    if(settings.bluetoothEnabled>1||settings.clockwise>1||settings.hallEnabled>1||settings.loadCellCalibrationValid>1||settings.touchDisplaySleepEnabled>1||settings.touchDisplayDarkMode>1
+    if(settings.bluetoothEnabled>1||settings.clockwise>1||settings.hallEnabled>1||settings.loadCellCalibrationValid>1||settings.loadCellArmModelValid>1||settings.touchDisplaySleepEnabled>1||settings.touchDisplayDarkMode>1||settings.stallRestartLimit>Config::MaxStallRestartLimit
         ||settings.touchDisplaySleepMinutes<Config::MinTouchDisplaySleepMinutes||settings.touchDisplaySleepMinutes>Config::MaxTouchDisplaySleepMinutes
         ||!memchr(settings.wifiSsid,0,sizeof(settings.wifiSsid))||!memchr(settings.wifiPassword,0,sizeof(settings.wifiPassword)))return false;
     for(uint8_t collar=0;collar<Config::LoadCellChannelCount;collar++)
@@ -102,7 +139,11 @@ bool settingsAreValid()
         const float coefficient=settings.loadCellGramsPerCount[channel];
         if(!isfinite(coefficient)||fabsf(coefficient)<Config::CommissioningMinimumCoefficient||fabsf(coefficient)>Config::CommissioningMaximumCoefficient)return false;
     }
-    if(!isfinite(settings.loadCellHubGain)||settings.loadCellHubGain<Config::CommissioningMinimumHubGain||settings.loadCellHubGain>Config::CommissioningMaximumHubGain)return false;
+    if(!isfinite(settings.loadCellHubGain)||settings.loadCellHubGain<Config::CommissioningMinimumArmGain||settings.loadCellHubGain>Config::CommissioningMaximumArmGain)return false;
+    if(settings.loadCellArmModelValid)
+        for(uint8_t position=0;position<Config::CommissioningArmPositionCount;position++)
+            for(uint8_t channel=0;channel<Config::LoadCellChannelCount;channel++)
+                if(!isfinite(settings.loadCellArmCountsPerGram[position][channel])||fabsf(settings.loadCellArmCountsPerGram[position][channel])>Config::CommissioningArmResponseMaximumCountsPerGram)return false;
     return true;
 }
 
@@ -262,6 +303,64 @@ void loadSettings()
             // having no center-hub correction until recommissioned.
             settings.loadCellHubGain=1.0f;
             saveSettings();Serial.println("Settings v10 migrated; hub gain defaults to 1.0");return;
+        }
+    }
+
+    if(settings.magic==Config::SETTINGS_MAGIC&&settings.version==11)
+    {
+        LegacySettingsV11 legacy{};EEPROM.get(0,legacy);
+        if(turnsAreValid(legacy.turns)&&legacy.autoTurns>=Config::MinTurns&&legacy.autoTurns<=Config::FuhSafetyTurnCeiling
+            &&legacy.runCurrentMa>=Config::MinRunCurrentMa&&legacy.runCurrentMa<=Config::MaxRunCurrentMa
+            &&legacy.holdCurrentMa>=Config::MinHoldCurrentMa&&legacy.holdCurrentMa<=Config::MaxHoldCurrentMa&&legacy.holdCurrentMa<=legacy.runCurrentMa
+            &&legacy.bluetoothEnabled<=1&&legacy.clockwise<=1&&legacy.hallEnabled<=1&&legacy.loadCellCalibrationValid<=1
+            &&legacy.touchDisplaySleepEnabled<=1&&legacy.touchDisplayDarkMode<=1&&legacy.touchDisplaySleepMinutes>=Config::MinTouchDisplaySleepMinutes&&legacy.touchDisplaySleepMinutes<=Config::MaxTouchDisplaySleepMinutes
+            &&isfinite(legacy.loadCellHubGain)&&legacy.loadCellHubGain>=Config::CommissioningMinimumArmGain&&legacy.loadCellHubGain<=Config::CommissioningMaximumArmGain)
+        {
+            loadFactoryDefaults();
+            memcpy(settings.turns,legacy.turns,sizeof(settings.turns));
+            settings.runCurrentMa=legacy.runCurrentMa;settings.holdCurrentMa=legacy.holdCurrentMa;
+            settings.bluetoothEnabled=legacy.bluetoothEnabled;settings.clockwise=legacy.clockwise;
+            memcpy(settings.weightTargetsCentiGrams,legacy.weightTargetsCentiGrams,sizeof(settings.weightTargetsCentiGrams));
+            settings.autoTurns=legacy.autoTurns;settings.hallEnabled=legacy.hallEnabled;
+            memcpy(settings.wifiSsid,legacy.wifiSsid,sizeof(settings.wifiSsid));memcpy(settings.wifiPassword,legacy.wifiPassword,sizeof(settings.wifiPassword));
+            memcpy(settings.loadCellGramsPerCount,legacy.loadCellGramsPerCount,sizeof(settings.loadCellGramsPerCount));
+            memcpy(settings.commissioningCollarCentiGrams,legacy.commissioningCollarCentiGrams,sizeof(settings.commissioningCollarCentiGrams));
+            settings.loadCellCalibrationValid=legacy.loadCellCalibrationValid;
+            settings.touchDisplaySleepEnabled=legacy.touchDisplaySleepEnabled;settings.touchDisplaySleepMinutes=legacy.touchDisplaySleepMinutes;settings.touchDisplayDarkMode=legacy.touchDisplayDarkMode;
+            settings.loadCellHubGain=legacy.loadCellHubGain;
+            // Existing V11 calibration remains usable through the direct-leg
+            // model. It gains position-aware behavior only after recommission.
+            settings.loadCellArmModelValid=0;
+            saveSettings();Serial.println("Settings v11 migrated; recommission to enable position-aware arm model");return;
+        }
+    }
+
+    if(settings.magic==Config::SETTINGS_MAGIC&&settings.version==12)
+    {
+        // V12 stored a single-reference-arm model in the same array layout.
+        // V13 gives those rows a different meaning: four collars distributed
+        // across all arms.  Preserve every other setting, but never interpret
+        // the old values as the new model.
+        settings.version=Config::SETTINGS_VERSION;
+        settings.stallRestartLimit=Config::DefaultStallRestartLimit;
+        memset(settings.loadCellArmCountsPerGram,0,sizeof(settings.loadCellArmCountsPerGram));
+        settings.loadCellArmModelValid=0;
+        if(settingsAreValid())
+        {
+            saveSettings();Serial.println("Settings v12 migrated; recommission for distributed collar model");return;
+        }
+    }
+
+    // V13 is the distributed-collar layout before the per-run recovery limit.
+    // Its prefix matches the current structure, so retain every established
+    // setting and initialize only the appended byte.
+    if(settings.magic==Config::SETTINGS_MAGIC&&settings.version==13)
+    {
+        settings.version=Config::SETTINGS_VERSION;
+        settings.stallRestartLimit=Config::DefaultStallRestartLimit;
+        if(settingsAreValid())
+        {
+            saveSettings();Serial.println("Settings v13 migrated; recovery restarts default to unlimited");return;
         }
     }
 

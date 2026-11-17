@@ -66,14 +66,12 @@ void drawCommissioningScreen()
     char line[30]{};
     if(state==Machine::CommissioningState::Ready)
     {
-        char massOne[12]{},massTwo[12]{},massThree[12]{},collars[12]{};
-        formatTwoDecimals(massOne,sizeof(massOne),commissioning.referenceMassesGrams[0]);
-        formatTwoDecimals(massTwo,sizeof(massTwo),commissioning.referenceMassesGrams[1]);
-        formatTwoDecimals(massThree,sizeof(massThree),commissioning.referenceMassesGrams[2]);
+        char collars[12]{};
         formatTwoDecimals(collars,sizeof(collars),commissioning.expectedTotalGrams);
-        snprintf(line,sizeof(line),"M1 %sg M2 %sg",massOne,massTwo);display.drawStr(2,25,line);
-        snprintf(line,sizeof(line),"M3 %sg then hub",massThree);display.drawStr(2,35,line);
-        snprintf(line,sizeof(line),"Collars validate %sg",collars);display.drawStr(2,47,line);
+        display.drawStr(2,25,"4 collars: front/mid/rear");
+        snprintf(line,sizeof(line),"Total %sg; 3 captures",collars);display.drawStr(2,35,line);
+        display.drawStr(2,46,"Distributed arm model");
+        display.drawStr(2,53,"Then collar validation");
         display.drawStr(2,61,"Click: Begin STOP: Back");
     }
     else if(state==Machine::CommissioningState::PromptLeg)
@@ -82,24 +80,39 @@ void drawCommissioningScreen()
         display.drawStr(2,38,"Directly over that leg");display.drawStr(2,50,"Click when positioned");
         display.drawStr(2,61,"STOP: Cancel");
     }
+    else if(state==Machine::CommissioningState::PromptArm)
+    {
+        display.drawStr(2,25,commissioning.message);
+        display.drawStr(2,38,"One collar on each arm");display.drawStr(2,50,"Use the marked position");
+        display.drawStr(2,61,"STOP: Cancel");
+    }
+    else if(state==Machine::CommissioningState::PromptRemoveLegMass)
+    {
+        display.drawStr(2,25,"Remove 333.53g from RR");
+        display.drawStr(2,38,"Keep hub empty for tare");
+        display.drawStr(2,50,"Click: rotate to arm");
+        display.drawStr(2,61,"STOP: Cancel");
+    }
+    else if(state==Machine::CommissioningState::PromptRemoveArmMass)
+    {
+        display.drawStr(2,25,"Remove all collars from arms");
+        display.drawStr(2,38,"Keep hub empty for tare");
+        display.drawStr(2,50,"Click: return to index");
+        display.drawStr(2,61,"STOP: Cancel");
+    }
     else if(state==Machine::CommissioningState::PromptAllFirst)
     {
-        display.drawStr(2,25,"Place 4 collars at ends");display.drawStr(2,38,"Capture orientation one");
-        display.drawStr(2,50,"Click when positioned");display.drawStr(2,61,"STOP: Cancel");
-    }
-    else if(state==Machine::CommissioningState::PromptHubReference)
-    {
-        display.drawStr(2,25,"Center-hub correction");display.drawStr(2,38,commissioning.message);
+        display.drawStr(2,25,"Place 4 collars at middle");display.drawStr(2,38,"One collar on each arm");
         display.drawStr(2,50,"Click when positioned");display.drawStr(2,61,"STOP: Cancel");
     }
     else if(state==Machine::CommissioningState::PromptRotate)
     {
-        display.drawStr(2,25,"First validation passed");display.drawStr(2,38,"Remove all weights");
+        display.drawStr(2,25,"First validation recorded");display.drawStr(2,38,"Remove all weights");
         display.drawStr(2,50,"Click: rotate hub 180 deg");display.drawStr(2,61,"STOP: Cancel");
     }
     else if(state==Machine::CommissioningState::PromptAllSecond)
     {
-        display.drawStr(2,25,"W1 lower left fixed");display.drawStr(2,38,"W2-4 same chassis spots");
+        display.drawStr(2,25,"Place 4 collars at middle");display.drawStr(2,38,"Validate after 180 degree turn");
         display.drawStr(2,50,"Click when positioned");display.drawStr(2,61,"STOP: Cancel");
     }
     else if(state==Machine::CommissioningState::Complete)
@@ -120,13 +133,13 @@ void drawCommissioningScreen()
     else
     {
         display.drawStr(2,25,commissioning.message);
-        if(state==Machine::CommissioningState::CapturingLeg||state==Machine::CommissioningState::CapturingHubReference||state==Machine::CommissioningState::CapturingAllFirst||state==Machine::CommissioningState::CapturingAllSecond)
+        if(state==Machine::CommissioningState::CapturingLeg||state==Machine::CommissioningState::CapturingArm||state==Machine::CommissioningState::CapturingAllFirst||state==Machine::CommissioningState::CapturingAllSecond)
         {
             snprintf(line,sizeof(line),"Collecting %u / %u",commissioning.samplesCollected,commissioning.samplesRequired);display.drawStr(2,39,line);
         }
-        else if(state==Machine::CommissioningState::Indexing)display.drawStr(2,39,"Motor turning slowly");
-        else if(state==Machine::CommissioningState::Taring)display.drawStr(2,39,"Keep hub empty and still");
-        else if(state==Machine::CommissioningState::Rotating)display.drawStr(2,39,"Motor turning slowly");
+        else if(state==Machine::CommissioningState::Indexing||state==Machine::CommissioningState::ReindexingForValidation)display.drawStr(2,39,"Motor turning slowly");
+        else if(state==Machine::CommissioningState::Taring||state==Machine::CommissioningState::TaringArm||state==Machine::CommissioningState::TaringValidation)display.drawStr(2,39,"Keep hub empty and still");
+        else if(state==Machine::CommissioningState::Rotating||state==Machine::CommissioningState::RotatingToArm)display.drawStr(2,39,"Motor turning slowly");
         display.drawStr(2,61,"STOP: Cancel");
     }
     display.sendBuffer();
@@ -519,7 +532,7 @@ void drawCompleteScreen()
     }
     else if(finalRunAborted)
     {
-        display.drawStr(18,45,"Target not reached");
+        display.drawStr(18,45,RunSupervisor::snapshot().weightEstimateUnavailable?"Cannot estimate wind":"Target not reached");
     }
     display.setFont(u8g2_font_5x8_tf);
     if(autoCountMode&&RunSupervisor::snapshot().countUncertain)display.drawStr(6,54,"Turn count uncertain");
@@ -705,6 +718,7 @@ void drawCurrentScreen()
         case UiState::CONFIG_RUN_CURRENT:
         case UiState::CONFIG_HOLD_CURRENT:
         case UiState::CONFIG_DIRECTION:
+        case UiState::CONFIG_RECOVERY_LIMIT:
         case UiState::CONFIG_WEIGHT_MENU:
         case UiState::CONFIG_WEIGHT_VALUE:
         case UiState::CONFIG_PAIRING:
@@ -733,6 +747,12 @@ void drawCurrentScreen()
             break;
         }
         case UiState::CONFIG_WEIGHT_DIAGNOSTICS:
+            drawWeightDiagnosticsScreen();
+            break;
+        case UiState::SCALE_MODE:
+        case UiState::HAND_TURNING:
+            // Scale Mode is presently exposed by the touch appliance UI. Keep
+            // the Mini12864 safe and intelligible if this state is entered.
             drawWeightDiagnosticsScreen();
             break;
         case UiState::CONFIG_COMMISSIONING:
@@ -969,13 +989,15 @@ void drawConfigScreen()
     }
     else if(uiState==UiState::CONFIG_MOTOR_MENU)
     {
-        static const char* items[]={"Run Current","Hold Current","Rotation Direction"};
+        static const char* items[]={"Run Current","Hold Current","Rotation Direction","Recovery Restarts"};
         display.drawStr(2,29,items[motorMenuSelection]);
         if(motorMenuSelection==0)snprintf(value,sizeof(value),"%u mA",settings.runCurrentMa);
         else if(motorMenuSelection==1)snprintf(value,sizeof(value),"%u mA",settings.holdCurrentMa);
-        else snprintf(value,sizeof(value),"%s",settings.clockwise?"Clockwise":"Counter clockwise");
+        else if(motorMenuSelection==2)snprintf(value,sizeof(value),"%s",settings.clockwise?"Clockwise":"Counter clockwise");
+        else if(Machine::recoverySettings().restartLimit==0)snprintf(value,sizeof(value),"Unlimited");
+        else snprintf(value,sizeof(value),"%u",Machine::recoverySettings().restartLimit);
         display.drawStr(2,43,value);
-        snprintf(value,sizeof(value),"%d/3  Turn / Click",motorMenuSelection+1);
+        snprintf(value,sizeof(value),"%d/4  Turn / Click",motorMenuSelection+1);
         display.setFont(u8g2_font_5x8_tf);display.drawStr(2,61,value);
     }
     else if(uiState==UiState::CONFIG_PAIRING)
@@ -990,6 +1012,15 @@ void drawConfigScreen()
         display.setFont(settings.clockwise?u8g2_font_helvB14_tf:u8g2_font_6x10_tf);
         display.drawStr(2,49,settings.clockwise?"Clockwise":"Counter clockwise");
         display.setFont(u8g2_font_5x8_tf);display.drawStr(2,61,"Turn / Click save");
+    }
+    else if(uiState==UiState::CONFIG_RECOVERY_LIMIT)
+    {
+        display.drawStr(2,29,"Recovery restarts");
+        const uint8_t limit=Machine::recoverySettings().restartLimit;
+        display.setFont(u8g2_font_helvB14_tf);
+        if(limit==0)display.drawStr(2,49,"Unlimited");
+        else {snprintf(value,sizeof(value),"%u",limit);display.drawStr(2,49,value);}
+        display.setFont(u8g2_font_5x8_tf);display.drawStr(2,61,"0=Unlimited Click save");
     }
     else
     {

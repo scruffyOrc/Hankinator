@@ -362,13 +362,16 @@ void updateStall()
     const bool production=motionActive&&!auxiliaryMotionActive()&&!measurementPending;
     const bool normalPause=pauseState==PauseState::RUNNING;
     const bool sgValid=driver.valid&&(driver.status&(1UL<<30)); // StallGuard4 requires StealthChop.
-    // The TMC2209 DIAG edge is useful as an immediate first-run warning, but
-    // it is not trustworthy while the driver is being brought back through a
-    // reduced-speed proof/ramp. A genuine continuing bind is still caught by
-    // the numeric SG path (and electrical faults remain immediate).
+    // DIAG is a useful fallback only when the driver cannot provide a numeric
+    // StallGuard sample. On this hardware it can rise without a corresponding
+    // SG load drop; treating that edge as a severe stall caused false CHECK
+    // YARN holds during otherwise healthy runs. Keep every edge observable in
+    // telemetry, but let a fresh SG_RESULT remain the authoritative bind
+    // detector whenever it is available.
     const bool diagAllowed=recovery.phase==StallRecovery::Phase::Normal;
-    const bool diag=diagSeen&&diagAllowed;
+    const bool diagFallback=diagSeen&&diagAllowed&&!sgValid;
     if(diagSeen&&!diagAllowed)Telemetry::event("STALL_DIAG_IGNORED_DURING_RECOVERY");
+    else if(diagSeen&&sgValid)Telemetry::event("STALL_DIAG_OBSERVED_SG_VALID");
     if(production&&cachedStatus&&!staleStatusCacheAnnounced)
     {
         staleStatusCacheAnnounced=true;
@@ -380,21 +383,21 @@ void updateStall()
         Telemetry::event("STALL_SG_UNAVAILABLE_DIAG_ONLY");
     }
     const auto action=recovery.update({now,safeCurrentStepCount(),currentMotorRPS,driver.sg,
-        production,production&&normalPause,statusValid,sgValid,diag,hardFault});
+        production,production&&normalPause,statusValid,sgValid,diagFallback,hardFault});
     state.stallState=recovery.candidate?StallDetectionState::Candidate:StallDetectionState::Monitoring;
     if(action!=StallRecovery::Action::None)state.stallState=StallDetectionState::Confirmed;
     syncRecovery();
     if(action==StallRecovery::Action::Slow||action==StallRecovery::Action::Lock) {
         discardWeightSegment=state.weightArmed;
-        emitStall(action==StallRecovery::Action::Slow?"STALL_SLOWDOWN":"STALL_SLOW_LOCK",diag);
-    } else if(action==StallRecovery::Action::Restore)emitStall("STALL_HEALTHY_TURN_RAMP_UP",diag);
+        emitStall(action==StallRecovery::Action::Slow?"STALL_SLOWDOWN":"STALL_SLOW_LOCK",diagFallback);
+    } else if(action==StallRecovery::Action::Restore)emitStall("STALL_HEALTHY_TURN_RAMP_UP",diagFallback);
     else if(action==StallRecovery::Action::Hold) {
         state.clearanceReason=sgValid?ClearanceReason::Load:(driver.valid?ClearanceReason::DriverMode:ClearanceReason::DriverData);
         discardWeightSegment=state.weightArmed;
         // Stop immediately without automatically reversing an unknown obstruction.
         motionActive=false;requestedStepRateHz=0;currentMotorRPS=0;
         pauseState=PauseState::RUNNING;
-        emitStall((sgValid||diag)?"STALL_CHECK_YARN_HOLD":"STALL_DRIVER_DATA_HOLD",diag);
+        emitStall((sgValid||diagFallback)?"STALL_CHECK_YARN_HOLD":"STALL_DRIVER_DATA_HOLD",diagFallback);
     } else if(action==StallRecovery::Action::Abort) {
         abortWeightRun(hardFault?"DRIVER_ELECTRICAL_FAULT_ABORT":"STALL_RETRY_LIMIT_ABORT");
         disableMotor();

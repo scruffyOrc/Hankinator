@@ -13,6 +13,7 @@ Run from the repository root:
 from __future__ import annotations
 
 from pathlib import Path
+import re
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -31,6 +32,21 @@ def font(size: int, bold: bool = False):
         path = FONT_DIR / name
         if path.exists(): return ImageFont.truetype(str(path), size)
     return ImageFont.load_default()
+
+def draw_splash_title(im):
+    """Use the exact embedded Playwrite bitmap used before LVGL starts."""
+    source = (ROOT / "include" / "playwrite_splash_title.h").read_text(encoding="utf-8")
+    width = int(re.search(r"Width=(\d+)", source).group(1))
+    height = int(re.search(r"Height=(\d+)", source).group(1))
+    row_bytes = int(re.search(r"RowBytes=(\d+)", source).group(1))
+    bits = [int(value, 16) for value in re.findall(r"0x([0-9A-Fa-f]{2})", source)]
+    pixels = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    px = pixels.load()
+    for y in range(height):
+        for x in range(width):
+            if bits[y * row_bytes + x // 8] & (1 << (x & 7)):
+                px[x, y] = (255, 255, 255, 255)
+    im.paste(pixels, ((W - width) // 2, 18), pixels)
 
 def canvas(dark=False):
     return Image.new("RGB", (W, H), DARK if dark else BACKGROUND)
@@ -66,8 +82,9 @@ def toggle(draw, x, y, on=True):
     draw.ellipse((cx-r,y+15-r,cx+r,y+15+r), fill=WHITE)
 
 def gauge(draw, cx=240, cy=178, pct=42, color=TEAL):
-    box=(cx-82,cy-82,cx+82,cy+82); draw.arc(box, 135, 405, fill=TRACK, width=14)
-    draw.arc(box, 135, 135+270*pct/100, fill=color, width=14)
+    # Production: 220 px LVGL arc at (130,72), 18 px stroke, 135..405 degrees.
+    box=(cx-110,cy-110,cx+110,cy+110); draw.arc(box, 135, 405, fill="#D3D9E8", width=18)
+    draw.arc(box, 135, 135+270*pct/100, fill=color, width=18)
 
 def save(name, im):
     OUT.mkdir(parents=True, exist_ok=True); im.save(OUT / f"{name}.png")
@@ -145,11 +162,11 @@ def reset():
 def winding():
     im=canvas(); header(im,"Weight winding"); d=ImageDraw.Draw(im); card(d,"MINI",(20,100,135,150),TEAL,"20 g"); card(d,"HALF",(173,100,135,150),TEAL_LIGHT,"50 g"); card(d,"FULL",(326,100,135,150),"#46B7AC","100 g"); save("25_weight_select",im)
     simple("26_load_yarn","Weight winding","Load yarn on Hank","Then press GO. Hank will find home, tare, and begin.",True,"GO",TEAL)
-    im=canvas(); header(im,"Weight winding"); d=ImageDraw.Draw(im); gauge(d,pct=42,color=TEAL); button(d,"PAUSE",(171,129,138,82),BLUE); center(d,"42%",(240,270),30,INK,True); center(d,"16.8 g measured\n34.25 turns",(380,174),14,INK); save("27_weight_winding",im)
-    im=canvas(); header(im,"Weight winding"); d=ImageDraw.Draw(im); gauge(d,pct=42,color=TEAL); button(d,"RESUME",(171,129,138,82),BLUE); center(d,"42%",(240,270),30,INK,True); center(d,"16.8 g measured\n34.25 turns",(380,174),14,INK); save("28_weight_paused",im)
+    im=canvas(); header(im,"Weight winding"); d=ImageDraw.Draw(im); gauge(d,240,182,42,TEAL); d.ellipse((177,119,303,245),fill=BLUE); center(d,"PAUSE",(240,182),17,WHITE,True); center(d,"EST. 42%",(240,294),20,TEAL,True); d.text((362,132),"TURNS\n34.3",font=font(16),fill=MUTED,spacing=2); d.text((362,202),"MEASURED\n16.8 g",font=font(16),fill=MUTED,spacing=2); save("27_weight_winding",im)
+    im=canvas(); header(im,"Weight winding"); d=ImageDraw.Draw(im); gauge(d,240,182,42,TEAL); d.ellipse((177,119,303,245),fill=BLUE); center(d,"RESUME",(240,182),17,WHITE,True); center(d,"42%",(240,294),20,TEAL,True); d.text((362,132),"TURNS\n34.3",font=font(16),fill=MUTED,spacing=2); d.text((362,202),"MEASURED\n16.8 g",font=font(16),fill=MUTED,spacing=2); save("28_weight_paused",im)
     simple("29_weight_complete","Weight winding","Complete","21.7 g measured | 43.00 turns",True,"+1 TURN",TEAL)
     im=canvas(); header(im,"Count winding"); d=ImageDraw.Draw(im); center(d,"62",(214,130),52,INK,True); center(d,"turns",(214,177),18,MUTED); button(d,"⌨",(335,103,55,52),BLUE); button(d,"START",(26,250,428,48),BLUE); save("30_count_select",im)
-    im=canvas(); header(im,"Count winding"); d=ImageDraw.Draw(im); gauge(d,pct=58,color=BLUE); button(d,"PAUSE",(171,129,138,82),BLUE); center(d,"58%",(240,270),30,INK,True); center(d,"36.00 / 62 turns\n18.2 g measured",(380,174),14,INK); save("31_count_winding",im)
+    im=canvas(); header(im,"Count winding"); d=ImageDraw.Draw(im); gauge(d,240,182,58,BLUE); d.ellipse((177,119,303,245),fill=BLUE); center(d,"PAUSE",(240,182),17,WHITE,True); center(d,"58%",(240,294),20,BLUE,True); d.text((362,132),"TURNS\n36.0",font=font(16),fill=MUTED,spacing=2); d.text((362,202),"MEASURED\n18.2 g",font=font(16),fill=MUTED,spacing=2); save("31_count_winding",im)
     simple("32_stop_confirm","Stop winding?","Winding will safely coast to a stop.","You can resume by selecting No.",True,"YES",DANGER,True)
 
 def hand_turning():
@@ -159,7 +176,19 @@ def dark_mode():
     im=canvas(True); header(im,"Display",True,True); d=ImageDraw.Draw(im); d.text((28,102),"Dark mode",font=font(18,True),fill=WHITE); toggle(d,392,91,True); card(d,"TOUCH CALIBRATION",(20,145,210,92),BLUE); card(d,"DISPLAY SLEEP",(250,145,210,92),BLUE_LIGHT); save("34_dark_mode",im)
 
 def transitional():
-    im=canvas(True); d=ImageDraw.Draw(im); center(d,"Hank Winder",(240,68),34,WHITE,True); d.ellipse((185,110,295,220),outline=TEAL,width=7); d.line((240,165,160,210),fill=WHITE,width=8); d.line((240,165,320,120),fill=WHITE,width=8); d.arc((150,75,330,255),-70,215,fill=TEAL_LIGHT,width=6); center(d,"Checking hardware",(240,275),17,WHITE); save("35_startup",im)
+    im=canvas(True); d=ImageDraw.Draw(im)
+    draw_splash_title(im)
+    # Exact geometry from drawWinderMark(): rimmed hub, four offset arms,
+    # tripod and offset drive. This avoids the generic spinner used before.
+    hx,hy=244,132; cyan="#00D7E9"; frame="#D3D3D3"
+    d.ellipse((hx-49,hy-49,hx+49,hy+49),outline=frame,width=2); d.ellipse((hx-46,hy-46,hx+46,hy+46),outline=frame,width=2)
+    for dx,dy in ((-55,-55),(55,-55),(55,55),(-55,55)):
+        d.line((hx,hy,hx+dx,hy+dy),fill=cyan,width=2); d.line((hx+2,hy,hx+dx+2,hy+dy),fill=cyan,width=2); d.ellipse((hx+dx-8,hy+dy-8,hx+dx+8,hy+dy+8),fill=cyan); d.ellipse((hx+dx-4,hy+dy-4,hx+dx+4,hy+dy+4),fill=DARK)
+    d.ellipse((hx-17,hy-17,hx+17,hy+17),fill=cyan); d.ellipse((hx-7,hy-7,hx+7,hy+7),fill=DARK)
+    d.line((hx-20,hy+38,158,238),fill=frame,width=2); d.line((hx-17,hy+38,161,238),fill=frame,width=2); d.line((hx+22,hy+38,326,238),fill=frame,width=2); d.line((hx+19,hy+38,323,238),fill=frame,width=2); d.line((145,239,176,239),fill=frame,width=2); d.line((311,239,342,239),fill=frame,width=2)
+    d.ellipse((hx-73,hy+40,hx-47,hy+66),outline=cyan,width=2); d.line((hx-48,hy+45,hx-30,hy+30),fill=cyan,width=2); d.line((hx-51,hy+61,hx-28,hy+49),fill=cyan,width=2); d.rounded_rectangle((hx-96,hy+51,hx-66,hy+73),5,fill=cyan); d.ellipse((hx-65,hy+48,hx-55,hy+58),fill=DARK)
+    d.arc((hx-58,hy-58,hx+58,hy+58),278,340,fill="#FFE600",width=8)
+    center(d,"Checking hardware",(240,280),16,"#D3D3D3"); save("35_startup",im)
     im=canvas(); header(im,"Touch calibration"); d=ImageDraw.Draw(im); center(d,"Touch each target as it appears",(240,105),19,INK,True); d.ellipse((222,145,258,181),outline=BLUE,width=4); d.line((240,137,240,189),fill=BLUE,width=3); d.line((214,163,266,163),fill=BLUE,width=3); save("36_touch_calibration",im)
     simple("37_commission_failed","Commission load cells","Commission failed","First validation is outside tolerance.",True,"BACK TO SETTINGS",DANGER)
     simple("38_factory_reset_complete","Factory reset","Reset complete","The system must restart now.",False,"RESTART",SUCCESS)

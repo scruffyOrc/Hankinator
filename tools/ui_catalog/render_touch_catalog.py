@@ -23,7 +23,7 @@ W, H = 480, 320
 BACKGROUND = "#F3F5F9"; HEADER = "#292D43"; INK = "#20243A"; MUTED = "#73788D"
 BLUE = "#4856C8"; BLUE_LIGHT = "#6170D8"; TEAL = "#11998E"; TEAL_LIGHT = "#21A89B"
 GOLD = "#A96508"; PURPLE = "#6B5CC6"; RED = "#B84555"; DANGER = "#B61E28"; SUCCESS = "#2FAF5A"
-WHITE = "#FFFFFF"; DARK = "#090B12"; TRACK = "#D9DEEA"
+WHITE = "#FFFFFF"; DARK = "#090B12"; TRACK = "#D9DEEA"; SHADOW = "#C8CDD9"
 
 FONT_DIR = Path("C:/Windows/Fonts")
 def font(size: int, bold: bool = False):
@@ -67,7 +67,7 @@ def header(im, title, back=True, dark=False):
 
 def card(draw, label, box, color, sub=None, disabled=False):
     x, y, w, h = box; fill = "#B8BCC7" if disabled else color
-    draw.rounded_rectangle((x+2,y+3,x+w+2,y+h+3), 16, fill="#C8CDD9")
+    draw.rounded_rectangle((x+2,y+3,x+w+2,y+h+3), 16, fill=SHADOW)
     draw.rounded_rectangle((x,y,x+w,y+h), 16, fill=fill)
     center(draw, label, (x+w/2, y+h/2-(7 if sub else 0)), 17, WHITE, True)
     if sub: center(draw, sub, (x+w/2,y+h/2+18), 12, WHITE)
@@ -197,9 +197,14 @@ def transitional():
     im=canvas(True); d=ImageDraw.Draw(im); center(d,"Hank",(240,116),46,WHITE,True); center(d,"Manufactured by",(240,177),24,TEAL_LIGHT); save("41_easter_egg_credit",im)
     im=canvas(True); d=ImageDraw.Draw(im); center(d,"BuzzyToes",(240,125),42,WHITE,True); center(d,"Creations",(240,176),42,WHITE,True); center(d,"© 2026",(425,290),13,WHITE); save("42_easter_egg_logo",im)
 
-def main():
+def render_catalog(destination: Path, is_dark: bool):
+    global OUT, BACKGROUND, INK, MUTED, TRACK, SHADOW
+    OUT = destination
+    BACKGROUND, INK, MUTED, TRACK, SHADOW = (
+        ("#090B12", "#F3F5F9", "#A8B0C4", "#30374A", "#030407") if is_dark else
+        ("#F3F5F9", "#20243A", "#73788D", "#D9DEEA", "#C8CDD9")
+    )
     home(); menus(); target_editor(); display(); motor(); connectivity(); diagnostics(); commissioning(); reset(); winding(); hand_turning(); dark_mode(); transitional()
-    index = ROOT / "docs" / "ui-catalog" / "README.md"; index.parent.mkdir(parents=True, exist_ok=True)
     images = sorted(p.name for p in OUT.glob("*.png"))
     thumb_w, thumb_h, row_h = 240, 160, 188
     contact = Image.new("RGB", (thumb_w * 2, row_h * ((len(images) + 1) // 2)), WHITE)
@@ -209,8 +214,14 @@ def main():
         x, y = number % 2 * thumb_w, number // 2 * row_h
         contact.paste(image, (x, y))
         contact_draw.text((x + 6, y + thumb_h + 5), filename, font=font(10), fill=INK)
-    contact.save(index.parent / "contact-sheet.png")
-    index.write_text("# Hank touchscreen UI catalog\n\nNative 480 x 320 source-aligned review renders. They are produced outside the firmware, so they cost Hank no flash or RAM. Regenerate with `C:\\Users\\crisd\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe tools\\ui_catalog\\render_touch_catalog.py`.\n\n[Contact sheet](contact-sheet.png)\n\n" + "\n".join(f"- [screens/{p}](screens/{p})" for p in images) + "\n", encoding="utf-8")
-    print(f"Rendered {len(images)} screens to {OUT}")
+    contact.save(OUT.parent / ("dark-contact-sheet.png" if is_dark else "contact-sheet.png"))
+    return images
+
+def main():
+    light = render_catalog(ROOT / "docs" / "ui-catalog" / "screens", False)
+    dark = render_catalog(ROOT / "docs" / "ui-catalog" / "dark-screens", True)
+    index = ROOT / "docs" / "ui-catalog" / "README.md"; index.parent.mkdir(parents=True, exist_ok=True)
+    index.write_text("# Hank touchscreen UI catalog\n\nNative 480 x 320 source-aligned review renders. They are produced outside the firmware, so they cost Hank no flash or RAM. Regenerate with `C:\\Users\\crisd\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe tools\\ui_catalog\\render_touch_catalog.py`.\n\n[Light-mode contact sheet](contact-sheet.png)\n\n[Dark-mode contact sheet](dark-contact-sheet.png)\n\n## Light mode\n\n" + "\n".join(f"- [screens/{p}](screens/{p})" for p in light) + "\n\n## Dark mode\n\n" + "\n".join(f"- [dark-screens/{p}](dark-screens/{p})" for p in dark) + "\n", encoding="utf-8")
+    print(f"Rendered {len(light)} light and {len(dark)} dark screens")
 
 if __name__ == "__main__": main()

@@ -2,7 +2,11 @@
 
 Native 480 x 320 source-aligned review renders. They are produced outside the firmware, so they cost Hank no flash or RAM. Regenerate with `C:\Users\crisd\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe tools\ui_catalog\render_touch_catalog.py`.
 
-[Contact sheet](contact-sheet.png)
+[Light-mode contact sheet](contact-sheet.png)
+
+[Dark-mode contact sheet](dark-contact-sheet.png)
+
+## Light mode
 
 - [screens/01_home.png](screens/01_home.png)
 - [screens/02_configuration.png](screens/02_configuration.png)
@@ -46,3 +50,48 @@ Native 480 x 320 source-aligned review renders. They are produced outside the fi
 - [screens/40_easter_egg_behold.png](screens/40_easter_egg_behold.png)
 - [screens/41_easter_egg_credit.png](screens/41_easter_egg_credit.png)
 - [screens/42_easter_egg_logo.png](screens/42_easter_egg_logo.png)
+
+## Dark mode
+
+- [dark-screens/01_home.png](dark-screens/01_home.png)
+- [dark-screens/02_configuration.png](dark-screens/02_configuration.png)
+- [dark-screens/03_machine_settings.png](dark-screens/03_machine_settings.png)
+- [dark-screens/04_diagnostics.png](dark-screens/04_diagnostics.png)
+- [dark-screens/05_weight_targets.png](dark-screens/05_weight_targets.png)
+- [dark-screens/06_weight_target_editor.png](dark-screens/06_weight_target_editor.png)
+- [dark-screens/07_display.png](dark-screens/07_display.png)
+- [dark-screens/08_display_sleep.png](dark-screens/08_display_sleep.png)
+- [dark-screens/09_motor.png](dark-screens/09_motor.png)
+- [dark-screens/10_current_warning.png](dark-screens/10_current_warning.png)
+- [dark-screens/11_run_current.png](dark-screens/11_run_current.png)
+- [dark-screens/12_motor_direction.png](dark-screens/12_motor_direction.png)
+- [dark-screens/13_connectivity.png](dark-screens/13_connectivity.png)
+- [dark-screens/14_pairing.png](dark-screens/14_pairing.png)
+- [dark-screens/15_system_check.png](dark-screens/15_system_check.png)
+- [dark-screens/16_weight_diagnostics.png](dark-screens/16_weight_diagnostics.png)
+- [dark-screens/17_scale.png](dark-screens/17_scale.png)
+- [dark-screens/18_commission_ready.png](dark-screens/18_commission_ready.png)
+- [dark-screens/19_commission_leg.png](dark-screens/19_commission_leg.png)
+- [dark-screens/20_commission_arm.png](dark-screens/20_commission_arm.png)
+- [dark-screens/21_commission_complete.png](dark-screens/21_commission_complete.png)
+- [dark-screens/22_factory_reset.png](dark-screens/22_factory_reset.png)
+- [dark-screens/23_factory_reset_code.png](dark-screens/23_factory_reset_code.png)
+- [dark-screens/24_factory_reset_confirm.png](dark-screens/24_factory_reset_confirm.png)
+- [dark-screens/25_weight_select.png](dark-screens/25_weight_select.png)
+- [dark-screens/26_load_yarn.png](dark-screens/26_load_yarn.png)
+- [dark-screens/27_weight_winding.png](dark-screens/27_weight_winding.png)
+- [dark-screens/28_weight_paused.png](dark-screens/28_weight_paused.png)
+- [dark-screens/29_weight_complete.png](dark-screens/29_weight_complete.png)
+- [dark-screens/30_count_select.png](dark-screens/30_count_select.png)
+- [dark-screens/31_count_winding.png](dark-screens/31_count_winding.png)
+- [dark-screens/32_stop_confirm.png](dark-screens/32_stop_confirm.png)
+- [dark-screens/33_hand_turning.png](dark-screens/33_hand_turning.png)
+- [dark-screens/34_dark_mode.png](dark-screens/34_dark_mode.png)
+- [dark-screens/35_startup.png](dark-screens/35_startup.png)
+- [dark-screens/36_touch_calibration.png](dark-screens/36_touch_calibration.png)
+- [dark-screens/37_commission_failed.png](dark-screens/37_commission_failed.png)
+- [dark-screens/38_factory_reset_complete.png](dark-screens/38_factory_reset_complete.png)
+- [dark-screens/39_weight_estimate_failed.png](dark-screens/39_weight_estimate_failed.png)
+- [dark-screens/40_easter_egg_behold.png](dark-screens/40_easter_egg_behold.png)
+- [dark-screens/41_easter_egg_credit.png](dark-screens/41_easter_egg_credit.png)
+- [dark-screens/42_easter_egg_logo.png](dark-screens/42_easter_egg_logo.png)

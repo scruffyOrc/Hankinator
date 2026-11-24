@@ -123,7 +123,7 @@ def target_editor():
 
 def display():
     im=canvas(); header(im,"Display"); d=ImageDraw.Draw(im)
-    d.text((28,102),"Dark mode",font=font(18,True),fill=INK); toggle(d,392,91,False)
+    d.text((28,102),"Dark mode",font=font(18,True),fill=INK); toggle(d,392,91,BACKGROUND == DARK)
     card(d,"TOUCH CALIBRATION",(20,145,210,92),BLUE); card(d,"DISPLAY SLEEP",(250,145,210,92),BLUE_LIGHT); save("07_display",im)
     im=canvas(); header(im,"Display sleep"); d=ImageDraw.Draw(im)
     d.text((28,98),"Blank display",font=font(18,True),fill=INK); toggle(d,392,87,True)
